@@ -8,9 +8,11 @@ author:
     affiliations:
       - ref: stanford
   - name: "Xingyao Xiao"
+    orcid: 0000-0001-8430-0438
     affiliations:
       - ref: stanford
   - name: "Rebecca Zhu"
+    orcid: 0000-0003-0957-5962
     affiliations:
       - ref: stanford
   - name: "Mika Braginsky"
@@ -18,9 +20,11 @@ author:
     affiliations:
       - ref: stanford
   - name: "Nilàm Ram"
+    orcid: 0000-0003-1671-5257
     affiliations:
       - ref: stanford
   - name: "Benjamin W. Domingue"
+    orcid: 0000-0002-3894-9049
     affiliations:
       - ref: stanford
   - name: "Michael C. Frank"
@@ -85,14 +89,140 @@ execute:
   cache: true
 ---
 
+# Introduction
+
 Spatial reasoning, broadly defined as the ability to generate, retain, and manipulate visuospatial information is a fundamental cognitive skill [@lohman2013spatial]. It allows us to form and transform mental images of 2D shapes and 3D objects (e.g., by rotating, bending, or folding them), and to represent how spatial relations between locations, shapes, and objects change over time [@frick2014development; @newcombe2014thinking].
 
 Spatial ability is important for a wide range of educational outcomes [@wai2018spatial], including creative domains such as music [@padulo2020effects; @hetland2000learning] and visual arts [@kell2013creativity; @winner2013relationship] as well as STEM subjects [@wai2009spatial] and, most notably, math (@atit2022examining; @xie2020spatial; @mix2012relation; @gunderson2012relation]. Given it’s importance for educational outcomes, a number of attempts have been made to train spatial reasoning skills. For example, @Hhawes2015effects reported that, compared with an active control group, 6–8-year-old children who received mental rotation training showed significant gains on two separate 2D mental rotation measures, as well as more general improvements in spatial reasoning on an untrained spatial task. @uttal2013malleability conducted a meta-analysis of 217 studies with child and adult samples to examine the size and generalizability of spatial skills training effects. Across studies, the mean effect size for training compared with control conditions was Hedges’ g = 0.47 (SE = 0.04). @gilligan2020first showed that training spatial reasoning skills had	near,	intermediate	and	far	transfer	effects in 8-year old children [@gilligan2020first]. Similarly,in a sample of elementary school students, @lowrie2017visuospatial showed that those who participated in a 10-week visuospatial reasoning (VSR) program achieved substantially higher spatial reasoning scores than students in the control group, and also demonstrated improved mathematics performance.  	
 
+to be continued
+
+## Reaction time
+
+## Cross-country comparisons
+
+## Strategies
+
 ```{r}
+# packages
+library("tidyverse")
+library("glue")
+library("here")
+```
 
+```{r helper functions}
+#| echo: false
+source(here::here("plot_settings.R"))
+source(here("03_explore_tasks/explore_helper.R"))
+```
 
+```{r load irt data}
+site_labels <- c("uniandes-co" = "pilot_uniandes_co",
+                 "mpieva-de" = "pilot_mpieva_de",
+                 "western-ca" = "pilot_western_ca")
 
+site_map <- tibble::tibble(
+  site       = names(site_labels),
+  site_label = unname(site_labels)
+)
+
+# core_tasks   <- c("matrix","mrot","math","hf","mg","sds",
+#                   "trog","vocab","tom")
+
+# Run data
+run_data <- readr::read_rds(here::here("01_fetched_data/run_data.rds"))
+# colnames(run_data)
+
+# IRT data
+all_scores <- readr::read_rds(here::here("02_scoring_outputs","scores","scores_combined.rds"))
+# colnames(all_scores)
+# table(all_scores$item_task)
+# table(all_scores$metric_type)
+```
+
+```{r}
+# colnames(all_scores)
+# table(all_scores$model)
+
+mrot_df <- all_scores %>%
+  filter(item_task == "mrot", metric_type == "ability") %>%
+  mutate(
+    age          = as.numeric(age),
+    metric_value = as.numeric(metric_value),
+    site_label   = dplyr::recode(site, !!!site_labels, .default = site)
+  ) %>%
+  filter(is.finite(age), is.finite(metric_value))
+
+mrot_irt <- ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
+  geom_point(alpha = 0.35, size = 1.1) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE) +
+  labs(
+    title = "Developmental trends in Mental Rotation ability by site",
+    subtitle = "Ability estimates smoothed with GAM",
+    x = "Age (years)",
+    y = "Ability (theta)",
+    colour = "Site"
+  )
+mrot_irt
+```
+
+```{r}
+mrot_rt_sum <- all_sum_scores %>%
+  filter(item_task == "mrot") %>%
+  select(site, language, data) %>%
+  unnest(data) %>%
+  mutate(
+    correct = as.numeric(correct),
+    rt_s    = as.numeric(rt_numeric) / 1000
+  ) %>%
+  filter(is.finite(rt_s), rt_s > 0) %>%
+  mutate(log_rt = log(rt_s))
+
+mrot_rt_runs <- mrot_rt_sum %>%
+  left_join(run_ages, by = c("user_id","run_id")) %>%
+  group_by(site, user_id, run_id) %>%
+  summarise(
+    # raw
+    #rt_median   = median(rt_s[correct == 1], na.rm = TRUE),
+    #rt_trimmed  = mean(rt_s[correct == 1], trim = 0.10, na.rm = TRUE),
+    # log scale
+    logrt_median  = median(log_rt[correct == 1], na.rm = TRUE),
+    logrt_mean = mean(log_rt[correct == 1], na.rm = TRUE), #trim = 0.10 removed
+    age = first(age),
+    n_items = n_distinct(item_uid),
+    .groups = "drop"
+  )
+
+ability_runs <- all_scores %>% 
+  filter(item_task == "mrot", metric_type == "ability") %>%
+  select(site, user_id, run_id, ability = metric_value, age) %>%
+  group_by(site, user_id, run_id) %>%               
+  summarise(ability = mean(ability, na.rm = TRUE),
+            age = first(age),
+            .groups = "drop")
+
+# join with your RT summary 
+mrot_speed_ability <- ability_runs %>%
+  inner_join(
+    mrot_rt_runs %>% select(site, user_id, run_id, logrt_mean),
+    by = c("site", "user_id", "run_id")
+  )
+
+# plot
+p_mrot_speed_ability <- mrot_speed_ability |>
+  mutate(age_binned = as_factor(floor(age))) |>
+  ggplot(aes(x = logrt_mean, y = ability, colour = age_binned)) +
+  geom_point(alpha = 0.55, size = 1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ site) +
+  # scale_colour_viridis_c() +
+  labs(
+    title = "IRT Ability (Thetas) vs log RT, by site, colored by age",
+    subtitle = "Each point = participant run; line = linear fit per site",
+    x = "log RT (s)", y = "IRT Ability (Thetas)", color = "Age (y)"
+  )
+
+```
 
 
 
