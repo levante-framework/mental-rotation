@@ -105,9 +105,10 @@ to be continued
 
 ```{r}
 # packages
-library("tidyverse")
-library("glue")
-library("here")
+library(tidyverse)
+library(glue)
+library(here)
+library(forcats)
 ```
 
 ```{r helper functions}
@@ -131,11 +132,16 @@ site_map <- tibble::tibble(
 
 # Run data
 run_data <- readr::read_rds(here::here("01_fetched_data/run_data.rds"))
-# colnames(run_data)
+colnames(run_data)
+
+# RT data
+all_sum_scores <- readr::read_rds(here::here("01_fetched_data","task_data_nested.rds"))
+colnames(all_sum_scores)
+glimpse(all_sum_scores$data)
 
 # IRT data
 all_scores <- readr::read_rds(here::here("02_scoring_outputs","scores","scores_combined.rds"))
-# colnames(all_scores)
+colnames(all_scores)
 # table(all_scores$item_task)
 # table(all_scores$metric_type)
 ```
@@ -167,27 +173,28 @@ mrot_irt
 ```
 
 ```{r}
+# get shape and rotation data
 mrot_rt_sum <- all_sum_scores %>%
   filter(item_task == "mrot") %>%
   select(site, language, data) %>%
-  unnest(data) %>%
+  unnest(data) %>%                         
   mutate(
     correct = as.numeric(correct),
     rt_s    = as.numeric(rt_numeric) / 1000
   ) %>%
-  filter(is.finite(rt_s), rt_s > 0) %>%
+  filter(is.finite(rt_s), rt_s > 0) %>%     
   mutate(log_rt = log(rt_s))
 
+# collapse to run level RT summaries
 mrot_rt_runs <- mrot_rt_sum %>%
-  left_join(run_ages, by = c("user_id","run_id")) %>%
+  left_join(run_data %>% 
+              select(site, user_id, run_id, age), 
+            by = c("site", "user_id", "run_id")) %>%
   group_by(site, user_id, run_id) %>%
   summarise(
-    # raw
-    #rt_median   = median(rt_s[correct == 1], na.rm = TRUE),
-    #rt_trimmed  = mean(rt_s[correct == 1], trim = 0.10, na.rm = TRUE),
-    # log scale
-    logrt_median  = median(log_rt[correct == 1], na.rm = TRUE),
-    logrt_mean = mean(log_rt[correct == 1], na.rm = TRUE), #trim = 0.10 removed
+    # trial-level RT summaries for correct items
+    logrt_median = median(log_rt[correct == 1], na.rm = TRUE),
+    logrt_mean   = mean(log_rt[correct == 1],  na.rm = TRUE),
     age = first(age),
     n_items = n_distinct(item_uid),
     .groups = "drop"
@@ -197,33 +204,34 @@ ability_runs <- all_scores %>%
   filter(item_task == "mrot", metric_type == "ability") %>%
   select(site, user_id, run_id, ability = metric_value, age) %>%
   group_by(site, user_id, run_id) %>%               
-  summarise(ability = mean(ability, na.rm = TRUE),
-            age = first(age),
-            .groups = "drop")
+  summarise(
+    ability = mean(ability, na.rm = TRUE),
+    age     = first(age),
+    .groups = "drop"
+  )
 
-# join with your RT summary 
+# join RT and ability
 mrot_speed_ability <- ability_runs %>%
   inner_join(
     mrot_rt_runs %>% select(site, user_id, run_id, logrt_mean),
     by = c("site", "user_id", "run_id")
   )
 
-# plot
-p_mrot_speed_ability <- mrot_speed_ability |>
-  mutate(age_binned = as_factor(floor(age))) |>
+p_mrot_speed_ability <- mrot_speed_ability %>%
+  mutate(age_binned = as_factor(floor(age))) %>%
   ggplot(aes(x = logrt_mean, y = ability, colour = age_binned)) +
   geom_point(alpha = 0.55, size = 1) +
   geom_smooth(method = "lm", se = FALSE) +
   facet_wrap(~ site) +
-  # scale_colour_viridis_c() +
   labs(
-    title = "IRT Ability (Thetas) vs log RT, by site, colored by age",
-    subtitle = "Each point = participant run; line = linear fit per site",
-    x = "log RT (s)", y = "IRT Ability (Thetas)", color = "Age (y)"
+    title = "IRT Ability (Theta) vs log RT",
+    subtitle = "Each point = participant run; site-wise linear fits",
+    x = "log(RT, seconds)",
+    y = "IRT ability (theta)",
+    colour = "Age (years)"
   )
-
+p_mrot_speed_ability
 ```
 
 
 
-```
