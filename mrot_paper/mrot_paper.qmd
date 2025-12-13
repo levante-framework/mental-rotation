@@ -3,7 +3,7 @@ title: "Measuring the development of mental rotation ages 5-12 across three popu
 shorttitle: "LEVANTE Mental Rotation"
 
 author: 
-  - name: "Fionnuala O'Reilly*"
+  - name: "Fionnuala O'Reilly"
     orcid: 0000-0002-4355-9088
     affiliations:
       - ref: stanford
@@ -113,11 +113,11 @@ library(forcats)
 
 ```{r helper functions}
 #| echo: false
-source(here::here("plot_settings.R"))
-source(here("03_explore_tasks/explore_helper.R"))
+source(here::here("..", "levante-pilots", "plot_settings.R"))
+source(here::here("..", "levante-pilots", "03_explore_tasks", "explore_helper.R"))
 ```
 
-```{r load irt data}
+```{r load data}
 site_labels <- c("uniandes-co" = "pilot_uniandes_co",
                  "mpieva-de" = "pilot_mpieva_de",
                  "western-ca" = "pilot_western_ca")
@@ -131,25 +131,29 @@ site_map <- tibble::tibble(
 #                   "trog","vocab","tom")
 
 # Run data
-run_data <- readr::read_rds(here::here("01_fetched_data/run_data.rds"))
-colnames(run_data)
+run_data <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data/run_data.rds"))
+# colnames(run_data)
 
 # RT data
-all_sum_scores <- readr::read_rds(here::here("01_fetched_data","task_data_nested.rds"))
-colnames(all_sum_scores)
-glimpse(all_sum_scores$data)
+all_sum_scores <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data","task_data_nested.rds"))
+# colnames(all_sum_scores)
+# glimpse(all_sum_scores$data)
 
 # IRT data
-all_scores <- readr::read_rds(here::here("02_scoring_outputs","scores","scores_combined.rds"))
-colnames(all_scores)
+all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs","scores","scores_combined.rds"))
+# colnames(all_scores)
 # table(all_scores$item_task)
 # table(all_scores$metric_type)
 ```
 
 ```{r}
+#| label: dev-trends
+#| fig-cap: "Developmental trends in Mental Rotation ability by site."
+#| fig-width: 8
+#| fig-height: 6
+
 # colnames(all_scores)
 # table(all_scores$model)
-
 mrot_df <- all_scores %>%
   filter(item_task == "mrot", metric_type == "ability") %>%
   mutate(
@@ -163,7 +167,7 @@ mrot_irt <- ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label))
   geom_point(alpha = 0.35, size = 1.1) +
   geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE) +
   labs(
-    title = "Developmental trends in Mental Rotation ability by site",
+    #title = "Developmental trends in Mental Rotation ability by site",
     subtitle = "Ability estimates smoothed with GAM",
     x = "Age (years)",
     y = "Ability (theta)",
@@ -173,6 +177,11 @@ mrot_irt
 ```
 
 ```{r}
+#| label: ability-rt
+#| fig-cap: "IRT Ability (Theta) vs log RT."
+#| fig-width: 8
+#| fig-height: 6
+
 # get shape and rotation data
 mrot_rt_sum <- all_sum_scores %>%
   filter(item_task == "mrot") %>%
@@ -224,7 +233,7 @@ p_mrot_speed_ability <- mrot_speed_ability %>%
   geom_smooth(method = "lm", se = FALSE) +
   facet_wrap(~ site) +
   labs(
-    title = "IRT Ability (Theta) vs log RT",
+    #title = "IRT Ability (Theta) vs log RT",
     subtitle = "Each point = participant run; site-wise linear fits",
     x = "log(RT, seconds)",
     y = "IRT ability (theta)",
@@ -232,6 +241,144 @@ p_mrot_speed_ability <- mrot_speed_ability %>%
   )
 p_mrot_speed_ability
 ```
+\clearpage
 
+```{r trial-level RTs}
+ mrot_rt_trial <- all_sum_scores %>%
+  dplyr::filter(item_task == "mrot") %>%
+  dplyr::select(site, data) %>%        
+  tidyr::unnest(data) %>%              
+  dplyr::mutate(
+    correct = as.numeric(correct),
+    rt_s    = as.numeric(rt_numeric) / 1000,
+    log_rt  = log(rt_s)
+  ) %>%
+  dplyr::filter(is.finite(rt_s), rt_s > 0)
 
+# age per run 
+run_ages <- run_data %>%
+  dplyr::transmute(
+    user_id,
+    run_id,
+    age = as.numeric(age)
+  ) %>%
+  dplyr::filter(is.finite(age))
+
+```
+
+```{r}
+#| label: fig-rt-angle
+#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
+#| fig-width: 8
+#| fig-height: 8
+
+age_breaks <- c(5, 8, 11, 14)
+
+mrot_items_rt_runs <- mrot_rt_trial %>%
+  mutate(
+    stimulus = stringr::str_extract(item, "^[a-z]+"),
+    angle    = as.integer(stringr::str_extract(item, "\\d+"))
+  ) %>%
+  filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
+  left_join(run_ages, by = c("user_id","run_id")) %>%
+  filter(!is.na(age)) %>%
+  mutate(
+    age_group = cut(age, breaks = age_breaks,
+                    include.lowest = TRUE, right = TRUE)
+  ) %>%
+  tidyr::drop_na(age_group) %>%
+  group_by(site, user_id, run_id, age, age_group,
+           stimulus, item_group, angle) %>%
+  summarise(
+    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
+    .groups = "drop"
+  )
+
+mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
+  group_by(site, stimulus, item_group, angle, age_group) %>%
+  summarise(
+    y   = mean(rt_med, na.rm = TRUE),
+    sd  = sd(rt_med, na.rm = TRUE),
+    n   = dplyr::n(),
+    se  = sd / sqrt(pmax(n, 1)),
+    lwr = y - 1.96 * se,
+    upr = y + 1.96 * se,
+    .groups = "drop"
+  )
+
+p_mrot_rt_angle_age <- ggplot(
+  mrot_items_rt_agebin_ci,
+  aes(x = angle, y = y,
+      group = interaction(item_group, stimulus),
+      colour = stimulus, linetype = item_group)
+) +
+  # raw data layer added below (step 2) ...
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
+                linewidth = 0.35, alpha = 0.6) +
+  geom_point(size = 1) +
+  geom_line(alpha = 0.85) +
+  facet_grid(site ~ age_group) +
+  labs(
+    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
+    x = "Rotation angle (°)",
+    y = "RT (s)",                             
+    colour = "Stimulus",
+    linetype = "Item Type"
+  )
+p_mrot_rt_angle_age
+```
+\clearpage
+
+```{r}
+#| label: fig-rt-angle-per-run
+#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI."
+#| fig-width: 8
+#| fig-height: 8
+
+# Add raw data underneath
+p_mrot_rt_angle_age <- ggplot() +
+  # raw per-run medians
+  geom_point(
+    data = mrot_items_rt_runs,
+    aes(x = angle, y = rt_med,
+        colour = stimulus),
+    size = 0.4,
+    alpha = 0.25,
+    position = position_jitter(width = 3, height = 0)
+  ) +
+  # summary CI + lines
+  geom_errorbar(
+    data = mrot_items_rt_agebin_ci,
+    aes(x = angle, y = y, ymin = lwr, ymax = upr,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    width = 2,
+    linewidth = 0.35,
+    alpha = 0.6
+  ) +
+  geom_point(
+    data = mrot_items_rt_agebin_ci,
+    aes(x = angle, y = y,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    size = 1
+  ) +
+  geom_line(
+    data = mrot_items_rt_agebin_ci,
+    aes(x = angle, y = y,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    alpha = 0.85
+  ) +
+  facet_grid(site ~ age_group) +
+  labs(
+    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
+    x = "Rotation angle (°)",
+    y = "RT (s)",
+    colour = "Stimulus",
+    #linetype = "Item Type"
+  )
+p_mrot_rt_angle_age
+```
+\clearpage
 
