@@ -565,40 +565,41 @@ m_joint_corrected <- brm(
 )
 ```
 
+
 ```{r}
-#| label: tbl-bivariate-results
 #| echo: false
 #| message: false
 #| warning: false
-# 1. Extract results for Table
+
+library(knitr)
+library(dplyr)
+library(tibble)
+
+# 1. Extract results
 fixef_results <- fixef(m_joint_corrected) %>%
   as.data.frame() %>%
   rownames_to_column("Parameter")
 
-# 2. Define SAFE Helper functions (Returns NA instead of crashing if name is missing)
+# 2. Define Helper Functions
 get_est <- function(pattern) {
   val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Estimate)
   if(length(val) == 0) return(NA) else return(val)
 }
-
 get_low <- function(pattern) {
   val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q2.5)
   if(length(val) == 0) return(NA) else return(val)
 }
-
 get_up <- function(pattern) {
   val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q97.5)
   if(length(val) == 0) return(NA) else return(val)
 }
 
-# 3. Build Dynamic Dataframe using CONFIRMED parameter names
+# 3. Build Dataframe
 site_results <- tibble(
-  Outcome = c("Spatial Ability (SD)", "Spatial Ability (SD)", 
-              "Response Speed (log s)", "Response Speed (log s)"),
+  Outcome = c("Spatial Ability", "Spatial Ability", 
+              "Response Speed", "Response Speed"),
   Comparison = c("Colombia vs. Germany", "Canada vs. Germany", 
                  "Colombia vs. Germany", "Canada vs. Germany"),
-  
-  # THESE NOW MATCH YOUR CONSOLE OUTPUT EXACTLY:
   Param_Name = c("ability_sitepilot_uniandes_co", "ability_sitepilot_western_ca",
                  "rtresid_sitepilot_uniandes_co", "rtresid_sitepilot_western_ca")
 ) %>%
@@ -607,46 +608,21 @@ site_results <- tibble(
     Beta = get_est(Param_Name),
     CI_Lower = get_low(Param_Name),
     CI_Upper = get_up(Param_Name),
-    
-    # Logic to determine significance automatically
-    Sig_Flag = ifelse(sign(CI_Lower) == sign(CI_Upper), "*", "ns"),
-    
-    # Logic to generate the interpretation text
     Result = case_when(
-      is.na(Beta) ~ "Error: Param Not Found",
-      Outcome == "Spatial Ability (SD)" & Beta < 0 ~ "Significantly Lower",
-      Outcome == "Spatial Ability (SD)" & Beta > 0 ~ "Significantly Higher",
-      Outcome == "Response Speed (log s)" & Beta < 0 & Sig_Flag == "*" ~ "Significantly Faster",
-      Outcome == "Response Speed (log s)" & Beta > 0 & Sig_Flag == "*" ~ "Significantly Slower",
-      Sig_Flag == "ns" ~ "No Difference",
-      TRUE ~ "Other"
+      is.na(Beta) ~ "Error",
+      TRUE ~ "Valid"
     )
   ) %>%
   ungroup() %>%
-  filter(!is.na(Beta))
+  filter(Result == "Valid") %>%
+  mutate(
+    Estimate = sprintf("%.2f", Beta),
+    `95% CI` = paste0("[", sprintf("%.2f", CI_Lower), ", ", sprintf("%.2f", CI_Upper), "]")
+  ) %>%
+  select(Outcome, Comparison, Estimate, `95% CI`)
 
-# 4. Generate GT Table
-site_results %>%
-  select(Outcome, Comparison, Beta, CI_Lower, CI_Upper, Result) %>%
-  group_by(Outcome) %>%
-  gt() %>%
-  tab_header(
-    title = "Cross-Cultural Differences in Ability and Processing Speed",
-    subtitle = "Posterior estimates from Bivariate Bayesian Regression"
-  ) %>%
-  cols_label(
-    Comparison = "Site Comparison",
-    Beta = "Estimate (β)",
-    CI_Lower = "Lower 95% CI",
-    CI_Upper = "Upper 95% CI",
-    Result = "Interpretation"
-  ) %>%
-  fmt_number(columns = c(Beta, CI_Lower, CI_Upper), decimals = 2) %>%
-  tab_options(
-    table.border.top.color = "black",
-    table.border.bottom.color = "black",
-    row_group.font.weight = "bold"
-  )
+# 4. Simple Table (No Caption = No Error)
+kable(site_results, booktabs = TRUE)
 ```
 
 ```{r}
@@ -659,8 +635,37 @@ site_results %>%
 library(ggplot2)
 library(patchwork)
 library(dplyr)
+library(tibble)
 
-# 1. Define APA Theme for Forest Plot
+# 1. Re-construct the data safely (Self-contained)
+# This ensures we have the raw numbers (Beta, CI) needed for plotting
+fixef_results <- fixef(m_joint_corrected) %>%
+  as.data.frame() %>%
+  rownames_to_column("Parameter")
+
+get_est <- function(p) { val <- fixef_results %>% filter(Parameter == p) %>% pull(Estimate); if(length(val)==0) NA else val }
+get_low <- function(p) { val <- fixef_results %>% filter(Parameter == p) %>% pull(Q2.5); if(length(val)==0) NA else val }
+get_up  <- function(p) { val <- fixef_results %>% filter(Parameter == p) %>% pull(Q97.5); if(length(val)==0) NA else val }
+
+plot_data <- tibble(
+  Outcome = c("Spatial Ability", "Spatial Ability", 
+              "Response Speed", "Response Speed"),
+  Comparison = c("Colombia vs. Germany", "Canada vs. Germany", 
+                 "Colombia vs. Germany", "Canada vs. Germany"),
+  Param_Name = c("ability_sitepilot_uniandes_co", "ability_sitepilot_western_ca",
+                 "rtresid_sitepilot_uniandes_co", "rtresid_sitepilot_western_ca")
+) %>%
+  rowwise() %>%
+  mutate(
+    Beta = get_est(Param_Name),
+    CI_Lower = get_low(Param_Name),
+    CI_Upper = get_up(Param_Name),
+    Site = ifelse(grepl("Colombia", Comparison), "Colombia", "Canada")
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(Beta))
+
+# 2. Define Theme
 theme_apa_forest <- theme_classic(base_size = 11) +
   theme(
     text = element_text(family = "serif"),
@@ -669,13 +674,8 @@ theme_apa_forest <- theme_classic(base_size = 11) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-# 2. Extract plotting data from our dynamic dataframe
-# We clean up the site names for the Y-axis labels
-plot_data <- site_results %>%
-  mutate(Site = ifelse(grepl("Colombia", Comparison), "Colombia", "Canada"))
-
 # 3. Panel A: Ability Differences
-p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability (SD)"), 
+p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability"), 
              aes(x = Beta, y = Site)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
   geom_point(size = 3, color = "#27ae60") +
@@ -688,7 +688,7 @@ p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability (SD)"),
   theme_apa_forest
 
 # 4. Panel B: Speed Differences
-p2 <- ggplot(subset(plot_data, Outcome == "Response Speed (log s)"), 
+p2 <- ggplot(subset(plot_data, Outcome == "Response Speed"), 
              aes(x = Beta, y = Site)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
   geom_point(size = 3, color = "#2980b9") +
