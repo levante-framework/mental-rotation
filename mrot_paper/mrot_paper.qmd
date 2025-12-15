@@ -109,24 +109,28 @@ library(tidyverse)
 library(glue)
 library(here)
 library(forcats)
-# --- NEW LIBRARIES ---
-library(lme4)       # For Step 4 (LMM)
-library(brms)       # For Step 6 & 7 (Bayesian Models)
-library(ggeffects)  # For Step 4b plotting
-library(gt)         # For tables
-library(patchwork)  # For combining plots
+library(lme4)       
+library(brms)       
+library(ggeffects)  
+library(gt)         
+library(patchwork)  
 library(brms)
 library(ggplot2)
 library(dplyr)
 ```
 
-```{r helper functions}
+```{r}
 #| echo: false
 source(here::here("..", "levante-pilots", "plot_settings.R"))
 source(here::here("..", "levante-pilots", "03_explore_tasks", "explore_helper.R"))
 ```
 
-```{r load data}
+```{r}
+#| label: load-data
+#| echo: false
+#| message: false
+#| cache: true
+
 site_labels <- c("uniandes-co" = "pilot_uniandes_co",
                  "mpieva-de" = "pilot_mpieva_de",
                  "western-ca" = "pilot_western_ca")
@@ -252,8 +256,13 @@ p_mrot_speed_ability
 ```
 \clearpage
 
-```{r trial-level RTs}
- mrot_rt_trial <- all_sum_scores %>%
+```{r}
+#| label: trial-level-rts
+#| echo: false
+#| message: false
+#| cache: true
+
+mrot_rt_trial <- all_sum_scores %>%
   dplyr::filter(item_task == "mrot") %>%
   dplyr::select(site, data) %>%        
   tidyr::unnest(data) %>%              
@@ -391,11 +400,12 @@ p_mrot_rt_angle_age
 ```
 \clearpage
 
+<!--
 # RT Residualization
 To isolate pure processing speed from item difficulty (e.g., the added difficulty of 3D objects), we fitted a Linear Mixed Model (LMM) residualizing log reaction times against rotation angle, trial number, and stimulus type. 
 
 ```{r}
-#| label: step4-residualization
+#| label: residualization
 #| echo: false
 #| message: false
 #| cache: true
@@ -436,7 +446,7 @@ rt_residuals_person <- model_rt_data %>%
 ```
 
 ```{r}
-#| label: step4b-within-person (delete for now, Appendix?)
+#| label: within-person-rt
 #| echo: false
 #| message: false
 #| cache: true
@@ -470,7 +480,7 @@ m_within <- glmer(
 To simultaneously evaluate developmental trends and cross-cultural differences, we fitted a multivariate Bayesian regression model. This model jointly predicts Spatial Ability ($\theta$) and Residualized Processing Speed, accounting for the correlation between the two traits.
 
 ```{r}
-#| label: step6-bivariate-prep
+#| label: bivariate-prep
 #| echo: false
 #| message: false
 
@@ -485,8 +495,6 @@ model_data_corrected <- ability_runs %>%
     site_model = dplyr::recode(site, !!!site_labels)
   )
 ```
-
-
 
 ```{r}
 #| label: fig-development
@@ -530,9 +538,7 @@ plot_b <- ggplot(model_data_corrected, aes(x = age, y = rt_resid)) +
     tag = "B",
     x = "Age (Years)",
     y = "Residualized RT (log seconds)\n(Negative = Faster)"
-  ) +
-  theme_apa
-
+  ) 
 # 4. Combine and Print
 plot_a + plot_b
 ```
@@ -540,7 +546,7 @@ plot_a + plot_b
 \clearpage
 
 ```{r}
-#| label: step6-run-brms
+#| label: run-brms
 #| echo: false
 #| message: false
 #| warning: false
@@ -548,7 +554,6 @@ plot_a + plot_b
 #| results: hide
 
 # NOTE: This chunk uses cache=TRUE because brms takes time to run.
-
 
 m_joint_corrected <- brm(
   mvbind(ability, rt_resid) ~ site + age,
