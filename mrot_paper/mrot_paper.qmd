@@ -400,7 +400,6 @@ p_mrot_rt_angle_age
 ```
 \clearpage
 
-<!--
 # RT Residualization
 To isolate pure processing speed from item difficulty (e.g., the added difficulty of 3D objects), we fitted a Linear Mixed Model (LMM) residualizing log reaction times against rotation angle, trial number, and stimulus type. 
 
@@ -470,6 +469,8 @@ m_within <- glmer(
   nAGQ = 0 # Optimization for speed
 )
 ```
+
+
 
 \clearpage
 
@@ -542,6 +543,7 @@ plot_b <- ggplot(model_data_corrected, aes(x = age, y = rt_resid)) +
 # 4. Combine and Print
 plot_a + plot_b
 ```
+
 
 \clearpage
 
@@ -624,6 +626,8 @@ site_results <- tibble(
 # 4. Simple Table (No Caption = No Error)
 kable(site_results, booktabs = TRUE)
 ```
+
+<!--
 
 ```{r}
 #| label: fig-site-forest
@@ -795,4 +799,5 @@ ggplot(effects_data2, aes(x = rt_resid, y = estimate__, linetype = site_label)) 
 ```
 \clearpage
 
+-->
 
