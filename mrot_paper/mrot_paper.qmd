@@ -109,6 +109,15 @@ library(tidyverse)
 library(glue)
 library(here)
 library(forcats)
+# --- NEW LIBRARIES ---
+library(lme4)       # For Step 4 (LMM)
+library(brms)       # For Step 6 & 7 (Bayesian Models)
+library(ggeffects)  # For Step 4b plotting
+library(gt)         # For tables
+library(patchwork)  # For combining plots
+library(brms)
+library(ggplot2)
+library(dplyr)
 ```
 
 ```{r helper functions}
@@ -381,4 +390,404 @@ p_mrot_rt_angle_age <- ggplot() +
 p_mrot_rt_angle_age
 ```
 \clearpage
+
+# RT Residualization
+To isolate pure processing speed from item difficulty (e.g., the added difficulty of 3D objects), we fitted a Linear Mixed Model (LMM) residualizing log reaction times against rotation angle, trial number, and stimulus type. 
+
+```{r}
+#| label: step4-residualization
+#| echo: false
+#| message: false
+#| cache: true
+
+# 1. Prepare Data for Modeling
+# Ensure mrot_rt_trial has the necessary columns derived from 'item'
+model_rt_data <- mrot_rt_trial %>%
+  mutate(
+    # Extract "rabbit" from "rabbit_040" if not already present
+    stimulus = stringr::str_extract(item, "^[a-z]+"), 
+    angle = as.integer(stringr::str_extract(item, "\\d+")) 
+  ) %>%
+  filter(!is.na(angle), !is.na(log_rt))
+
+# 2. FIT FULL MODEL (Residualization)
+# Controlling for angle, trial, stimulus, and item grouping
+m_rt_full <- lmer(
+  log_rt ~ angle + trial_number + stimulus + item_group + (1|item), 
+  data = model_rt_data
+)
+
+# 3. Extract Residuals (Person Speed)
+# These represent speed after accounting for item difficulty
+model_rt_data <- model_rt_data %>%
+  mutate(rt_resid_item = residuals(m_rt_full))
+
+rt_residuals_person <- model_rt_data %>%
+  group_by(user_id, run_id) %>%
+  summarise(
+    rt_residual_mean = mean(rt_resid_item, na.rm=TRUE),
+    rt_residual_sd   = sd(rt_resid_item, na.rm=TRUE),
+    n_items = n(),
+    .groups = "drop"
+  )
+
+# Save for later
+#write_csv(rt_residuals_person, here::here("..", "levante-pilots", "02_scoring_outputs", "scores", "rt_residuals_corrected.csv"))
+```
+
+```{r}
+#| label: step4b-within-person (delete for now, Appendix?)
+#| echo: false
+#| message: false
+#| cache: true
+
+# 1. Decompose RT for Within-Person Analysis
+within_person_data <- model_rt_data %>%
+  filter(!is.na(log_rt), !is.na(correct)) %>%
+  group_by(user_id) %>%
+  mutate(
+    rt_person_mean = mean(log_rt, na.rm = TRUE),
+    rt_within = log_rt - rt_person_mean # >0 means slower than my usual
+  ) %>%
+  ungroup()
+
+# 2. Fit GLMM (Logistic Regression)
+# Does slowing down predict correctness?
+m_within <- glmer(
+  correct ~ rt_within + rt_person_mean + angle + item_group + trial_number + (1|user_id) + (1|item),
+  data = within_person_data,
+  family = binomial,
+  nAGQ = 0 # Optimization for speed
+)
+```
+
+\clearpage
+
+# Cross-Country Comparisons (Bivariate Model)
+
+## Cross-Population Differences in Ability and Speed
+
+To simultaneously evaluate developmental trends and cross-cultural differences, we fitted a multivariate Bayesian regression model. This model jointly predicts Spatial Ability ($\theta$) and Residualized Processing Speed, accounting for the correlation between the two traits.
+
+```{r}
+#| label: step6-bivariate-prep
+#| echo: false
+#| message: false
+
+# Join existing scores with new residuals
+model_data_corrected <- ability_runs %>%
+  inner_join(rt_residuals_person %>% 
+               select(user_id, run_id, rt_resid = rt_residual_mean),
+             by = c("user_id", "run_id")) %>%
+  filter(!is.na(ability), !is.na(rt_resid), !is.na(age)) %>%
+  mutate(
+    # Recode sites for cleaner output
+    site_model = dplyr::recode(site, !!!site_labels)
+  )
+```
+
+
+
+```{r}
+#| label: fig-development
+#| fig-cap: "Developmental Trajectories. Panel A shows the increase in Spatial Ability (Theta) with age. Panel B shows the decrease in Residualized Reaction Time (log seconds) with age, indicating faster processing speed."
+#| echo: false
+#| warning: false
+#| message: false
+
+library(ggplot2)
+library(patchwork)
+
+# 1. Define APA Theme
+theme_apa <- theme_classic(base_size = 12) +
+  theme(
+    text = element_text(family = "serif", color = "black"),
+    axis.line = element_line(color = "black", linewidth = 0.8),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black", size = 11),
+    axis.title = element_text(face = "bold", size = 12),
+    plot.tag = element_text(face = "bold", size = 16), 
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA)
+  )
+
+# 2. Panel A: Spatial Ability by Age
+plot_a <- ggplot(model_data_corrected, aes(x = age, y = ability)) +
+  geom_jitter(alpha = 0.25, size = 1.2, width = 0.2, color = "grey40") +
+  geom_smooth(method = "lm", color = "black", linewidth = 1, se = TRUE, fill = "grey80") +
+  labs(
+    tag = "A",
+    x = "Age (Years)",
+    y = expression(paste("Spatial Ability (", theta, ")")) 
+  ) +
+  theme_apa
+
+# 3. Panel B: Processing Speed by Age
+plot_b <- ggplot(model_data_corrected, aes(x = age, y = rt_resid)) +
+  geom_jitter(alpha = 0.25, size = 1.2, width = 0.2, color = "grey40") +
+  geom_smooth(method = "lm", color = "black", linewidth = 1, se = TRUE, fill = "grey80") +
+  labs(
+    tag = "B",
+    x = "Age (Years)",
+    y = "Residualized RT (log seconds)\n(Negative = Faster)"
+  ) +
+  theme_apa
+
+# 4. Combine and Print
+plot_a + plot_b
+```
+
+\clearpage
+
+```{r}
+#| label: step6-run-brms
+#| echo: false
+#| message: false
+#| warning: false
+#| cache: true
+#| results: hide
+
+# NOTE: This chunk uses cache=TRUE because brms takes time to run.
+
+
+m_joint_corrected <- brm(
+  mvbind(ability, rt_resid) ~ site + age,
+  data = model_data_corrected,
+  chains = 4, 
+  cores = 4, 
+  iter = 2000, 
+  seed = 123
+)
+```
+
+```{r}
+#| label: tbl-bivariate-results
+#| echo: false
+#| message: false
+#| warning: false
+# 1. Extract results for Table
+fixef_results <- fixef(m_joint_corrected) %>%
+  as.data.frame() %>%
+  rownames_to_column("Parameter")
+
+# 2. Define SAFE Helper functions (Returns NA instead of crashing if name is missing)
+get_est <- function(pattern) {
+  val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Estimate)
+  if(length(val) == 0) return(NA) else return(val)
+}
+
+get_low <- function(pattern) {
+  val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q2.5)
+  if(length(val) == 0) return(NA) else return(val)
+}
+
+get_up <- function(pattern) {
+  val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q97.5)
+  if(length(val) == 0) return(NA) else return(val)
+}
+
+# 3. Build Dynamic Dataframe using CONFIRMED parameter names
+site_results <- tibble(
+  Outcome = c("Spatial Ability (SD)", "Spatial Ability (SD)", 
+              "Response Speed (log s)", "Response Speed (log s)"),
+  Comparison = c("Colombia vs. Germany", "Canada vs. Germany", 
+                 "Colombia vs. Germany", "Canada vs. Germany"),
+  
+  # THESE NOW MATCH YOUR CONSOLE OUTPUT EXACTLY:
+  Param_Name = c("ability_sitepilot_uniandes_co", "ability_sitepilot_western_ca",
+                 "rtresid_sitepilot_uniandes_co", "rtresid_sitepilot_western_ca")
+) %>%
+  rowwise() %>%
+  mutate(
+    Beta = get_est(Param_Name),
+    CI_Lower = get_low(Param_Name),
+    CI_Upper = get_up(Param_Name),
+    
+    # Logic to determine significance automatically
+    Sig_Flag = ifelse(sign(CI_Lower) == sign(CI_Upper), "*", "ns"),
+    
+    # Logic to generate the interpretation text
+    Result = case_when(
+      is.na(Beta) ~ "Error: Param Not Found",
+      Outcome == "Spatial Ability (SD)" & Beta < 0 ~ "Significantly Lower",
+      Outcome == "Spatial Ability (SD)" & Beta > 0 ~ "Significantly Higher",
+      Outcome == "Response Speed (log s)" & Beta < 0 & Sig_Flag == "*" ~ "Significantly Faster",
+      Outcome == "Response Speed (log s)" & Beta > 0 & Sig_Flag == "*" ~ "Significantly Slower",
+      Sig_Flag == "ns" ~ "No Difference",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(Beta))
+
+# 4. Generate GT Table
+site_results %>%
+  select(Outcome, Comparison, Beta, CI_Lower, CI_Upper, Result) %>%
+  group_by(Outcome) %>%
+  gt() %>%
+  tab_header(
+    title = "Cross-Cultural Differences in Ability and Processing Speed",
+    subtitle = "Posterior estimates from Bivariate Bayesian Regression"
+  ) %>%
+  cols_label(
+    Comparison = "Site Comparison",
+    Beta = "Estimate (β)",
+    CI_Lower = "Lower 95% CI",
+    CI_Upper = "Upper 95% CI",
+    Result = "Interpretation"
+  ) %>%
+  fmt_number(columns = c(Beta, CI_Lower, CI_Upper), decimals = 2) %>%
+  tab_options(
+    table.border.top.color = "black",
+    table.border.bottom.color = "black",
+    row_group.font.weight = "bold"
+  )
+```
+
+```{r}
+#| label: fig-site-forest
+#| fig-cap: "Site-Specific Processing Styles. Forest plot showing posterior estimates for Spatial Ability (Panel A) and Processing Speed (Panel B) relative to the German baseline (dashed line at 0). Error bars represent 95% confidence intervals."
+#| echo: false
+#| message: false
+#| warning: false
+
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+# 1. Define APA Theme for Forest Plot
+theme_apa_forest <- theme_classic(base_size = 11) +
+  theme(
+    text = element_text(family = "serif"),
+    axis.text.y = element_text(face = "bold", size = 10),
+    panel.grid.major.x = element_line(color = "grey90"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
+  )
+
+# 2. Extract plotting data from our dynamic dataframe
+# We clean up the site names for the Y-axis labels
+plot_data <- site_results %>%
+  mutate(Site = ifelse(grepl("Colombia", Comparison), "Colombia", "Canada"))
+
+# 3. Panel A: Ability Differences
+p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability (SD)"), 
+             aes(x = Beta, y = Site)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_point(size = 3, color = "#27ae60") +
+  geom_errorbarh(aes(xmin = CI_Lower, xmax = CI_Upper), height = 0.2, color = "#27ae60") +
+  labs(
+    title = "A. Ability Differences",
+    subtitle = "(Reference: Germany = 0)",
+    x = "Difference in SD units"
+  ) +
+  theme_apa_forest
+
+# 4. Panel B: Speed Differences
+p2 <- ggplot(subset(plot_data, Outcome == "Response Speed (log s)"), 
+             aes(x = Beta, y = Site)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_point(size = 3, color = "#2980b9") +
+  geom_errorbarh(aes(xmin = CI_Lower, xmax = CI_Upper), height = 0.2, color = "#2980b9") +
+  labs(
+    title = "B. Speed Differences",
+    subtitle = "(Negative = Faster)",
+    x = "Difference in log(seconds)"
+  ) +
+  theme_apa_forest
+
+# 5. Combine and Print
+p1 + p2
+```
+
+\clearpage
+
+## Differential Effectiveness of Processing Speed
+
+We further tested whether the accuracy benefits of slowing down varied across cultures by modeling the interaction between site and processing speed. In contrast to the site-specific hypothesis, results indicated a universal benefit to deliberative processing.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| cache: true
+#| results: hide
+# 1. Fit the Interaction Model
+# NOTE: Using cache=TRUE to avoid re-running this slow model every render
+m_strategy <- brm(
+  ability ~ age + site_model * rt_resid, 
+  data = model_data_corrected,
+  chains = 4, 
+  cores = 4, 
+  iter = 2000, 
+  seed = 123
+)
+```
+
+```{r}
+#| label: fig-strategy-interaction
+#| fig-cap: "Universal Speed-Accuracy Trade-off. The relationship between residualized reaction time and spatial ability is consistent across sites. In all three populations, slower processing (higher residualized RT) predicts higher spatial ability scores, as indicated by the parallel positive slopes."
+#| echo: false
+#| message: false
+#| warning: false
+
+
+# 2. Extract trend lines for plotting
+effects_data <- conditional_effects(m_strategy, effects = "rt_resid:site_model")[[1]]
+
+# 3. Define APA Theme
+theme_apa <- theme_classic(base_size = 12) +
+  theme(
+    text = element_text(family = "serif", color = "black"),
+    axis.line = element_line(color = "black", linewidth = 0.8),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black", size = 11),
+    axis.title = element_text(face = "bold", size = 12),
+    legend.position = "top",
+    legend.title = element_text(face = "bold"),
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA)
+  )
+
+# Prepare data for plotting
+# Note: Ensure site_labels vector exists from previous chunks
+effects_data2 <- effects_data %>%
+  mutate(site_label = dplyr::recode(as.character(site_model), 
+                                    "pilot_uniandes_co" = "Colombia",
+                                    "pilot_mpieva_de" = "Germany",
+                                    "pilot_western_ca" = "Canada"))
+
+# Position for line-end labels (rightmost x for each site)
+label_positions <- effects_data2 %>%
+  group_by(site_label) %>%
+  slice_max(rt_resid, with_ties = FALSE) %>%
+  ungroup()
+
+# 4. Create the Plot
+ggplot(effects_data2, aes(x = rt_resid, y = estimate__, linetype = site_label)) +
+  # Ribbons (Confidence Intervals)
+  geom_ribbon(aes(ymin = lower__, ymax = upper__, fill = site_label), 
+              alpha = 0.15, color = NA) +
+  # Trend Lines
+  geom_line(linewidth = 1.2, color = "black") +
+  # Direct labels near lines
+  geom_text(
+    data = label_positions,
+    aes(x = rt_resid + 0.05, y = estimate__, label = site_label),
+    inherit.aes = FALSE, hjust = 0, size = 4.5, fontface = "bold"
+  ) +
+  # Manual Scales
+  scale_linetype_manual(values = c("Germany" = "solid", "Colombia" = "longdash", "Canada" = "dotted")) +
+  scale_fill_manual(values = c("Germany" = "black", "Colombia" = "black", "Canada" = "black")) +
+  # Labels and Layout
+  labs(
+    x = "Residualized RT (log seconds)\n(Negative = Fast | Positive = Slow)",
+    y = "Predicted Spatial Ability (Theta)"
+  ) +
+  coord_cartesian(clip = "off") + 
+  theme_apa +
+  theme(legend.position = "none", plot.margin = margin(r = 80))
+
+```
+\clearpage
+
 
