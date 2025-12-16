@@ -408,9 +408,9 @@ To isolate pure processing speed from item difficulty (e.g., the added difficult
 #| echo: false
 #| message: false
 #| cache: true
+#| results: "hide"
 
-# 1. Prepare Data for Modeling
-# Ensure mrot_rt_trial has the necessary columns derived from 'item'
+# prepare data for modeling
 model_rt_data <- mrot_rt_trial %>%
   mutate(
     # Extract "rabbit" from "rabbit_040" if not already present
@@ -419,20 +419,18 @@ model_rt_data <- mrot_rt_trial %>%
   ) %>%
   filter(!is.na(angle), !is.na(log_rt))
 
-# 2. FIT FULL MODEL (Residualization)
 # Controlling for angle, trial, stimulus, and item grouping
 m_rt_full <- lmer(
   log_rt ~ angle + trial_number + stimulus + item_group + (1|item), 
   data = model_rt_data
 )
 
-# 3. Extract Residuals (Person Speed)
-# These represent speed after accounting for item difficulty
+# extract residuals (Person Speed): these represent speed after accounting for item difficulty
 model_rt_data <- model_rt_data %>%
   mutate(rt_resid_item = residuals(m_rt_full))
 
 rt_residuals_person <- model_rt_data %>%
-  group_by(user_id, run_id) %>%
+  group_by(site, user_id, run_id) %>%
   summarise(
     rt_residual_mean = mean(rt_resid_item, na.rm=TRUE),
     rt_residual_sd   = sd(rt_resid_item, na.rm=TRUE),
@@ -443,6 +441,142 @@ rt_residuals_person <- model_rt_data %>%
 # Save for later
 #write_csv(rt_residuals_person, here::here("..", "levante-pilots", "02_scoring_outputs", "scores", "rt_residuals_corrected.csv"))
 ```
+
+```{r}
+#| label: fig-rt-resid
+#| fig-cap: "Residualized reaction time."
+#| fig-width: 8
+#| fig-height: 6
+
+rt_resid_person_age <- rt_residuals_person %>%
+  left_join(run_ages, by = c("user_id", "run_id")) %>%
+  filter(!is.finite(age) == FALSE) %>%    
+  mutate(
+    age_group = cut(
+      age,
+      breaks = c(5, 8, 11, 14),
+      include.lowest = TRUE,
+      right = TRUE
+    )
+  ) %>%
+  drop_na(age_group)
+
+# Violin plot of residualized RT
+ggplot(rt_resid_person_age,
+       aes(x = age_group, y = rt_residual_mean, fill = age_group)) +
+  #geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_jitter(size = 1.5, alpha = 0.4, width = 0.1) + # looking for the z-score to be jittered
+  geom_boxplot(width = 0.15, outlier.shape = NA, width = 10) +
+  facet_wrap(~ site, nrow = 1) +
+  labs(
+    x = "Age group (years)",
+    y = "Residualized RT (log seconds)"
+  ) +
+  theme(legend.position = "none")
+```
+ 
+\clearpage
+
+```{r}
+#| label: resid-rt-diff
+#| echo: false
+#| message: false
+#| cache: true
+#| results: "hide"
+
+# quantifying differences in residualized RT with site and age
+rt_resid_person_age <- model_rt_data %>%
+  group_by(site, user_id, run_id) %>%
+  summarise(
+    rt_residual_mean = mean(rt_resid_item, na.rm = TRUE),
+    rt_residual_sd   = sd(rt_resid_item,   na.rm = TRUE),
+    n_items          = n(),
+    .groups          = "drop"
+  ) %>%
+  left_join(
+    run_data %>%
+      transmute(
+        user_id,
+        run_id,
+        age = as.numeric(age)
+      ),
+    by = c("user_id", "run_id")
+  ) %>%
+  filter(is.finite(age),
+         age >= 5,
+         age <= 13)
+
+m_site_age <- lmer(
+  rt_residual_mean ~ site + age + (1 | user_id), # random intercept; each child’s baseline is estimated independently
+  data = rt_resid_person_age
+)
+
+summary(m_site_age)
+anova(m_site_age)
+```
+
+```{r}
+#| label: fig-site-age-slopes
+#| fig-cap: "Cross-Site Trajectories of Residualized Reaction Time from Ages 5–13."
+#| fig-width: 8
+#| fig-height: 6
+#| results: "hide"
+
+# Site-specific age slopes (interaction model)
+m_site_age_int <- lmer(
+  rt_residual_mean ~ site * age + (1 | user_id),
+  data = rt_resid_person_age
+)
+anova(m_site_age, m_site_age_int)  
+
+ggplot(rt_resid_person_age,
+       aes(x = age, y = rt_residual_mean, colour = site)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 4), se = TRUE) +
+  labs(
+    x = "Age (years)",
+    y = "Residualized RT (log seconds)"
+  )
+```
+\clearpage
+
+```{r}
+#| label: marginal-means
+#| echo: false
+#| message: false
+#| cache: true
+#| results: "hide"
+
+# marginal means at 6, 9 and 12 to understand the magnitude of differences
+library(emmeans)
+emm <- emmeans(m_site_age_int, ~ site | age,
+               at = list(age = c(6, 9, 12)))
+emm
+pairs(emm)  # pairwise site differences at each age with CIs
+```
+
+```{r}
+#| label: tbl-site-pairs
+#| tbl-cap: "Pairwise site differences in residualized RT at ages 6, 9, and 12 years."
+
+pairs_df <- pairs(emm) %>%
+  as.data.frame() %>%
+  mutate(contrast = gsub("pilot_", "", contrast),
+         contrast = gsub("_", " ", contrast)) %>%
+  select(contrast, age, estimate, SE, df, t.ratio, p.value) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  mutate(p.value = ifelse(p.value < .001, "<.001", sprintf("%.3f", p.value)))
+
+knitr::kable(
+  pairs_df,
+  booktabs = TRUE,
+  col.names = c("Site Contrast", "Age (years)", "Estimate", "SE", "df", "t", "p")
+)
+```
+
+\clearpage
+
+<!--
 
 ```{r}
 #| label: within-person-rt
@@ -468,10 +602,43 @@ m_within <- glmer(
   family = binomial,
   nAGQ = 0 # Optimization for speed
 )
+
 ```
 
+```{r}
+#| label: fig-within-rt-trajectories
+#| fig-cap: "Within-person trajectories of log-transformed RT across trials."
+#| fig-width: 8
+#| fig-height: 6
+
+# Add age info + age groups
+within_plot_data <- within_person_data %>%
+  left_join(run_ages, by = c("user_id", "run_id")) %>%
+  filter(!is.na(age)) %>%
+  mutate(
+    age_group = cut(
+      age,
+      breaks = c(5, 8, 11, 14),
+      include.lowest = TRUE,
+      right = TRUE
+    )
+  )
+
+ggplot(within_plot_sample,
+       aes(x = trial_number, y = log_rt, group = user_id)) +
+  geom_line(alpha = 0.15) +
+  geom_smooth(aes(group = 1),
+              colour = "black",
+              linewidth = 1) +
+  facet_grid(site ~ age_group) +
+  labs(
+    x = "Trial number",
+    y = "Log RT (seconds)",
+    subtitle = "Thin lines = individual trajectories; thick line = average trend"
+  )
 
 
+```
 \clearpage
 
 # Cross-Country Comparisons (Bivariate Model)
@@ -543,8 +710,6 @@ plot_b <- ggplot(model_data_corrected, aes(x = age, y = rt_resid)) +
 # 4. Combine and Print
 plot_a + plot_b
 ```
-
-
 \clearpage
 
 ```{r}
@@ -567,41 +732,41 @@ m_joint_corrected <- brm(
 )
 ```
 
-
 ```{r}
+#| label: tbl-bivariate-results
 #| echo: false
 #| message: false
 #| warning: false
 
-library(knitr)
-library(dplyr)
-library(tibble)
-
-# 1. Extract results
+# 1. Extract results for Table
 fixef_results <- fixef(m_joint_corrected) %>%
   as.data.frame() %>%
   rownames_to_column("Parameter")
 
-# 2. Define Helper Functions
+# 2. Define SAFE Helper functions (Returns NA instead of crashing if name is missing)
 get_est <- function(pattern) {
   val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Estimate)
   if(length(val) == 0) return(NA) else return(val)
 }
+
 get_low <- function(pattern) {
   val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q2.5)
   if(length(val) == 0) return(NA) else return(val)
 }
+
 get_up <- function(pattern) {
   val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q97.5)
   if(length(val) == 0) return(NA) else return(val)
 }
 
-# 3. Build Dataframe
+# 3. Build Dynamic Dataframe using CONFIRMED parameter names
 site_results <- tibble(
-  Outcome = c("Spatial Ability", "Spatial Ability", 
-              "Response Speed", "Response Speed"),
+  Outcome = c("Spatial Ability (SD)", "Spatial Ability (SD)", 
+              "Response Speed (log s)", "Response Speed (log s)"),
   Comparison = c("Colombia vs. Germany", "Canada vs. Germany", 
                  "Colombia vs. Germany", "Canada vs. Germany"),
+  
+  # THESE NOW MATCH YOUR CONSOLE OUTPUT EXACTLY:
   Param_Name = c("ability_sitepilot_uniandes_co", "ability_sitepilot_western_ca",
                  "rtresid_sitepilot_uniandes_co", "rtresid_sitepilot_western_ca")
 ) %>%
@@ -610,24 +775,49 @@ site_results <- tibble(
     Beta = get_est(Param_Name),
     CI_Lower = get_low(Param_Name),
     CI_Upper = get_up(Param_Name),
+    
+    # Logic to determine significance automatically
+    Sig_Flag = ifelse(sign(CI_Lower) == sign(CI_Upper), "*", "ns"),
+    
+    # Logic to generate the interpretation text
     Result = case_when(
-      is.na(Beta) ~ "Error",
-      TRUE ~ "Valid"
+      is.na(Beta) ~ "Error: Param Not Found",
+      Outcome == "Spatial Ability (SD)" & Beta < 0 ~ "Significantly Lower",
+      Outcome == "Spatial Ability (SD)" & Beta > 0 ~ "Significantly Higher",
+      Outcome == "Response Speed (log s)" & Beta < 0 & Sig_Flag == "*" ~ "Significantly Faster",
+      Outcome == "Response Speed (log s)" & Beta > 0 & Sig_Flag == "*" ~ "Significantly Slower",
+      Sig_Flag == "ns" ~ "No Difference",
+      TRUE ~ "Other"
     )
   ) %>%
   ungroup() %>%
-  filter(Result == "Valid") %>%
-  mutate(
-    Estimate = sprintf("%.2f", Beta),
-    `95% CI` = paste0("[", sprintf("%.2f", CI_Lower), ", ", sprintf("%.2f", CI_Upper), "]")
-  ) %>%
-  select(Outcome, Comparison, Estimate, `95% CI`)
+  filter(!is.na(Beta))
 
-# 4. Simple Table (No Caption = No Error)
-kable(site_results, booktabs = TRUE)
+# 4. Generate GT Table
+site_results %>%
+  select(Outcome, Comparison, Beta, CI_Lower, CI_Upper, Result) %>%
+  group_by(Outcome) %>%
+  gt() %>%
+  tab_header(
+    title = "Cross-Cultural Differences in Ability and Processing Speed",
+    subtitle = "Posterior estimates from Bivariate Bayesian Regression"
+  ) %>%
+  cols_label(
+    Comparison = "Site Comparison",
+    Beta = "Estimate (β)",
+    CI_Lower = "Lower 95% CI",
+    CI_Upper = "Upper 95% CI",
+    Result = "Interpretation"
+  ) %>%
+  fmt_number(columns = c(Beta, CI_Lower, CI_Upper), decimals = 2) %>%
+  tab_options(
+    table.border.top.color = "black",
+    table.border.bottom.color = "black",
+    row_group.font.weight = "bold"
+  )
 ```
 
-<!--
+
 
 ```{r}
 #| label: fig-site-forest
@@ -639,37 +829,8 @@ kable(site_results, booktabs = TRUE)
 library(ggplot2)
 library(patchwork)
 library(dplyr)
-library(tibble)
 
-# 1. Re-construct the data safely (Self-contained)
-# This ensures we have the raw numbers (Beta, CI) needed for plotting
-fixef_results <- fixef(m_joint_corrected) %>%
-  as.data.frame() %>%
-  rownames_to_column("Parameter")
-
-get_est <- function(p) { val <- fixef_results %>% filter(Parameter == p) %>% pull(Estimate); if(length(val)==0) NA else val }
-get_low <- function(p) { val <- fixef_results %>% filter(Parameter == p) %>% pull(Q2.5); if(length(val)==0) NA else val }
-get_up  <- function(p) { val <- fixef_results %>% filter(Parameter == p) %>% pull(Q97.5); if(length(val)==0) NA else val }
-
-plot_data <- tibble(
-  Outcome = c("Spatial Ability", "Spatial Ability", 
-              "Response Speed", "Response Speed"),
-  Comparison = c("Colombia vs. Germany", "Canada vs. Germany", 
-                 "Colombia vs. Germany", "Canada vs. Germany"),
-  Param_Name = c("ability_sitepilot_uniandes_co", "ability_sitepilot_western_ca",
-                 "rtresid_sitepilot_uniandes_co", "rtresid_sitepilot_western_ca")
-) %>%
-  rowwise() %>%
-  mutate(
-    Beta = get_est(Param_Name),
-    CI_Lower = get_low(Param_Name),
-    CI_Upper = get_up(Param_Name),
-    Site = ifelse(grepl("Colombia", Comparison), "Colombia", "Canada")
-  ) %>%
-  ungroup() %>%
-  filter(!is.na(Beta))
-
-# 2. Define Theme
+# 1. Define APA Theme for Forest Plot
 theme_apa_forest <- theme_classic(base_size = 11) +
   theme(
     text = element_text(family = "serif"),
@@ -678,8 +839,13 @@ theme_apa_forest <- theme_classic(base_size = 11) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
+# 2. Extract plotting data from our dynamic dataframe
+# We clean up the site names for the Y-axis labels
+plot_data <- site_results %>%
+  mutate(Site = ifelse(grepl("Colombia", Comparison), "Colombia", "Canada"))
+
 # 3. Panel A: Ability Differences
-p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability"), 
+p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability (SD)"), 
              aes(x = Beta, y = Site)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
   geom_point(size = 3, color = "#27ae60") +
@@ -692,7 +858,7 @@ p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability"),
   theme_apa_forest
 
 # 4. Panel B: Speed Differences
-p2 <- ggplot(subset(plot_data, Outcome == "Response Speed"), 
+p2 <- ggplot(subset(plot_data, Outcome == "Response Speed (log s)"), 
              aes(x = Beta, y = Site)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
   geom_point(size = 3, color = "#2980b9") +
