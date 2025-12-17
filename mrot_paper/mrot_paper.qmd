@@ -575,7 +575,43 @@ knitr::kable(
 ```
 
 \clearpage
+## Within-Person Dynamics
 
+To understand how performance fluctuates during the task, we examined reaction time trajectories across the 80 trials. The figure below illustrates the trial-by-trial dynamics. A clear "jump" in reaction time is visible halfway through the task (around trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three populations.
+
+```{r}
+#| label: fig-within-person-trials
+#| fig-cap: "Trial-level Reaction Time Dynamics. The plot shows the mean log-reaction time across the 80 trials for each site. Shaded areas represent standard error. The sharp increase represents the transition to 3D items."
+#| echo: false
+#| message: false
+#| warning: false
+
+# 1. Prepare data with Site Labels
+trial_plot_data <- mrot_rt_trial %>%
+  filter(!is.na(log_rt), correct == 1) %>% # Focus on correct trials for valid RT
+  left_join(run_data %>% select(user_id, run_id, site), by = c("user_id", "run_id")) %>%
+  mutate(site_label = dplyr::recode(site.x, !!!site_labels))
+
+
+ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fill = site_label)) +
+  # Mean line
+  stat_summary(fun = mean, geom = "line", linewidth = 1) +
+  # Confidence bands (Standard Error)
+  stat_summary(fun.data = mean_se, geom = "ribbon", alpha = 0.2, color = NA) +
+  scale_color_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1") +
+  labs(
+    x = "Trial Number (Time)",
+    y = "Log Reaction Time (seconds)",
+    color = "Site",
+    fill = "Site"
+  ) +
+  theme_classic() +
+  theme(legend.position = "top")
+
+```
+
+\clearpage
 <!--
 
 ```{r}
