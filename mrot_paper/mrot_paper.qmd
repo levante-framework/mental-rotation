@@ -575,6 +575,7 @@ knitr::kable(
 ```
 
 \clearpage
+
 ## Within-Person Dynamics
 
 To understand how performance fluctuates during the task, we examined reaction time trajectories across the 80 trials. The figure below illustrates the trial-by-trial dynamics. A clear "jump" in reaction time is visible halfway through the task (around trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three populations.
@@ -610,6 +611,455 @@ ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fi
   theme(legend.position = "top")
 
 ```
+
+
+
+
+# Cognitive Strategies Analysis
+
+To determine if children rely on distinct cognitive strategies (e.g., "Effective Rotation" vs. "Impulsive Guessing"), we extracted four cognitive features for each participant using a mixed-effects model:
+
+1.  Baseline Speed: Intercept from the linear model.
+2.  Rotation Slope: The "cost" of rotation (purified of stimulus effects).
+3.  Response Variability (RT SD): Intra-individual standard deviation.
+4.  Accuracy: IRT-estimated ability.
+
+We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cross-cultural validity, we compared a "Global Model" (pooled data) against "Local Models" (country-specific).
+
+
+```{r}
+#| label: strategy-analysis-prep
+#| echo: false
+#| message: false
+#| warning: false
+#| cache: true
+#| results: "hide"
+
+library(lme4)
+library(broom)
+
+# 1. PREPARE DATA FOR RICH MODEL
+#    Ensure stimulus is a factor for the interaction term
+mrot_rich_data <- mrot_rt_trial %>%
+    mutate(
+        stimulus = stringr::str_extract(item, "^[a-z]+"),
+        angle    = as.integer(stringr::str_extract(item, "\\d+"))
+    )%>%
+  mutate(
+    angle_s = scale(angle),
+    trial_s = scale(trial_number),
+    stimulus = as.factor(stimulus)
+  )
+
+model_data_corrected <- ability_runs %>%
+  inner_join(rt_residuals_person %>% 
+               select(user_id, run_id, rt_resid = rt_residual_mean),
+             by = c("user_id", "run_id")) %>%
+  filter(!is.na(ability), !is.na(rt_resid), !is.na(age)) %>%
+  mutate(
+    # Recode sites for cleaner output
+    site_model = dplyr::recode(site, !!!site_labels)
+  )
+# 2. FIT THE "RICH MODEL" (Intercept + Angle*Stimulus + Trial)
+#    Formula: RT ~ Angle*Stimulus + Trial
+#    This separates "Shape Difficulty" (Stimulus) from "Rotation Ability" (Angle)
+m_rich <- lmer(
+  log_rt ~ angle_s * stimulus + trial_s + (1 + angle_s + trial_s | user_id) + (1 | item),
+  data = mrot_rich_data,
+  control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
+)
+
+# 3. EXTRACT PARAMETERS
+#    Get Individual Deviations (Random Effects)
+ran_effs <- ranef(m_rich)$user_id %>%
+  rownames_to_column("user_id") %>%
+  rename(int_dev = `(Intercept)`, slope_dev = angle_s, trial_dev = trial_s) %>%
+  distinct(user_id, .keep_all = TRUE)
+
+#    Get Global Averages (Fixed Effects)
+fix_int <- fixef(m_rich)["(Intercept)"]
+fix_ang <- fixef(m_rich)["angle_s"]
+fix_tri <- fixef(m_rich)["trial_s"]
+
+# 4. CALCULATE COGNITIVE FEATURES
+rich_features_raw <- ran_effs %>%
+  mutate(
+    Baseline_Speed = fix_int + int_dev,
+    Abs_Slope = fix_ang + slope_dev,
+    Rel_Slope = Abs_Slope / Baseline_Speed,
+    Learning_Rate = fix_tri + trial_dev
+  )
+
+# 5. ADD VARIABILITY & MERGE
+rt_variability_clean <- mrot_rt_trial %>%
+  group_by(user_id) %>%
+  summarise(RT_SD = sd(log_rt, na.rm = TRUE), .groups = "drop") %>%
+  distinct(user_id, .keep_all = TRUE)
+
+user_site_map <- mrot_rt_trial %>% 
+  select(user_id, site) %>% 
+  distinct(user_id, .keep_all = TRUE)
+
+rich_features_final <- rich_features_raw %>%
+  left_join(rt_variability_clean, by = "user_id") %>%
+  left_join(user_site_map, by = "user_id") %>%
+  left_join(
+    model_data_corrected %>% select(user_id, accuracy = ability) %>% distinct(user_id, .keep_all=TRUE), 
+    by = "user_id"
+  ) %>%
+  mutate(
+    Country = case_when(
+      grepl("mpieva", site) ~ "Germany",
+      grepl("uniandes", site) ~ "Colombia",
+      grepl("western", site) ~ "Canada",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
+```
+
+```{r}
+#| label: clustering-execution
+#| echo: false
+#| message: false
+#| warning: false
+
+# 1. SETUP CLUSTERING
+analysis_data <- rich_features_final %>%
+  filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
+
+my_colors <- c("Ineffective" = "#c0392b", "Effective" = "grey60")
+
+# 2. RUN GLOBAL K-MEANS
+global_input <- analysis_data %>% 
+  select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% 
+  scale()
+
+set.seed(123)
+k_global <- kmeans(global_input, centers = 3)
+analysis_data$Global_Cluster <- as.factor(k_global$cluster)
+
+# Identify "Ineffective" Global Cluster (Lowest Accuracy)
+bad_global_id <- analysis_data %>% 
+  group_by(Global_Cluster) %>% 
+  summarise(acc = mean(accuracy)) %>% 
+  arrange(acc) %>% 
+  pull(Global_Cluster) %>% .[1]
+
+analysis_data <- analysis_data %>%
+  mutate(Strategy_Type = ifelse(Global_Cluster == bad_global_id, "Ineffective", "Effective"))
+
+# 3. CALCULATE AGREEMENT STATS (For Text)
+check_agreement <- function(data, country_name) {
+  c_data <- data %>% filter(Country == country_name)
+  set.seed(123)
+  input_local <- c_data %>% select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% scale()
+  k_local <- kmeans(input_local, centers = 3)
+  
+  bad_local_id <- c_data %>% 
+    mutate(cid = k_local$cluster) %>% 
+    group_by(cid) %>% 
+    summarise(acc = mean(accuracy)) %>% 
+    arrange(acc) %>% 
+    pull(cid) %>% .[1]
+  
+  c_data$Local_Label <- ifelse(k_local$cluster == bad_local_id, "Ineffective", "Effective")
+  agreement_table <- table(Local = c_data$Local_Label, Global = c_data$Strategy_Type)
+  sum(diag(agreement_table)) / sum(agreement_table)
+}
+
+res_de <- check_agreement(analysis_data, "Germany")
+res_co <- check_agreement(analysis_data, "Colombia")
+res_ca <- check_agreement(analysis_data, "Canada")
+```
+
+The validation analysis showed high agreement between the Global and Local models for Germany (`r round(res_de*100, 1)`%) and Canada (`r round(res_ca*100, 1)`%). Agreement was slightly lower for Colombia (`r round(res_co*100, 1)`%), suggesting some nuance in strategy classification, but sufficiently high to proceed with the Global definitions.
+
+```{r}
+#| label: fig-strategy-faceted
+#| fig-cap: "Global Strategy Model. Participants are classified as using an 'Effective' (Grey) or 'Ineffective' (Red) strategy based on clustering of Accuracy, Slope, Speed, and Variability. The 'Ineffective' group is characterized by low accuracy and flat rotation slopes."
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 5
+
+ggplot(analysis_data, aes(x = Abs_Slope, y = accuracy, color = Strategy_Type)) +
+  geom_point(alpha = 0.6, size = 1.8) +
+  stat_ellipse(aes(group = Global_Cluster), type = "norm", linetype = "dashed", color = "black", size = 0.3) +
+  facet_wrap(~ Country) + 
+  theme_bw(base_size = 12) +
+  scale_color_manual(values = my_colors) +
+  labs(
+    x = "Rotation Slope", y = "Accuracy (Theta)",
+    color = "Strategy Type"
+  ) + 
+  theme(legend.position = "bottom", strip.text = element_text(face = "bold"))
+```
+\clearpage
+
+##Model Selection: Global vs. Local Clustering
+
+To determine whether we can define "ineffective strategies" universally or if we need country-specific definitions, we compared two approaches:
+
+- Local Models: Clustering performed independently within each country (optimizing for local variance).
+- Global Model: Clustering performed on the pooled dataset (applying a universal standard).
+
+We then calculated the agreement rate between the two methods to see if the "Global" definition aligns with "Local" realities.
+
+```{r}
+#| label: model-comparison-prep
+#| echo: false
+#| message: false
+#| warning: false
+#| results: "hide"
+
+library(patchwork)
+
+# 1. PREP DATA (Ensure we have the features)
+# (Re-using rich_features_final from previous steps)
+analysis_data <- rich_features_final %>%
+  filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
+
+# 2. FIT LOCAL MODELS (Per Country)
+get_local_labels <- function(data, country_name) {
+  c_data <- data %>% filter(Country == country_name)
+  set.seed(123)
+  # Scale locally
+  input_local <- c_data %>% select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% scale()
+  k_local <- kmeans(input_local, centers = 3)
+  
+  # Identify "Ineffective" (Lowest Accuracy cluster)
+  bad_id <- c_data %>% 
+    mutate(cid = k_local$cluster) %>% 
+    group_by(cid) %>% 
+    summarise(acc = mean(accuracy)) %>% 
+    arrange(acc) %>% 
+    pull(cid) %>% .[1]
+  
+  # Return dataframe with ID and Label
+  c_data %>% 
+    mutate(Local_Label = ifelse(k_local$cluster == bad_id, "Ineffective", "Effective")) %>%
+    select(user_id, Local_Label)
+}
+
+# Run for all 3
+loc_de <- get_local_labels(analysis_data, "Germany")
+loc_co <- get_local_labels(analysis_data, "Colombia")
+loc_ca <- get_local_labels(analysis_data, "Canada")
+
+# Merge Local Labels back into main data
+local_labels_all <- bind_rows(loc_de, loc_co, loc_ca)
+analysis_data <- analysis_data %>%
+  left_join(local_labels_all, by = "user_id")
+
+# 3. FIT GLOBAL MODEL (Pooled)
+global_input <- analysis_data %>% 
+  select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% 
+  scale()
+
+set.seed(123)
+k_global <- kmeans(global_input, centers = 3)
+analysis_data$Global_Cluster <- as.factor(k_global$cluster)
+
+# Identify "Ineffective" Global Cluster
+bad_global_id <- analysis_data %>% 
+  group_by(Global_Cluster) %>% 
+  summarise(acc = mean(accuracy)) %>% 
+  arrange(acc) %>% 
+  pull(Global_Cluster) %>% .[1]
+
+analysis_data <- analysis_data %>%
+  mutate(Global_Label = ifelse(Global_Cluster == bad_global_id, "Ineffective", "Effective"))
+
+# 4. CALCULATE AGREEMENT
+agreement_stats <- analysis_data %>%
+  group_by(Country) %>%
+  summarise(
+    Agreement = mean(Local_Label == Global_Label),
+    .groups = "drop"
+  )
+```
+
+### 1. Agreement Scorecard
+
+The table below shows the agreement between the universal (Global) definition and the country-specific (Local) definitions. Agreement is very high for Germany and Canada, with moderate divergence in Colombia.
+
+```{r}
+#| label: tbl-agreement
+#| tbl-cap: "Agreement between Local and Global Cluster Models."
+#| echo: false
+
+agreement_stats %>%
+  mutate(Agreement = scales::percent(Agreement, accuracy = 0.1)) %>%
+  knitr::kable(col.names = c("Country", "Model Agreement %"), align = "lc")
+
+```
+
+### 2. Visualizing the Differences
+
+The plots below compare the Local Models (top row) against the Global Model (bottom row). The Global model enforces a stricter boundary in Colombia, classifying some children as "Effective" who were "Ineffective" relative to their local peers.
+
+```{r}
+#| label: fig-model-comparison
+#| fig-cap: "Comparison of Local vs. Global Clustering. Red points indicate the 'Ineffective' strategy. The Global model applies a consistent standard across all populations, whereas Local models adapt to the specific variance of each country."
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 8
+
+my_colors <- c("Ineffective" = "#c0392b", "Effective" = "grey60")
+
+# Helper for plotting
+plot_cluster <- function(data, label_col, title_prefix) {
+  ggplot(data, aes(x = Abs_Slope, y = accuracy, color = .data[[label_col]])) +
+    geom_point(alpha = 0.5, size = 1.5) +
+    stat_ellipse(aes(group = .data[[label_col]]), type = "norm", linetype = "dashed", color = "black", size = 0.3) +
+    facet_wrap(~ Country) +
+    theme_bw(base_size = 11) +
+    scale_color_manual(values = my_colors) +
+    labs(
+      title = title_prefix,
+      x = "Rotation Slope", y = "Accuracy (Theta)",
+      color = "Strategy"
+    ) +
+    theme(legend.position = "none", strip.text = element_text(face = "bold"))
+}
+
+p_local <- plot_cluster(analysis_data, "Local_Label", "A. Local Models (Country-Specific Definitions)")
+p_global <- plot_cluster(analysis_data, "Global_Label", "B. Global Model (Universal Definition)")
+
+# Combine plots vertically
+p_local / p_global
+```
+
+### 3. Diagnostic: Who are the "Disagreement" Kids?
+To understand the divergence in Colombia, we isolated the mismatched cases. The plot below highlights children classified differently by the two models.
+
+- Grey: Models Agree.
+- Blue (Global Lenience): Children considered "Ineffective" locally but "Effective" globally (likely due to the Global model having a lower threshold for accuracy).
+- Red (Global Strictness): Children considered "Effective" locally but "Ineffective" globally.
+
+```{r}
+#| label: fig-mismatch
+#| fig-cap: "Analysis of Classification Disagreements in Colombia. Colored points represent children whose strategy classification changes depending on whether a Local or Global model is used."
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 5
+
+# Filter for Colombia and Define Status
+col_diag <- analysis_data %>% 
+  filter(Country == "Colombia") %>%
+  mutate(
+    Status = case_when(
+      Global_Label == Local_Label ~ "Agreement",
+      Global_Label == "Ineffective" & Local_Label == "Effective" ~ "Global Strictness",
+      Global_Label == "Effective" & Local_Label == "Ineffective" ~ "Global Lenience",
+      TRUE ~ "Error"
+    )
+  ) %>%
+  arrange(Status) # Draw Agreement first so mismatches pop on top
+
+# Custom Palette for Diagnostic
+diag_colors <- c(
+  "Agreement" = "grey90", 
+  "Global Strictness" = "#e74c3c",  # Red
+  "Global Lenience" = "#3498db"     # Blue
+)
+
+ggplot(col_diag, aes(x = Abs_Slope, y = accuracy, color = Status)) +
+  geom_point(alpha = 0.8, size = 2.5) +
+  theme_bw(base_size = 12) +
+  scale_color_manual(values = diag_colors) +
+  labs(
+    title = "Diagnostic: Colombia Mismatches",
+    x = "Rotation Slope", y = "Accuracy",
+    color = "Classification Status"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+
+\clearpage
+
+## Developmental Trajectory of Strategies
+
+We modeled the prevalence of the "Ineffective" strategy as a function of age. Results confirm that this is a developmental phase: the probability of using an impulsive strategy decreases significantly as children get older.
+
+```{r}
+#| label: fig-strategy-age
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-cap: Developmental Trajectory of Strategy Use. The percentage of children classified as using the 'Ineffective' strategy decreases with age across all populations.
+
+# 1. Prepare Data (Binning Age)
+analysis_data <- analysis_data %>%
+  mutate(Strategy_Type = ifelse(Global_Cluster == bad_global_id, "Ineffective", "Effective"))
+
+strategy_by_age <- analysis_data %>%
+  left_join(model_data_corrected %>% select(user_id, age), by = "user_id") %>%
+  mutate(Age_Bin = floor(age)) %>%
+  filter(!is.na(Age_Bin), Age_Bin >= 6, Age_Bin <= 12) %>%
+  group_by(Country, Age_Bin) %>%
+  summarise(
+    Total_N = n(),
+    Ineffective_N = sum(Strategy_Type == "Ineffective"),
+    Ineffective_Pct = Ineffective_N / Total_N,
+    SE = sqrt((Ineffective_Pct * (1 - Ineffective_Pct)) / Total_N),
+    .groups = "drop"
+  )
+
+# 2. Plot
+ggplot(strategy_by_age, aes(x = Age_Bin, y = Ineffective_Pct, color = Country)) +
+  geom_errorbar(aes(ymin = pmax(0, Ineffective_Pct - SE), ymax = pmin(1, Ineffective_Pct + SE)), 
+                width = 0.2, alpha = 0.5) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  scale_x_continuous(breaks = 6:12) + 
+  theme_bw(base_size = 12) +
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    x = "Age (Years)",
+    y = "% Using Ineffective Strategy"
+  )
+```
+
+```{r}
+#| label: strategy-stats
+#| echo: false
+#| message: false
+#| warning: false
+
+# Statistical Tests
+analysis_data <- analysis_data %>%
+  mutate(Strategy_Type = ifelse(Global_Cluster == bad_global_id, "Ineffective", "Effective"))
+
+stat_data <- analysis_data %>%
+  left_join(model_data_corrected %>% select(user_id, age), by = "user_id") %>%
+  filter(!is.na(age), age >= 6, age <= 12) %>%
+  mutate(
+    Is_Ineffective = ifelse(Strategy_Type == "Ineffective", 1, 0),
+    Country = relevel(as.factor(Country), ref = "Colombia")
+  )
+
+# Model A: Colombia Specific
+m_colombia <- glm(Is_Ineffective ~ age, 
+                  data = stat_data %>% filter(Country == "Colombia"), 
+                  family = "binomial")
+
+res_col <- tidy(m_colombia, exponentiate = TRUE, conf.int = TRUE) %>% 
+  filter(term == "age")
+
+# Model B: Interaction
+m_interaction <- glm(Is_Ineffective ~ age * Country, 
+                     data = stat_data, 
+                     family = "binomial")
+summary(m_interaction)
+```
+
+Statistical analysis for the Colombian cohort confirms a significant developmental shift (Odds Ratio = `r round(res_col$estimate, 2)`, 95% CI [`r round(res_col$conf.low, 2)`, `r round(res_col$conf.high, 2)`]), indicating that for every year of age, the odds of using an ineffective strategy decrease substantially.
 
 \clearpage
 <!--
