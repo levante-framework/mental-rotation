@@ -90,19 +90,84 @@ execute:
 ---
 
 # Introduction
+Spatial reasoning, broadly defined as the ability to generate, retain, and manipulate visuospatial information, is a fundamental cognitive skill [@lohman2013spatial]. It supports the formation and transformation of mental representations of 2D shapes and 3D objects (e.g., by rotating, bending, or folding them), and helps us track how spatial relations between locations, shapes, and objects change over time [@frick2014development; @newcombe2014thinking]. In everyday life, we rely on these skills when judging whether an object will fit into a tight space, imagining how a room might look after rearranging furniture, or navigating using a map.
 
-Spatial reasoning, broadly defined as the ability to generate, retain, and manipulate visuospatial information is a fundamental cognitive skill [@lohman2013spatial]. It allows us to form and transform mental images of 2D shapes and 3D objects (e.g., by rotating, bending, or folding them), and to represent how spatial relations between locations, shapes, and objects change over time [@frick2014development; @newcombe2014thinking].
+Spatial ability is also linked to a wide range of educational outcomes [@wai2018spatial], spanning creative domains such as music [@padulo2020effects; @hetland2000learning] and visual arts [@kell2013creativity; @winner2013relationship], as well as STEM subjects [@wai2009spatial]—and especially mathematics [@atit2022examining; @xie2020spatial; @mix2012relation; @gunderson2012relation; @frick2019spatial]. Together, this evidence positions spatial reasoning as a core cognitive capacity with broad relevance for learning and development.
 
-Spatial ability is important for a wide range of educational outcomes [@wai2018spatial], including creative domains such as music [@padulo2020effects; @hetland2000learning] and visual arts [@kell2013creativity; @winner2013relationship] as well as STEM subjects [@wai2009spatial] and, most notably, math [@atit2022examining; @xie2020spatial; @mix2012relation; @gunderson2012relation]. Given it’s importance for educational outcomes, a number of attempts have been made to train spatial reasoning skills. For example, @hawes2015effects reported that, compared with an active control group, 6–8-year-old children who received mental rotation training showed significant gains on two separate 2D mental rotation measures, as well as more general improvements in spatial reasoning on an untrained spatial task. @uttal2013malleability conducted a meta-analysis of 217 studies with child and adult samples to examine the size and generalizability of spatial skills training effects. Across studies, the mean effect size for training compared with control conditions was Hedges’ g = 0.47 (SE = 0.04). @gilligan2020first showed that training spatial reasoning skills had	near,	intermediate	and	far	transfer	effects in 8-year old children [@gilligan2020first]. Similarly,in a sample of elementary school students, @lowrie2017visuospatial showed that those who participated in a 10-week visuospatial reasoning (VSR) program achieved substantially higher spatial reasoning scores than students in the control group, and also demonstrated improved mathematics performance.  	
+Despite their practical and educational importance, significant questions remain regarding how spatial skills vary across contexts. In particular, little is known about how cultural background influences mental rotation, whether the classic linear relationship between reaction time and rotation angle persists across diverse populations, or which specific cognitive strategies children employ. The present study addresses these gaps by examining the performance of children from Canada, Germany, and Colombia.
 
-to be continued
+## Emergence and developemnt of spatial skills during childhood
+Mental rotation can be observed as early as three months of age [@johnson2020spatial], with particularly rapid development between ages three and five [@frick2013development]. Individual differences are evident early, and a relatively large sex difference in mental rotation performance has been reported in multiple studies [@boone2017sex; @linn1985emergence], with males, on average, outperforming females. However, the mechanisms driving developmental change—and the extent to which performance reflects qualitatively different solution strategies rather than a single underlying ability—remain open questions, particularly in culturally diverse samples.
 
-## Reaction time
+A growing body of work suggests that spatial skills are malleable, with training studies in children showing gains on mental rotation and broader spatial reasoning measures, and in some cases transfer beyond the trained task [@hawes2015effects; @gilligan2020first; @lowrie2017visuospatial]. Consistent with this, a meta-analysis of 217 studies reported a moderate average effect of spatial training versus control conditions (Hedges’ g = 0.47, SE = 0.04) [@uttal2013malleability].
 
 ## Cross-country comparisons
+From a biological perspective, there are strong reasons to expect cross-cultural similarities in spatial ability. Humans share a common genetic heritage and sensory-motor systems that shape how we perceive and interact with space. Because the nervous system likely evolved in response to universal demands, such as navigating environments and learning spatial layouts, spatial cognition is considered a relatively conserved neural specialization [@lewis1988signs; @montello1995significant; @nazareth2019meta].
 
-## Strategies
+While research on cultural variations in mental rotation is limited, existing studies highlight key predictors of performance. A common thread of these studies is their exploration of sex differences in performance to understand if the “male advantage” [@linn1985emergence; @maeda2013meta] in mental rotation is universal. For example, a  large-scale multicultural study of 3,367 students in Canada, Germany, and Japan found that males outperformed females with a consistently large effect size across all three nations. However, the study also identified academic program as an independent predictor; students in science and engineering scored higher than those in the arts and social sciences, regardless of sex [@peters2006mental].
 
+More recent developmental research suggests that these gender gaps may be more plastic than previously thought, particularly when cultural norms regarding autonomy are shifted. Among Tsimané children in the Bolivian Amazon, the high degree of freedom to explore allowed to both sexes resulted in a notable absence of gender differences in mobility and spatial ability [@davis2019spatial]. Interestingly, while formal schooling in this population improved abstract skills like mental rotation, it correlated with a decrease in large-scale navigational accuracy, suggesting a trade-off between classroom-based learning and environmental exploration. This environmental influence is further evidenced in seminomadic communities in Namibia. While local adults traditionally show a gender gap in spatial skills, recent cultural shifts—such as formal schooling and increased travel requirements—have effectively eliminated these differences in children [@davis2021cultural]. Both boys and girls demonstrated comparable navigational accuracy and mental rotation performance, indicating that when cultural norms provide equal opportunities for exploration and education, traditional sex differences in spatial cognition can disappear.
+
+## Reaction time
+One of the most cited findings in psychology is that of @shepard1971mental, who demonstrated that mental rotation operates in a spatially continuous manner: response times increased approximately linearly with the angular disparity between two objects. This suggests that participants judge whether an object matches a previously seen one by performing a gradual "rotation" of an internal representation, taking longer for larger disparities (e.g., 75° vs. 110°).
+
+Extending this work from the perspective of visual cognition, @tarr1989mental demonstrated that mental rotation is not merely a mechanism for comparing two simultaneous stimuli, but a fundamental process integrated into long-term object recognition. While @shepard1971mental focused on "handedness" (the ability to distinguish a shape from its mirror image), @tarr1989mental showed that this same linear increase in response time occurs when identifying a single shape from memory. Their findings suggest that the human visual system is highly adaptive: as individuals gain experience with an object at new orientations, they store additional "viewpoint-specific" representations. Consequently, mental rotation does not always return to a single "upright" canonical view; instead, the internal representation is rotated to the nearest familiar orientation stored in memory.
+
+Examining reaction times across diverse populations, a cross-cultural comparison of children in the Ivory Coast and Switzerland revealed that while both groups utilized the same mental rotation strategies, Swiss children demonstrated significantly higher speed and accuracy [@nunez1998mental]. Interestingly, both groups exhibited an identical, non-linear "dip" in performance at 30° and 330° angles, suggesting a universal cognitive constraint in spatial processing that exists independently of cultural background. Notably, age predicted performance in the Swiss group—with older children showing marked improvements—whereas it had no significant effect on the performance of the Ivorean children [@nunez1998mental].
+
+## Cognitive strategies
+The evolution of spatial cognition research has shifted from viewing mental rotation as a monolithic, linear process to understanding it as a strategic choice mediated by cognitive load and task demands. While early models focused on a universal sequence of encoding, rotation, and comparison [@cooper1973chronometric; @desrocher1995stimulus], contemporary research identifies a holistic-analytic continuum of strategies that varies significantly across individuals [@gluck2003spatial].
+
+At one end of this continuum is the holistic strategy, where the stimulus is transformed as a single, integrated mental representation. This is often referred to as the ‘pure rotation’ approach and is characterized by high efficiency, lower total gaze times, and fewer transitions between stimuli [@taragin2019mental; @tang2023eye]. Conversely, the ‘piecemeal’ or local-analytic strategy involves decomposing the object into sub-components for sequential transformation and comparison. This strategy is marked by a ‘switching’ eye-pattern, involving frequent back-and-forth saccades as the participant verifies individual features [@nazareth2019strategy; @fernandez2025inducing].
+
+The selection of these strategies is heavily dictated by Visual Working Memory (VWM) capacity. @just1985cognitive first proposed that the piecemeal approach serves as a "workaround" for limited VWM; if an individual cannot maintain the entire 3D structure in mind, the representation ‘falls apart,’ forcing them to rotate it piece-by-piece. This is further supported by @khooshabeh2013individual, who demonstrated that while high-spatial individuals default to holistic strategies, low-spatial individuals often remain ‘stuck’ in piecemeal processing regardless of task difficulty.
+
+Furthermore, the "how" of rotation involves the frame of reference used. @zacks2008neuroimaging distinguishes between object-based transformations (rotating the object itself) and egocentric perspective-taking (imagining oneself moving around the object). This choice is often influenced by the environment; for instance, 3D Virtual Reality (VR) environments provide stereoscopic depth cues that facilitate holistic, object-based rotations, whereas 2D presentations often force a more cognitively taxing piecemeal approach due to ambiguous depth cues [@tang2023eye].
+
+Ultimately, successful performance is defined by strategy flexibility—the ability to dynamically alternate between holistic rotation and analytic checking based on the specific demands of the stimulus [@nazareth2019strategy]. When task difficulty increases—such as with mirrored objects or rotations along skewed axes—flexible rotators can shift strategies to manage the increased cognitive load [@hsing2023using; @nolte2022rotational]. This suggests that observed sex differences in performance may not stem from an inherent inability to rotate, but rather from differences in strategy selection and the stability of those strategies over time [@geiser2008quantitative].
+
+## The present study
+In the present study, we examine three core research areas:
+1. Does our task demonstrate measurement invariance across sites, consistent with cross-cultural comparability of the underlying construct? 
+2. Do children’s response times increase approximately linearly with angular disparity in our mental rotation task? 
+3. What latent cognitive strategies best characterize children’s mental-rotation performance, and how are these strategies related to task demands (angular disparity; 2D vs 3D stimuli) and site?
+
+To our knowledge, this is the first study to use item response theory (IRT) models to develop a mental rotation task (see @Kachergis2025LEVANTEcoretasks for further detail). IRT comprises a class of models that estimate, within a single framework, both item properties (e.g., how difficult each item is) and person ability (e.g., each child’s latent skill) [@embretson2013]. Once fitted, an IRT model yields item parameters that can be used to place a new test-taker on the same latent scale from their response pattern, even if they completed only a subset of items. This allows us to report directly comparable scores for younger children who received mostly easier items and older children who received harder items.
+
+# Methods
+## Participants
+Note to mention the country codes and why these are included instead of country names.
+
+## Measure
+Note to mention CAT.
+
+## Data processing
+Note to mention exclusions.
+
+## Analytical techniques
+### Reaction Time Scoring
+
+While our IRT models provide an ability estimate for each child by accounting for item-level difficulty, raw reaction times remain confounded by the specific items a child encounters (e.g., adaptive testing selects harder, naturally slower items for higher-ability children). To account for this, we first regress log-transformed RTs on item characteristics (rotation angle, stimulus type) and test position (trial number) to account for mechanical difficulty and practice effects. The model is defined as:
+$$
+\log(RT_{ij}) = \beta_0 + \beta_1 \cdot \text{Angle}_j
++ \beta_2 \cdot \text{Stimulus}_j
++ \beta_3 \cdot \text{Trial}_{ij}
++ u_j + \epsilon_{ij}
+$$
+
+Where:
+$$
+S_i = \frac{1}{n_i}\sum_{j=1}^{n_i} \hat{\epsilon}_{ij}
+$$
+\clearpage
+
+# Results
+## Cultural similarities
+While we use psychometric modelling to place children’s performance on a common scale, the LEVANTE project is not designed to estimate true, absolute differences between sites. In practice, our framework does not support site-level performance comparisons: sites vary substantially in sampling, recruitment, and test administration, so any apparent cross-site differences in raw performance are heavily confounded. Accordingly, although we report descriptive patterns that may look like absolute site differences, we emphasize that these should not be interpreted as meaningful.
+
+Because our data were collected across three sites—with site-specific translations and task adaptations—we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries.
+
+[Note to include stats to evidence the scalar invariance point].
 ```{r}
 # packages
 library(tidyverse)
@@ -188,9 +253,11 @@ mrot_irt <- ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label))
   )
 mrot_irt
 ```
+## Reaction time
+In the first instance, we examine the association between children’s IRT-estimated ability and log-transformed reaction time. We use log RT because raw reaction times are typically positively skewed; log-transforming them reduces this skew and stabilises variance, making model assumptions more reasonable and effect estimates easier to interpret (see @fig-ability-rt).
 
 ```{r}
-#| label: ability-rt
+#| label: fig-ability-rt
 #| fig-cap: "IRT Ability (Theta) vs log RT."
 #| fig-width: 8
 #| fig-height: 6
@@ -254,8 +321,9 @@ p_mrot_speed_ability <- mrot_speed_ability %>%
   )
 p_mrot_speed_ability
 ```
-\clearpage
+We then move to test if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-condition variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
 
+We can see that mean RTs decrease with age across sites, with the oldest group (11–14 years) responding faster overall than the youngest group (5–8 years). Second, RTs are higher—and more sensitive to angular disparity—for the 3D shape stimuli than for the 2D animal stimuli (duck/rabbit), which show comparatively shallow changes in mean RT across angles. Importantly, the qualitative form of these effects (faster responses with age; higher and more angle-dependent RTs for 3D shapes) appears broadly similar across the three sites, suggesting comparable task behavior across cultural contexts.
 ```{r}
 #| label: trial-level-rts
 #| echo: false
@@ -283,69 +351,6 @@ run_ages <- run_data %>%
   dplyr::filter(is.finite(age))
 
 ```
-
-```{r}
-#| label: fig-rt-angle
-#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
-#| fig-width: 8
-#| fig-height: 8
-
-age_breaks <- c(5, 8, 11, 14)
-
-mrot_items_rt_runs <- mrot_rt_trial %>%
-  mutate(
-    stimulus = stringr::str_extract(item, "^[a-z]+"),
-    angle    = as.integer(stringr::str_extract(item, "\\d+"))
-  ) %>%
-  filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
-  left_join(run_ages, by = c("user_id","run_id")) %>%
-  filter(!is.na(age)) %>%
-  mutate(
-    age_group = cut(age, breaks = age_breaks,
-                    include.lowest = TRUE, right = TRUE)
-  ) %>%
-  tidyr::drop_na(age_group) %>%
-  group_by(site, user_id, run_id, age, age_group,
-           stimulus, item_group, angle) %>%
-  summarise(
-    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
-    .groups = "drop"
-  )
-
-mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
-  group_by(site, stimulus, item_group, angle, age_group) %>%
-  summarise(
-    y   = mean(rt_med, na.rm = TRUE),
-    sd  = sd(rt_med, na.rm = TRUE),
-    n   = dplyr::n(),
-    se  = sd / sqrt(pmax(n, 1)),
-    lwr = y - 1.96 * se,
-    upr = y + 1.96 * se,
-    .groups = "drop"
-  )
-
-p_mrot_rt_angle_age <- ggplot(
-  mrot_items_rt_agebin_ci,
-  aes(x = angle, y = y,
-      group = interaction(item_group, stimulus),
-      colour = stimulus, linetype = item_group)
-) +
-  # raw data layer added below (step 2) ...
-  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
-                linewidth = 0.35, alpha = 0.6) +
-  geom_point(size = 1) +
-  geom_line(alpha = 0.85) +
-  facet_grid(site ~ age_group) +
-  labs(
-    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
-    x = "Rotation angle (°)",
-    y = "RT (s)",                             
-    colour = "Stimulus",
-    linetype = "Item Type"
-  )
-p_mrot_rt_angle_age
-```
-\clearpage
 
 ```{r}
 #| label: fig-rt-angle-per-run
@@ -400,8 +405,8 @@ p_mrot_rt_angle_age
 ```
 \clearpage
 
-# RT Residualization
-To isolate pure processing speed from item difficulty (e.g., the added difficulty of 3D objects), we fitted a Linear Mixed Model (LMM) residualizing log reaction times against rotation angle, trial number, and stimulus type. 
+### RT Residualization
+As described above, to try to mirror the IRT approach which estimates each child’s underlying ability by accounting for item properties such as difficulty and discrimination, we fitted a linear mixed-effects model (LMM) to log reaction times, residualizing RT with respect to rotation angle, trial number, and stimulus type. 
 
 ```{r}
 #| label: residualization
@@ -1062,6 +1067,50 @@ summary(m_interaction)
 Statistical analysis for the Colombian cohort confirms a significant developmental shift (Odds Ratio = `r round(res_col$estimate, 2)`, 95% CI [`r round(res_col$conf.low, 2)`, `r round(res_col$conf.high, 2)`]), indicating that for every year of age, the odds of using an ineffective strategy decrease substantially.
 
 \clearpage
+
+```{r}
+# Fionnuala additional
+analysis_data %>%
+  filter(Strategy_Type == "Effective") %>%
+  summarise(
+    Avg_Slope = mean(Abs_Slope),
+    Min_Slope = min(Abs_Slope),
+    Max_Slope = max(Abs_Slope)
+  )
+
+```
+
+```{r}
+# define strategies within the effective group
+analysis_data_refined <- analysis_data %>%
+  mutate(Detailed_Strategy = case_when(
+    Strategy_Type == "Ineffective" ~ "Guessing/Impulsive",
+    Strategy_Type == "Effective" & Abs_Slope < 0.1 ~ "Pattern Matching",
+    Strategy_Type == "Effective" & Abs_Slope >= 0.1 ~ "Mental Rotation"
+  ))
+
+table(analysis_data_refined$Detailed_Strategy)
+
+```
+
+```{r}
+# 1. Compare the Baseline Speed (Intercept) between the groups
+baseline_analysis <- analysis_data_refined %>%
+  filter(Detailed_Strategy %in% c("Mental Rotation", "Pattern Matching")) %>%
+  group_by(Detailed_Strategy) %>%
+  summarise(
+    Avg_Baseline = mean(Baseline_Speed),
+    Avg_Slope = mean(Abs_Slope),
+    N = n()
+  )
+
+print(baseline_analysis)
+
+# 2. Test if the difference in "Startup Cost" is statistically significant
+t.test(Baseline_Speed ~ Detailed_Strategy, 
+       data = analysis_data_refined %>% filter(Detailed_Strategy %in% c("Mental Rotation", "Pattern Matching")))
+
+```
 <!--
 
 ```{r}
@@ -1452,4 +1501,75 @@ ggplot(effects_data2, aes(x = rt_resid, y = estimate__, linetype = site_label)) 
 \clearpage
 
 -->
+
+\newpage
+
+# References
+
+::: {#refs}
+:::
+
+# IRT Ability by Age {.appendix #apx-fig-rt-angle}
+```{r}
+#| label: fig-rt-angle
+#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
+#| fig-width: 8
+#| fig-height: 8
+
+age_breaks <- c(5, 8, 11, 14)
+
+mrot_items_rt_runs <- mrot_rt_trial %>%
+  mutate(
+    stimulus = stringr::str_extract(item, "^[a-z]+"),
+    angle    = as.integer(stringr::str_extract(item, "\\d+"))
+  ) %>%
+  filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
+  left_join(run_ages, by = c("user_id","run_id")) %>%
+  filter(!is.na(age)) %>%
+  mutate(
+    age_group = cut(age, breaks = age_breaks,
+                    include.lowest = TRUE, right = TRUE)
+  ) %>%
+  tidyr::drop_na(age_group) %>%
+  group_by(site, user_id, run_id, age, age_group,
+           stimulus, item_group, angle) %>%
+  summarise(
+    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
+    .groups = "drop"
+  )
+
+mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
+  group_by(site, stimulus, item_group, angle, age_group) %>%
+  summarise(
+    y   = mean(rt_med, na.rm = TRUE),
+    sd  = sd(rt_med, na.rm = TRUE),
+    n   = dplyr::n(),
+    se  = sd / sqrt(pmax(n, 1)),
+    lwr = y - 1.96 * se,
+    upr = y + 1.96 * se,
+    .groups = "drop"
+  )
+
+p_mrot_rt_angle_age <- ggplot(
+  mrot_items_rt_agebin_ci,
+  aes(x = angle, y = y,
+      group = interaction(item_group, stimulus),
+      colour = stimulus, linetype = item_group)
+) +
+  # raw data layer added below (step 2) ...
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
+                linewidth = 0.35, alpha = 0.6) +
+  geom_point(size = 1) +
+  geom_line(alpha = 0.85) +
+  facet_grid(site ~ age_group) +
+  labs(
+    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
+    x = "Rotation angle (°)",
+    y = "RT (s)",                             
+    colour = "Stimulus",
+    linetype = "Item Type"
+  )
+p_mrot_rt_angle_age
+```
+
 
