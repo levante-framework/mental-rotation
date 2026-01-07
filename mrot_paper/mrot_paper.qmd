@@ -128,11 +128,12 @@ Ultimately, successful performance is defined by strategy flexibility—the abil
 
 ## The present study
 In the present study, we examine three core research areas:
+
 1. Does our task demonstrate measurement invariance across sites, consistent with cross-cultural comparability of the underlying construct? 
 2. Do children’s response times increase approximately linearly with angular disparity in our mental rotation task? 
 3. What latent cognitive strategies best characterize children’s mental-rotation performance, and how are these strategies related to task demands (angular disparity; 2D vs 3D stimuli) and site?
 
-To our knowledge, this is the first study to use item response theory (IRT) models to develop a mental rotation task (see @Kachergis2025LEVANTEcoretasks for further detail). IRT comprises a class of models that estimate, within a single framework, both item properties (e.g., how difficult each item is) and person ability (e.g., each child’s latent skill) [@embretson2013]. Once fitted, an IRT model yields item parameters that can be used to place a new test-taker on the same latent scale from their response pattern, even if they completed only a subset of items. This allows us to report directly comparable scores for younger children who received mostly easier items and older children who received harder items.
+To our knowledge, this is the first study to use item response theory (IRT) models to develop a mental rotation task (see @Kachergis2025LEVANTEcoretasks for further detail). IRT comprises a class of models that estimate, within a single framework, both item properties (e.g., how difficult each item is) and person ability (e.g., each child’s latent skill) [@embretson2013item]. Once fitted, an IRT model yields item parameters that can be used to place a new test-taker on the same latent scale from their response pattern, even if they completed only a subset of items. This allows us to report directly comparable scores for younger children who received mostly easier items and older children who received harder items.
 
 # Methods
 ## Participants
@@ -318,7 +319,7 @@ p_mrot_speed_ability <- mrot_speed_ability %>%
     x = "log(RT, seconds)",
     y = "IRT ability (theta)",
     colour = "Age (years)"
-  )
+  ) 
 p_mrot_speed_ability
 ```
 We then move to test if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-condition variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
@@ -357,6 +358,40 @@ run_ages <- run_data %>%
 #| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI."
 #| fig-width: 8
 #| fig-height: 8
+
+age_breaks <- c(5, 8, 11, 14)
+
+mrot_items_rt_runs <- mrot_rt_trial %>%
+  mutate(
+    stimulus = stringr::str_extract(item, "^[a-z]+"),
+    angle    = as.integer(stringr::str_extract(item, "\\d+"))
+  ) %>%
+  filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
+  left_join(run_ages, by = c("user_id","run_id")) %>%
+  filter(!is.na(age)) %>%
+  mutate(
+    age_group = cut(age, breaks = age_breaks,
+                    include.lowest = TRUE, right = TRUE)
+  ) %>%
+  tidyr::drop_na(age_group) %>%
+  group_by(site, user_id, run_id, age, age_group,
+           stimulus, item_group, angle) %>%
+  summarise(
+    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
+    .groups = "drop"
+  )
+
+mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
+  group_by(site, stimulus, item_group, angle, age_group) %>%
+  summarise(
+    y   = mean(rt_med, na.rm = TRUE),
+    sd  = sd(rt_med, na.rm = TRUE),
+    n   = dplyr::n(),
+    se  = sd / sqrt(pmax(n, 1)),
+    lwr = y - 1.96 * se,
+    upr = y + 1.96 * se,
+    .groups = "drop"
+  )
 
 # Add raw data underneath
 p_mrot_rt_angle_age <- ggplot() +
@@ -1594,40 +1629,6 @@ ggplot(effects_data2, aes(x = rt_resid, y = estimate__, linetype = site_label)) 
 #| fig-cap: "Reaction Time by angle within age groups ±95% CI."
 #| fig-width: 8
 #| fig-height: 8
-
-age_breaks <- c(5, 8, 11, 14)
-
-mrot_items_rt_runs <- mrot_rt_trial %>%
-  mutate(
-    stimulus = stringr::str_extract(item, "^[a-z]+"),
-    angle    = as.integer(stringr::str_extract(item, "\\d+"))
-  ) %>%
-  filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
-  left_join(run_ages, by = c("user_id","run_id")) %>%
-  filter(!is.na(age)) %>%
-  mutate(
-    age_group = cut(age, breaks = age_breaks,
-                    include.lowest = TRUE, right = TRUE)
-  ) %>%
-  tidyr::drop_na(age_group) %>%
-  group_by(site, user_id, run_id, age, age_group,
-           stimulus, item_group, angle) %>%
-  summarise(
-    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
-    .groups = "drop"
-  )
-
-mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
-  group_by(site, stimulus, item_group, angle, age_group) %>%
-  summarise(
-    y   = mean(rt_med, na.rm = TRUE),
-    sd  = sd(rt_med, na.rm = TRUE),
-    n   = dplyr::n(),
-    se  = sd / sqrt(pmax(n, 1)),
-    lwr = y - 1.96 * se,
-    upr = y + 1.96 * se,
-    .groups = "drop"
-  )
 
 p_mrot_rt_angle_age <- ggplot(
   mrot_items_rt_agebin_ci,
