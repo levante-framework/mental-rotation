@@ -276,82 +276,9 @@ mrot_irt
 ```
 \clearpage
 
-## Reaction time
-We examined the association between children’s IRT-estimated ability and log-transformed reaction time (see @fig-ability-rt). We use log RT because raw reaction times are typically positively skewed; log-transforming them reduces this skew and stabilises variance, making model assumptions more reasonable and effect estimates easier to interpret.
+We tested if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-site variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
 
-Across all three sites, the age-specific fits are generally positive, indicating that higher ability is typically associated with longer response times (higher log RT). Put differently, within age bands, children who take more time on the task tend to perform better. The association varies by age and is noisier where sample sizes are smaller, but overall the pattern does not suggest that higher ability corresponds to faster responding.
-
-```{r}
-#| label: fig-ability-rt
-#| fig-cap: "IRT Ability (Theta) vs log RT."
-#| fig-width: 8
-#| fig-height: 6
-
-# get shape and rotation data
-mrot_rt_sum <- all_sum_scores %>%
-  filter(item_task == "mrot") %>%
-  select(site, language, data) %>%
-  unnest(data) %>%                         
-  mutate(
-    correct = as.numeric(correct),
-    rt_s    = as.numeric(rt_numeric) / 1000
-  ) %>%
-  filter(is.finite(rt_s), rt_s > 0) %>%     
-  mutate(log_rt = log(rt_s))
-
-# collapse to run level RT summaries
-mrot_rt_runs <- mrot_rt_sum %>%
-  left_join(run_data %>% 
-              select(site, user_id, run_id, age), 
-            by = c("site", "user_id", "run_id")) %>%
-  group_by(site, user_id, run_id) %>%
-  summarise(
-    # trial-level RT summaries for correct items
-    logrt_median = median(log_rt[correct == 1], na.rm = TRUE),
-    logrt_mean   = mean(log_rt[correct == 1],  na.rm = TRUE),
-    age = first(age),
-    n_items = n_distinct(item_uid),
-    .groups = "drop"
-  )
-
-ability_runs <- all_scores %>% 
-  filter(item_task == "mrot", metric_type == "ability") %>%
-  select(site, user_id, run_id, ability = metric_value, age) %>%
-  group_by(site, user_id, run_id) %>%               
-  summarise(
-    ability = mean(ability, na.rm = TRUE),
-    age     = first(age),
-    .groups = "drop"
-  )
-
-# join RT and ability
-mrot_speed_ability <- ability_runs %>%
-  inner_join(
-    mrot_rt_runs %>% select(site, user_id, run_id, logrt_mean),
-    by = c("site", "user_id", "run_id")
-  )
-
-p_mrot_speed_ability <- mrot_speed_ability %>%
-  mutate(age_binned = as_factor(floor(age))) %>%
-  ggplot(aes(x = logrt_mean, y = ability, colour = age_binned)) +
-  geom_point(alpha = 0.55, size = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~ site) +
-  labs(
-    #title = "IRT Ability (Theta) vs log RT",
-    subtitle = "Each point = participant run; site-wise linear fits",
-    x = "log(RT, seconds)",
-    y = "IRT ability (theta)",
-    colour = "Age (years)"
-  ) 
-p_mrot_speed_ability
-```
-\clearpage
-
-We then tested if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-site variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
-
-We can see that mean RTs for 2D animal (duck/rabbit) stimuli decrease with age across sites, with the oldest group (11–14 years) responding faster overall than the youngest group (5–8 years). RTs increase with rotation angle (angular disparity), consistent with the classic mental-rotation effect (@shepard1971mental). This angle dependence is more pronounced for the 3D shape stimuli than for the 2D stimuli, which show comparatively smaller RT increases across angles. 
-These patterns--faster responses with age and a robust angular-disparity effect, especially for 3D stimuli--appear broadly similar across the three sites, suggesting comparable task behavior across cultural contexts.
+We can see that mean RTs for 2D animal (duck/rabbit) stimuli decrease with age across sites, with the oldest group (11–14 years) responding faster overall than the youngest group (5–8 years). RTs increase with rotation angle (angular disparity), consistent with the classic mental-rotation effect (@shepard1971mental). This angle dependence is more pronounced for the 3D shape stimuli than for the 2D stimuli, which show comparatively smaller RT increases across angles. These patterns--faster responses with age and a robust angular-disparity effect, especially for 3D stimuli--appear broadly similar across the three sites, suggesting comparable task behavior across cultural contexts.
 
 ```{r}
 #| label: trial-level-rts
@@ -470,9 +397,7 @@ p_mrot_rt_angle_age
 
 ## Within-Person Dynamics
 
-To understand how performance fluctuates during the task, we examined RT trajectories across the 80 trials. @fig-within-person-trials illustrates the trial-by-trial dynamics. A clear "jump" in reaction time is visible halfway through the task (around trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three populations.
-
-We observed consistent response acceleration (learning) within both the 2D and 3D blocks, as children became faster with practice. However, this trajectory is interrupted by a marked increase in reaction time at the onset of the 3D block (Trial 48), clearly delineating the additional processing cost required for three-dimensional rotation.
+Having established the expected angular-disparity effect across age groups and sites, we next examined how RTs evolved within individuals over the course of the task. Because item difficulty increased adaptively—such that higher-performing children were more likely to encounter the harder 3D items—we analysed trial-by-trial RT trajectories across the 80 trials to distinguish item-driven changes from more gradual time-on-task effects (e.g., fatigue). @fig-within-person-trials illustrates a clear 'jump' in RT about halfway through the task (trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three site populations. We observed consistent response acceleration within both the 2D and 3D blocks, as children became faster with practice. 
 
 ```{r}
 #| label: fig-within-person-trials
@@ -497,313 +422,13 @@ ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fi
   scale_fill_brewer(palette = "Set1") +
   labs(
     x = "Trial Number (Time)",
-    y = "Log Reaction Time (seconds)",
+    y = "Log RT (seconds)",
     color = "Site",
     fill = "Site"
   ) +
   # REMOVED theme_classic()
   theme(legend.position = "top") # Keep layout adjustments only
 
-```
-\clearpage
-
-### RT Residualization
-
-As described above, we attempted to mirror the IRT approach which estimates each child’s underlying ability by accounting for item properties such as difficulty and discrimination, we fitted a linear mixed-effects model (LMM) to log reaction times, residualizing RT with respect to rotation angle, trial number, and stimulus type. 
-
-@fig-site-age-slopes shows that residualised RT decreases with age in the mpieva-de site. In contrast, this age trend is not evident at the other sites: residualised RT is approximately flat across age in western-ca and increases with age in uniandes-co.
-
-```{r}
-#| label: residualization
-#| echo: false
-#| message: false
-#| cache: true
-#| results: "hide"
-
-# prepare data for modeling
-model_rt_data <- mrot_rt_trial %>%
-  mutate(
-    # Extract "rabbit" from "rabbit_040" if not already present
-    stimulus = stringr::str_extract(item, "^[a-z]+"), 
-    angle = as.integer(stringr::str_extract(item, "\\d+")) 
-  ) %>%
-  filter(!is.na(angle), !is.na(log_rt))
-
-# Controlling for angle, trial, stimulus, and item grouping
-m_rt_full <- lmer(
-  log_rt ~ angle + trial_number + stimulus + item_group + (1|item), 
-  data = model_rt_data
-)
-
-# extract residuals (Person Speed): these represent speed after accounting for item difficulty
-model_rt_data <- model_rt_data %>%
-  mutate(rt_resid_item = residuals(m_rt_full))
-
-rt_residuals_person <- model_rt_data %>%
-  group_by(site, user_id, run_id) %>%
-  summarise(
-    rt_residual_mean = mean(rt_resid_item, na.rm=TRUE),
-    rt_residual_sd   = sd(rt_resid_item, na.rm=TRUE),
-    n_items = n(),
-    .groups = "drop"
-  )
-
-# Save for later
-#write_csv(rt_residuals_person, here::here("..", "levante-pilots", "02_scoring_outputs", "scores", "rt_residuals_corrected.csv"))
-```
-
-```{r}
-#| label: resid-rt-diff
-#| echo: false
-#| message: false
-#| cache: true
-#| results: "hide"
-
-# quantifying differences in residualized RT with site and age
-rt_resid_person_age <- model_rt_data %>%
-  group_by(site, user_id, run_id) %>%
-  summarise(
-    rt_residual_mean = mean(rt_resid_item, na.rm = TRUE),
-    rt_residual_sd   = sd(rt_resid_item,   na.rm = TRUE),
-    n_items          = n(),
-    .groups          = "drop"
-  ) %>%
-  left_join(
-    run_data %>%
-      transmute(
-        user_id,
-        run_id,
-        age = as.numeric(age)
-      ),
-    by = c("user_id", "run_id")
-  ) %>%
-  filter(is.finite(age),
-         age >= 5,
-         age <= 13)
-
-m_site_age <- lmer(
-  rt_residual_mean ~ site + age + (1 | user_id), # random intercept; each child’s baseline is estimated independently
-  data = rt_resid_person_age
-)
-
-summary(m_site_age)
-anova(m_site_age)
-```
-
-```{r}
-#| label: fig-site-age-slopes
-#| fig-cap: "Cross-Site Trajectories of Residualized Reaction Time from Ages 5–13."
-#| fig-width: 8
-#| fig-height: 6
-#| results: "hide"
-
-# Site-specific age slopes (interaction model)
-m_site_age_int <- lmer(
-  rt_residual_mean ~ site * age + (1 | user_id),
-  data = rt_resid_person_age
-)
-anova(m_site_age, m_site_age_int)  
-
-ggplot(rt_resid_person_age,
-       aes(x = age, y = rt_residual_mean, colour = site)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 4), se = TRUE) +
-  labs(
-    x = "Age (years)",
-    y = "Residualized RT (log seconds)"
-  )
-```
-\clearpage
-
-@fig-rt-resid shows the distribution of residualised log reaction times (i.e., RTs after adjusting for rotation angle, trial number, and stimulus type) across three age bands and within each site. As in @fig-site-age-slopes the main pattern is that mpieva-de shows a clear shift towards lower residualised RT in older age groups, whereas western-ca shows relatively little change across age bands and uniandes-co shows less consistent age-related shift, with older groups not showing the expected reduction in residualised RT.
-
-Pairwise contrasts (see @tbl-site-pairs) indicate that mpieva-de has higher residualised RT than the other sites at ages 6 and 9, but these differences shrink with age and are largely absent by age 12, with only a small reversal for mpieva-de versus uniandes-co.
-
-```{r}
-#| label: fig-rt-resid
-#| fig-cap: "Residualized reaction time."
-#| fig-width: 8
-#| fig-height: 6
-
-rt_resid_person_age <- rt_residuals_person %>%
-  left_join(run_ages, by = c("user_id", "run_id")) %>%
-  filter(!is.finite(age) == FALSE) %>%    
-  mutate(
-    age_group = cut(
-      age,
-      breaks = c(5, 8, 11, 14),
-      include.lowest = TRUE,
-      right = TRUE
-    )
-  ) %>%
-  drop_na(age_group)
-
-# Violin plot of residualized RT
-ggplot(rt_resid_person_age,
-       aes(x = age_group, y = rt_residual_mean, fill = age_group)) +
-  #geom_violin(trim = FALSE, alpha = 0.6) +
-  geom_jitter(size = 1.5, alpha = 0.4, width = 0.1) + # looking for the z-score to be jittered
-  geom_boxplot(width = 0.15, outlier.shape = NA, width = 10) +
-  facet_wrap(~ site, nrow = 1) +
-  labs(
-    x = "Age group (years)",
-    y = "Residualized RT (log seconds)"
-  ) +
-  theme(legend.position = "none")
-```
- 
-\clearpage
-
-To quantify the magnitude of cross-cultural differences at distinct developmental stages, we estimated marginal means for residualized reaction time at ages 6, 9, and 12 years (@tbl-site-pairs).
-
-
-```{r}
-#| label: marginal-means
-#| echo: false
-#| message: false
-#| cache: true
-#| results: "hide"
-
-# marginal means at 6, 9 and 12 to understand the magnitude of differences
-library(emmeans)
-emm <- emmeans(m_site_age_int, ~ site | age,
-               at = list(age = c(6, 9, 12)))
-emm
-pairs(emm)  # pairwise site differences at each age with CIs
-```
-
-```{r}
-#| label: tbl-site-pairs
-#| tbl-cap: "Pairwise site differences in residualized RT at ages 6, 9, and 12 years."
-
-pairs_df <- pairs(emm) %>%
-  as.data.frame() %>%
-  mutate(contrast = gsub("pilot_", "", contrast),
-         contrast = gsub("_", " ", contrast)) %>%
-  select(contrast, age, estimate, SE, df, t.ratio, p.value) %>%
-  mutate(across(where(is.numeric), ~round(., 3))) %>%
-  mutate(p.value = ifelse(p.value < .001, "<.001", sprintf("%.3f", p.value)))
-
-knitr::kable(
-  pairs_df,
-  booktabs = TRUE,
-  col.names = c("Site Contrast", "Age (years)", "Estimate", "SE", "df", "t", "p")
-)
-```
-To investigate this unexpected trend in residualized RTs in uniandes-co and western-ca, we broke down the raw data by stimulus type. As shown in @fig-validation-raw-rt, the "flat" aggregate trend is the result of two opposing developmental trajectories canceling each other out. For 2D stimuli (blue lines), children across all three sites become faster with age. However, for 3D stimuli (red lines)— in uniandes-co and western-ca, RTs do not decrease; instead, older children often take longer to respond than their younger counterparts.
-
-```{r}
-#| label: fig-validation-raw-rt
-#| fig-cap: "Validation Check: Raw Mean Reaction Time by Age. While 2D speed (blue) improves universally, 3D speed (red) slows down or plateaus in Colombia and Canada, explaining the null result in the aggregated residual model."
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-width: 8
-#| fig-height: 6
-
-# Prepare Data
-validation_data <- mrot_rt_trial %>%
-  filter(!is.na(log_rt), correct == 1) %>%
-  left_join(run_data %>% select(user_id, run_id, age, site), by = c("user_id", "run_id")) %>%
-  mutate(
-    Age_Bin = floor(age),
-    # Clean Site Names
-    site_label = case_when(
-       grepl("mpieva", site.x) ~ "Germany",
-       grepl("uniandes", site.x) ~ "Colombia",
-       grepl("western", site.x) ~ "Canada",
-       TRUE ~ site.x
-    )
-  ) %>%
-  filter(!is.na(Age_Bin), Age_Bin >= 5, Age_Bin <= 13) %>%
-  group_by(site_label, Age_Bin, item_group) %>%
-  summarise(
-    Mean_RT = mean(exp(log_rt), na.rm = TRUE),
-    SE = sd(exp(log_rt), na.rm = TRUE) / sqrt(n()),
-    .groups = "drop"
-  )
-
-# Plot
-ggplot(validation_data, aes(x = Age_Bin, y = Mean_RT, color = item_group)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = Mean_RT - SE, ymax = Mean_RT + SE), width = 0.2) +
-  facet_wrap(~ site_label) +
-  # REMOVED theme_bw() to use global theme
-  scale_color_manual(values = c("2d" = "#3498db", "3d" = "#e74c3c")) +
-  labs(
-    x = "Age (Years)",
-    y = "Mean Reaction Time (seconds)",
-    color = "Stimulus Type"
-  ) +
-  theme(legend.position = "top")
-```
-\clearpage
-
-To probe the apparent “slowing” on the 3D items, we examined the relationship between response speed and accuracy (@fig-strategy-tradeoff). For the 2D stimuli, reaction times decreased with age across all three sites, indicating that children responded faster as they got older. In contrast, for the 3D stimuli, reaction times in Canada and Colombia were largely flat or increased with age, suggesting that older children trend to take longer to respond. 
-
-```{r}
-#| label: fig-strategy-tradeoff
-#| fig-cap: "Developmental Trade-off: Speed vs. Accuracy. 2D items (Top) show efficiency gains (faster & better). 3D items (Bottom) show a strategy shift: older children slow down (Teal line goes up) to achieve higher accuracy (Red line goes up)."
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-width: 8
-#| fig-height: 6
-
-# Prepare Data
-strategy_comparison <- mrot_rt_trial %>%
-  filter(!is.na(correct), !is.na(log_rt)) %>%
-  left_join(run_data %>% select(user_id, run_id, age, site), by = c("user_id", "run_id")) %>%
-  mutate(
-    Age_Bin = floor(age),
-    # Clean Site Names
-    site_label = case_when(
-       grepl("mpieva", site.x) ~ "Germany",
-       grepl("uniandes", site.x) ~ "Colombia",
-       grepl("western", site.x) ~ "Canada",
-       TRUE ~ site.x
-    )
-  ) %>%
-  filter(Age_Bin >= 5, Age_Bin <= 13) %>%
-  group_by(site_label, item_group, Age_Bin) %>%
-  summarise(
-    Mean_RT = mean(exp(log_rt), na.rm = TRUE),
-    Accuracy = mean(correct, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Define Colors
-col_speed <- "#1abc9c"  # Teal
-col_acc   <- "#e74c3c"  # Red
-
-ggplot(strategy_comparison, aes(x = Age_Bin)) +
-  # Speed Line (Teal)
-  geom_line(aes(y = Mean_RT, color = "RT (Speed)"), linewidth = 1.2) +
-  geom_point(aes(y = Mean_RT, color = "RT (Speed)"), size = 2) +
-  
-  # Accuracy Line (Red) - Scaled
-  geom_line(aes(y = Accuracy * 10, color = "Accuracy"), linewidth = 1.2) +
-  geom_point(aes(y = Accuracy * 10, color = "Accuracy"), size = 2) +
-  
-  facet_grid(item_group ~ site_label) +
-  
-  # Dual Axis
-  scale_y_continuous(
-    name = "Mean Reaction Time (s)", 
-    sec.axis = sec_axis(~./10, name = "Accuracy (Probability)")
-  ) +
-  scale_color_manual(name = "Metric", values = c("RT (Speed)" = col_speed, "Accuracy" = col_acc)) +
-  
-  # Styling for Clarity
-  theme(
-    axis.title.y.left = element_text(color = col_speed, face = "bold"),
-    axis.text.y.left = element_text(color = col_speed),
-    axis.title.y.right = element_text(color = col_acc, face = "bold"),
-    axis.text.y.right = element_text(color = col_acc),
-    legend.position = "top"
-  ) +
-  labs(x = "Age (Years)")
 ```
 \clearpage
 
@@ -1485,8 +1110,6 @@ site_results %>%
   )
 ```
 
-
-
 ```{r}
 #| label: fig-site-forest
 #| fig-cap: "Site-Specific Processing Styles. Forest plot showing posterior estimates for Spatial Ability (Panel A) and Processing Speed (Panel B) relative to the German baseline (dashed line at 0). Error bars represent 95% confidence intervals."
@@ -1631,8 +1254,377 @@ ggplot(effects_data2, aes(x = rt_resid, y = estimate__, linetype = site_label)) 
   theme(legend.position = "none", plot.margin = margin(r = 80))
 
 ```
+fionnuala cuts
+## Reaction time
+We examined the association between children’s IRT-estimated ability and log-transformed reaction time (see @fig-ability-rt). We use log RT because raw reaction times are typically positively skewed; log-transforming them reduces this skew and stabilises variance, making model assumptions more reasonable and effect estimates easier to interpret.
+
+Across all three sites, the age-specific fits are generally positive, indicating that higher ability is typically associated with longer response times (higher log RT). Put differently, within age bands, children who take more time on the task tend to perform better. The association varies by age and is noisier where sample sizes are smaller, but overall the pattern does not suggest that higher ability corresponds to faster responding.
+
+```{r}
+#| label: fig-ability-rt
+#| fig-cap: "IRT Ability (Theta) vs log RT."
+#| fig-width: 8
+#| fig-height: 6
+
+# get shape and rotation data
+mrot_rt_sum <- all_sum_scores %>%
+  filter(item_task == "mrot") %>%
+  select(site, language, data) %>%
+  unnest(data) %>%                         
+  mutate(
+    correct = as.numeric(correct),
+    rt_s    = as.numeric(rt_numeric) / 1000
+  ) %>%
+  filter(is.finite(rt_s), rt_s > 0) %>%     
+  mutate(log_rt = log(rt_s))
+
+# collapse to run level RT summaries
+mrot_rt_runs <- mrot_rt_sum %>%
+  left_join(run_data %>% 
+              select(site, user_id, run_id, age), 
+            by = c("site", "user_id", "run_id")) %>%
+  group_by(site, user_id, run_id) %>%
+  summarise(
+    # trial-level RT summaries for correct items
+    logrt_median = median(log_rt[correct == 1], na.rm = TRUE),
+    logrt_mean   = mean(log_rt[correct == 1],  na.rm = TRUE),
+    age = first(age),
+    n_items = n_distinct(item_uid),
+    .groups = "drop"
+  )
+
+ability_runs <- all_scores %>% 
+  filter(item_task == "mrot", metric_type == "ability") %>%
+  select(site, user_id, run_id, ability = metric_value, age) %>%
+  group_by(site, user_id, run_id) %>%               
+  summarise(
+    ability = mean(ability, na.rm = TRUE),
+    age     = first(age),
+    .groups = "drop"
+  )
+
+# join RT and ability
+mrot_speed_ability <- ability_runs %>%
+  inner_join(
+    mrot_rt_runs %>% select(site, user_id, run_id, logrt_mean),
+    by = c("site", "user_id", "run_id")
+  )
+
+p_mrot_speed_ability <- mrot_speed_ability %>%
+  mutate(age_binned = as_factor(floor(age))) %>%
+  ggplot(aes(x = logrt_mean, y = ability, colour = age_binned)) +
+  geom_point(alpha = 0.55, size = 1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ site) +
+  labs(
+    #title = "IRT Ability (Theta) vs log RT",
+    subtitle = "Each point = participant run; site-wise linear fits",
+    x = "log(RT, seconds)",
+    y = "IRT ability (theta)",
+    colour = "Age (years)"
+  ) 
+p_mrot_speed_ability
+```
+08.01.2025 - REMOVING SECTION ON RESIDUALIZED REACTION TIME FOR NOW
+
+### RT Residualization
+
+As described above, we attempted to mirror the IRT approach which estimates each child’s underlying ability by accounting for item properties such as difficulty and discrimination, we fitted a linear mixed-effects model (LMM) to log reaction times, residualizing RT with respect to rotation angle, trial number, and stimulus type. 
+
+@fig-site-age-slopes shows that residualised RT decreases with age in the mpieva-de site. In contrast, this age trend is not evident at the other sites: residualised RT is approximately flat across age in western-ca and increases with age in uniandes-co.
+
+```{r}
+#| label: residualization
+#| echo: false
+#| message: false
+#| cache: true
+#| results: "hide"
+
+# prepare data for modeling
+model_rt_data <- mrot_rt_trial %>%
+  mutate(
+    # Extract "rabbit" from "rabbit_040" if not already present
+    stimulus = stringr::str_extract(item, "^[a-z]+"), 
+    angle = as.integer(stringr::str_extract(item, "\\d+")) 
+  ) %>%
+  filter(!is.na(angle), !is.na(log_rt))
+
+# Controlling for angle, trial, stimulus, and item grouping
+m_rt_full <- lmer(
+  log_rt ~ angle + trial_number + stimulus + item_group + (1|item), 
+  data = model_rt_data
+)
+
+# extract residuals (Person Speed): these represent speed after accounting for item difficulty
+model_rt_data <- model_rt_data %>%
+  mutate(rt_resid_item = residuals(m_rt_full))
+
+rt_residuals_person <- model_rt_data %>%
+  group_by(site, user_id, run_id) %>%
+  summarise(
+    rt_residual_mean = mean(rt_resid_item, na.rm=TRUE),
+    rt_residual_sd   = sd(rt_resid_item, na.rm=TRUE),
+    n_items = n(),
+    .groups = "drop"
+  )
+
+# Save for later
+#write_csv(rt_residuals_person, here::here("..", "levante-pilots", "02_scoring_outputs", "scores", "rt_residuals_corrected.csv"))
+```
+
+```{r}
+#| label: resid-rt-diff
+#| echo: false
+#| message: false
+#| cache: true
+#| results: "hide"
+
+# quantifying differences in residualized RT with site and age
+rt_resid_person_age <- model_rt_data %>%
+  group_by(site, user_id, run_id) %>%
+  summarise(
+    rt_residual_mean = mean(rt_resid_item, na.rm = TRUE),
+    rt_residual_sd   = sd(rt_resid_item,   na.rm = TRUE),
+    n_items          = n(),
+    .groups          = "drop"
+  ) %>%
+  left_join(
+    run_data %>%
+      transmute(
+        user_id,
+        run_id,
+        age = as.numeric(age)
+      ),
+    by = c("user_id", "run_id")
+  ) %>%
+  filter(is.finite(age),
+         age >= 5,
+         age <= 13)
+
+m_site_age <- lmer(
+  rt_residual_mean ~ site + age + (1 | user_id), # random intercept; each child’s baseline is estimated independently
+  data = rt_resid_person_age
+)
+
+summary(m_site_age)
+anova(m_site_age)
+```
+
+```{r}
+#| label: fig-site-age-slopes
+#| fig-cap: "Cross-Site Trajectories of Residualized Reaction Time from Ages 5–13."
+#| fig-width: 8
+#| fig-height: 6
+#| results: "hide"
+
+# Site-specific age slopes (interaction model)
+m_site_age_int <- lmer(
+  rt_residual_mean ~ site * age + (1 | user_id),
+  data = rt_resid_person_age
+)
+anova(m_site_age, m_site_age_int)  
+
+ggplot(rt_resid_person_age,
+       aes(x = age, y = rt_residual_mean, colour = site)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 4), se = TRUE) +
+  labs(
+    x = "Age (years)",
+    y = "Residualized RT (log seconds)"
+  )
+```
 \clearpage
 
+@fig-rt-resid shows the distribution of residualised log reaction times (i.e., RTs after adjusting for rotation angle, trial number, and stimulus type) across three age bands and within each site. As in @fig-site-age-slopes the main pattern is that mpieva-de shows a clear shift towards lower residualised RT in older age groups, whereas western-ca shows relatively little change across age bands and uniandes-co shows less consistent age-related shift, with older groups not showing the expected reduction in residualised RT.
+
+Pairwise contrasts (see @tbl-site-pairs) indicate that mpieva-de has higher residualised RT than the other sites at ages 6 and 9, but these differences shrink with age and are largely absent by age 12, with only a small reversal for mpieva-de versus uniandes-co.
+
+```{r}
+#| label: fig-rt-resid
+#| fig-cap: "Residualized reaction time."
+#| fig-width: 8
+#| fig-height: 6
+
+rt_resid_person_age <- rt_residuals_person %>%
+  left_join(run_ages, by = c("user_id", "run_id")) %>%
+  filter(!is.finite(age) == FALSE) %>%    
+  mutate(
+    age_group = cut(
+      age,
+      breaks = c(5, 8, 11, 14),
+      include.lowest = TRUE,
+      right = TRUE
+    )
+  ) %>%
+  drop_na(age_group)
+
+# Violin plot of residualized RT
+ggplot(rt_resid_person_age,
+       aes(x = age_group, y = rt_residual_mean, fill = age_group)) +
+  #geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_jitter(size = 1.5, alpha = 0.4, width = 0.1) + # looking for the z-score to be jittered
+  geom_boxplot(width = 0.15, outlier.shape = NA, width = 10) +
+  facet_wrap(~ site, nrow = 1) +
+  labs(
+    x = "Age group (years)",
+    y = "Residualized RT (log seconds)"
+  ) +
+  theme(legend.position = "none")
+```
+ 
+\clearpage
+
+To quantify the magnitude of cross-cultural differences at distinct developmental stages, we estimated marginal means for residualized reaction time at ages 6, 9, and 12 years (@tbl-site-pairs).
+
+
+```{r}
+#| label: marginal-means
+#| echo: false
+#| message: false
+#| cache: true
+#| results: "hide"
+
+# marginal means at 6, 9 and 12 to understand the magnitude of differences
+library(emmeans)
+emm <- emmeans(m_site_age_int, ~ site | age,
+               at = list(age = c(6, 9, 12)))
+emm
+pairs(emm)  # pairwise site differences at each age with CIs
+```
+
+```{r}
+#| label: tbl-site-pairs
+#| tbl-cap: "Pairwise site differences in residualized RT at ages 6, 9, and 12 years."
+
+pairs_df <- pairs(emm) %>%
+  as.data.frame() %>%
+  mutate(contrast = gsub("pilot_", "", contrast),
+         contrast = gsub("_", " ", contrast)) %>%
+  select(contrast, age, estimate, SE, df, t.ratio, p.value) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  mutate(p.value = ifelse(p.value < .001, "<.001", sprintf("%.3f", p.value)))
+
+knitr::kable(
+  pairs_df,
+  booktabs = TRUE,
+  col.names = c("Site Contrast", "Age (years)", "Estimate", "SE", "df", "t", "p")
+)
+```
+To investigate this unexpected trend in residualized RTs in uniandes-co and western-ca, we broke down the raw data by stimulus type. As shown in @fig-validation-raw-rt, the "flat" aggregate trend is the result of two opposing developmental trajectories canceling each other out. For 2D stimuli (blue lines), children across all three sites become faster with age. However, for 3D stimuli (red lines)— in uniandes-co and western-ca, RTs do not decrease; instead, older children often take longer to respond than their younger counterparts.
+
+```{r}
+#| label: fig-validation-raw-rt
+#| fig-cap: "Validation Check: Raw Mean Reaction Time by Age. While 2D speed (blue) improves universally, 3D speed (red) slows down or plateaus in Colombia and Canada, explaining the null result in the aggregated residual model."
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-width: 8
+#| fig-height: 6
+
+# Prepare Data
+validation_data <- mrot_rt_trial %>%
+  filter(!is.na(log_rt), correct == 1) %>%
+  left_join(run_data %>% select(user_id, run_id, age, site), by = c("user_id", "run_id")) %>%
+  mutate(
+    Age_Bin = floor(age),
+    # Clean Site Names
+    site_label = case_when(
+       grepl("mpieva", site.x) ~ "Germany",
+       grepl("uniandes", site.x) ~ "Colombia",
+       grepl("western", site.x) ~ "Canada",
+       TRUE ~ site.x
+    )
+  ) %>%
+  filter(!is.na(Age_Bin), Age_Bin >= 5, Age_Bin <= 13) %>%
+  group_by(site_label, Age_Bin, item_group) %>%
+  summarise(
+    Mean_RT = mean(exp(log_rt), na.rm = TRUE),
+    SE = sd(exp(log_rt), na.rm = TRUE) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Plot
+ggplot(validation_data, aes(x = Age_Bin, y = Mean_RT, color = item_group)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = Mean_RT - SE, ymax = Mean_RT + SE), width = 0.2) +
+  facet_wrap(~ site_label) +
+  # REMOVED theme_bw() to use global theme
+  scale_color_manual(values = c("2d" = "#3498db", "3d" = "#e74c3c")) +
+  labs(
+    x = "Age (Years)",
+    y = "Mean Reaction Time (seconds)",
+    color = "Stimulus Type"
+  ) +
+  theme(legend.position = "top")
+```
+\clearpage
+
+To probe the apparent “slowing” on the 3D items, we examined the relationship between response speed and accuracy (@fig-strategy-tradeoff). For the 2D stimuli, reaction times decreased with age across all three sites, indicating that children responded faster as they got older. In contrast, for the 3D stimuli, reaction times in Canada and Colombia were largely flat or increased with age, suggesting that older children trend to take longer to respond. 
+
+```{r}
+#| label: fig-strategy-tradeoff
+#| fig-cap: "Developmental Trade-off: Speed vs. Accuracy. 2D items (Top) show efficiency gains (faster & better). 3D items (Bottom) show a strategy shift: older children slow down (Teal line goes up) to achieve higher accuracy (Red line goes up)."
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-width: 8
+#| fig-height: 6
+
+# Prepare Data
+strategy_comparison <- mrot_rt_trial %>%
+  filter(!is.na(correct), !is.na(log_rt)) %>%
+  left_join(run_data %>% select(user_id, run_id, age, site), by = c("user_id", "run_id")) %>%
+  mutate(
+    Age_Bin = floor(age),
+    # Clean Site Names
+    site_label = case_when(
+       grepl("mpieva", site.x) ~ "Germany",
+       grepl("uniandes", site.x) ~ "Colombia",
+       grepl("western", site.x) ~ "Canada",
+       TRUE ~ site.x
+    )
+  ) %>%
+  filter(Age_Bin >= 5, Age_Bin <= 13) %>%
+  group_by(site_label, item_group, Age_Bin) %>%
+  summarise(
+    Mean_RT = mean(exp(log_rt), na.rm = TRUE),
+    Accuracy = mean(correct, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Define Colors
+col_speed <- "#1abc9c"  # Teal
+col_acc   <- "#e74c3c"  # Red
+
+ggplot(strategy_comparison, aes(x = Age_Bin)) +
+  # Speed Line (Teal)
+  geom_line(aes(y = Mean_RT, color = "RT (Speed)"), linewidth = 1.2) +
+  geom_point(aes(y = Mean_RT, color = "RT (Speed)"), size = 2) +
+  
+  # Accuracy Line (Red) - Scaled
+  geom_line(aes(y = Accuracy * 10, color = "Accuracy"), linewidth = 1.2) +
+  geom_point(aes(y = Accuracy * 10, color = "Accuracy"), size = 2) +
+  
+  facet_grid(item_group ~ site_label) +
+  
+  # Dual Axis
+  scale_y_continuous(
+    name = "Mean Reaction Time (s)", 
+    sec.axis = sec_axis(~./10, name = "Accuracy (Probability)")
+  ) +
+  scale_color_manual(name = "Metric", values = c("RT (Speed)" = col_speed, "Accuracy" = col_acc)) +
+  
+  # Styling for Clarity
+  theme(
+    axis.title.y.left = element_text(color = col_speed, face = "bold"),
+    axis.text.y.left = element_text(color = col_speed),
+    axis.title.y.right = element_text(color = col_acc, face = "bold"),
+    axis.text.y.right = element_text(color = col_acc),
+    legend.position = "top"
+  ) +
+  labs(x = "Age (Years)")
+```
 -->
 
 \newpage
