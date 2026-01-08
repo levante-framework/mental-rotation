@@ -136,17 +136,30 @@ In the present study, we examine three core research areas:
 To our knowledge, this is the first study to use item response theory (IRT) models to develop a mental rotation task (see @Kachergis2025LEVANTEcoretasks for further detail). IRT comprises a class of models that estimate, within a single framework, both item properties (e.g., how difficult each item is) and person ability (e.g., each child’s latent skill) [@embretson2013item]. Once fitted, an IRT model yields item parameters that can be used to place a new test-taker on the same latent scale from their response pattern, even if they completed only a subset of items. This allows us to report directly comparable scores for younger children who received mostly easier items and older children who received harder items.
 
 # Methods
+
 ## Participants
-Note to mention the country codes and why these are included instead of country names.
+Data for the present study were drawn from three pilot sites participating in LEVANTE: uniandes-co, mpieva-de, and western-ca. Collectively, these sites supported task localisation and technical implementation, iterative piloting, and deployment in varied testing contexts. The resulting pilot datasets enabled preliminary evaluation of construct validity, measurement invariance, test–retest reliability, and calibration for computer-adaptive administration, as well as descriptive assessment of age-related differences across the targeted constructs (refer to @Kachergis2025LEVANTEcoretasks for a full description). 
+
+### uniandes-co
+The Universidad de Los Andes team carried out school-based data collection in Colombia, working with four schools in Bogotá and two public schools in the rural departments of Caquetá and Boyacá. Schools were selected pragmatically from institutions that had previously collaborated with the university. In Bogotá, three schools were affiliated with two family compensation funds and one was operated by a charter-school organisation. Across locations, participating schools largely served children from low-income and lower-middle-income backgrounds. Testing was conducted on tablets provided by the research team using a group-administration format, with group sizes adjusted by age (larger groups for older children; smaller groups for younger children).
+
+### mpieva-de
+At the mpieva-de site, the Max Planck Institute for Evolutionary Anthropology implemented a remote, family-based assessment protocol. Families were recruited via an existing registry of Leipzig residents and were contacted by telephone to invite participation. Families who enrolled were given login details and completed the assigned LEVANTE tasks at home using their own computer or tablet.
+
+### western-ca
+The Western University (Ontario) team recruited children from the surrounding community, primarily via online outreach (e.g., Facebook advertisements and posts in community groups), complemented by physical flyers and announcements distributed through local school newsletters. Families self-enrolled by registering their interest in a participant database. Children were assessed individually by a researcher in a dedicated on-campus testing space.
 
 ## Measure
-Note to mention CAT.
 
-## Data processing
-Note to mention exclusions.
+The LEVANTE mental rotation task is adapted from @frick2013development. On each trial, children view a target image (e.g., a rabbit) and then choose between two alternatives (e.g., two rabbit silhouettes): one alternative is the same object shown at a different orientation, whereas the other is a non-matching foil. Children indicate which option corresponds to the target, and we record both accuracy and response time. Angular disparity is manipulated across trials (e.g., 40°, 80°, 120°, 160°), producing systematic effects on performance. Stimuli include 2D animal figures (ducks and rabbits) and more challenging 3D geometric shapes drawn from the classic Shepard and Metzler (1971) set.
+
+All LEVANTE tasks including mental rotation were originally developed in English and later adapted for Spanish and German through a structured internationalisation workflow carried out with collaborators at the uniandes-co and mpieva-de sites, respectively. We first produced draft translations of all verbal content—including instructions, item text, and recurring terminology (e.g., encouragement prompts)—using DeepL. These drafts were then refined by a professional translator to ensure grammatical accuracy and natural phrasing. Next, a site researcher who was a native speaker of the relevant language and dialect reviewed the materials to confirm clarity and suitability for the specific task context. To check for semantic and conceptual alignment with the English originals, we used AI-assisted back-translation to identify wording that required further revision and native-speaker review. 
+
+The mental rotation task has already been implemented in a computer-adaptive task (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (theta) that is re-estimated after each response. The updated theta then guides selection of the next item so that it is appropriately challenging for the individual. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. Refer to @Kachergis2025LEVANTEcoretasks for more information on the CAT versions of all LEVANTE tasks.
 
 ## Analytical techniques
-### Reaction Time Scoring
+
+### Reaction Time Scoring (potentially remove)
 
 While our IRT models provide an ability estimate for each child by accounting for item-level difficulty, raw reaction times remain confounded by the specific items a child encounters (e.g., adaptive testing selects harder, naturally slower items for higher-ability children). To account for this, we first regress log-transformed RTs on item characteristics (rotation angle, stimulus type) and test position (trial number) to account for mechanical difficulty and practice effects. The model is defined as:
 $$
@@ -163,12 +176,17 @@ $$
 \clearpage
 
 # Results
+
 ## Cultural similarities
+
 While we use psychometric modelling to place children’s performance on a common scale, the LEVANTE project is not designed to estimate true, absolute differences between sites. In practice, our framework does not support site-level performance comparisons: sites vary substantially in sampling, recruitment, and test administration, so any apparent cross-site differences in raw performance are heavily confounded. Accordingly, although we report descriptive patterns that may look like absolute site differences, we emphasize that these should not be interpreted as meaningful.
 
 Because our data were collected across three sites—with site-specific translations and task adaptations—we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries.
 
-[Note to include stats to evidence the scalar invariance point].
+[PLACEHOLDER for stats to evidence the scalar invariance: χ² with df and p,RMSEA, SRMSR CFI/TLI].
+
+@fig-dev-trends plots participants’ mental rotation ability estimates (IRT theta) against age, separately for each site, with site-specific trends modeled using generalized additive models (GAMs). Across sites, theta increases with age, indicating developmental improvement in mental rotation ability.
+
 ```{r}
 # packages
 library(tidyverse)
@@ -226,7 +244,7 @@ all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_out
 ```
 
 ```{r}
-#| label: dev-trends
+#| label: fig-dev-trends
 #| fig-cap: "Developmental trends in Mental Rotation ability by site."
 #| fig-width: 8
 #| fig-height: 6
@@ -254,8 +272,12 @@ mrot_irt <- ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label))
   )
 mrot_irt
 ```
+\clearpage
+
 ## Reaction time
-In the first instance, we examine the association between children’s IRT-estimated ability and log-transformed reaction time. We use log RT because raw reaction times are typically positively skewed; log-transforming them reduces this skew and stabilises variance, making model assumptions more reasonable and effect estimates easier to interpret (see @fig-ability-rt).
+We examined the association between children’s IRT-estimated ability and log-transformed reaction time (see @fig-ability-rt). We use log RT because raw reaction times are typically positively skewed; log-transforming them reduces this skew and stabilises variance, making model assumptions more reasonable and effect estimates easier to interpret.
+
+Across all three sites, the age-specific fits are generally positive, indicating that higher ability is typically associated with longer response times (higher log RT). Put differently, within age bands, children who take more time on the task tend to perform better. The association varies by age and is noisier where sample sizes are smaller, but overall the pattern does not suggest that higher ability corresponds to faster responding.
 
 ```{r}
 #| label: fig-ability-rt
@@ -322,9 +344,13 @@ p_mrot_speed_ability <- mrot_speed_ability %>%
   ) 
 p_mrot_speed_ability
 ```
-We then move to test if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-condition variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
+\clearpage
 
-We can see that mean RTs decrease with age across sites, with the oldest group (11–14 years) responding faster overall than the youngest group (5–8 years). Second, RTs are higher—and more sensitive to angular disparity—for the 3D shape stimuli than for the 2D animal stimuli (duck/rabbit), which show comparatively shallow changes in mean RT across angles. Importantly, the qualitative form of these effects (faster responses with age; higher and more angle-dependent RTs for 3D shapes) appears broadly similar across the three sites, suggesting comparable task behavior across cultural contexts.
+We then tested if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-site variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
+
+We can see that mean RTs decrease with age across sites, with the oldest group (11–14 years) responding faster overall than the youngest group (5–8 years). RTs increase with rotation angle (angular disparity), consistent with the classic mental-rotation effect (@shepard1971mental). This angle dependence is more pronounced for the 3D shape stimuli than for the 2D animal stimuli (duck/rabbit), which show comparatively smaller RT increases across angles. 
+These patterns--faster responses with age and a robust angular-disparity effect, especially for 3D stimuli--appear broadly similar across the three sites, suggesting comparable task behavior across cultural contexts.
+
 ```{r}
 #| label: trial-level-rts
 #| echo: false
@@ -430,7 +456,7 @@ p_mrot_rt_angle_age <- ggplot() +
   ) +
   facet_grid(site ~ age_group) +
   labs(
-    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
+    #title = "Mental Rotation: RT by angle within age groups ±95% CI",
     x = "Rotation angle (°)",
     y = "RT (s)",
     colour = "Stimulus",
@@ -440,9 +466,50 @@ p_mrot_rt_angle_age
 ```
 \clearpage
 
+## Within-Person Dynamics
+
+To understand how performance fluctuates during the task, we examined RT trajectories across the 80 trials. @fig-within-person-trials illustrates the trial-by-trial dynamics. A clear "jump" in reaction time is visible halfway through the task (around trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three populations.
+
+We observed consistent response acceleration (learning) within both the 2D and 3D blocks, as children became faster with practice. However, this trajectory is interrupted by a marked increase in reaction time at the onset of the 3D block (Trial 48), clearly delineating the additional processing cost required for three-dimensional rotation.
+
+```{r}
+#| label: fig-within-person-trials
+#| fig-cap: "Trial-level Reaction Time Dynamics. The plot shows the mean log-reaction time across the 80 trials for each site. Shaded areas represent standard error. The sharp increase represents the transition to 3D items."
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-width: 8
+#| fig-height: 6
+
+# 1. Prepare data with Site Labels
+trial_plot_data <- mrot_rt_trial %>%
+  filter(!is.na(log_rt), correct == 1) %>% # Focus on correct trials for valid RT
+  left_join(run_data %>% select(user_id, run_id, site), by = c("user_id", "run_id")) %>%
+  mutate(site_label = dplyr::recode(site.x, !!!site_labels))
+
+
+ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fill = site_label)) +
+  stat_summary(fun = mean, geom = "line", linewidth = 1) +
+  stat_summary(fun.data = mean_se, geom = "ribbon", alpha = 0.2, color = NA) +
+  scale_color_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1") +
+  labs(
+    x = "Trial Number (Time)",
+    y = "Log Reaction Time (seconds)",
+    color = "Site",
+    fill = "Site"
+  ) +
+  # REMOVED theme_classic()
+  theme(legend.position = "top") # Keep layout adjustments only
+
+```
+\clearpage
+
 ### RT Residualization
 
-As described above, to try to mirror the IRT approach which estimates each child’s underlying ability by accounting for item properties such as difficulty and discrimination, we fitted a linear mixed-effects model (LMM) to log reaction times, residualizing RT with respect to rotation angle, trial number, and stimulus type. 
+As described above, we attempted to mirror the IRT approach which estimates each child’s underlying ability by accounting for item properties such as difficulty and discrimination, we fitted a linear mixed-effects model (LMM) to log reaction times, residualizing RT with respect to rotation angle, trial number, and stimulus type. 
+
+@fig-site-age-slopes shows that residualised RT decreases with age in the mpieva-de site. In contrast, this age trend is not evident at the other sites: residualised RT is approximately flat across age in western-ca and increases with age in uniandes-co.
 
 ```{r}
 #| label: residualization
@@ -482,41 +549,6 @@ rt_residuals_person <- model_rt_data %>%
 # Save for later
 #write_csv(rt_residuals_person, here::here("..", "levante-pilots", "02_scoring_outputs", "scores", "rt_residuals_corrected.csv"))
 ```
-
-```{r}
-#| label: fig-rt-resid
-#| fig-cap: "Residualized reaction time."
-#| fig-width: 8
-#| fig-height: 6
-
-rt_resid_person_age <- rt_residuals_person %>%
-  left_join(run_ages, by = c("user_id", "run_id")) %>%
-  filter(!is.finite(age) == FALSE) %>%    
-  mutate(
-    age_group = cut(
-      age,
-      breaks = c(5, 8, 11, 14),
-      include.lowest = TRUE,
-      right = TRUE
-    )
-  ) %>%
-  drop_na(age_group)
-
-# Violin plot of residualized RT
-ggplot(rt_resid_person_age,
-       aes(x = age_group, y = rt_residual_mean, fill = age_group)) +
-  #geom_violin(trim = FALSE, alpha = 0.6) +
-  geom_jitter(size = 1.5, alpha = 0.4, width = 0.1) + # looking for the z-score to be jittered
-  geom_boxplot(width = 0.15, outlier.shape = NA, width = 10) +
-  facet_wrap(~ site, nrow = 1) +
-  labs(
-    x = "Age group (years)",
-    y = "Residualized RT (log seconds)"
-  ) +
-  theme(legend.position = "none")
-```
- 
-\clearpage
 
 ```{r}
 #| label: resid-rt-diff
@@ -579,6 +611,46 @@ ggplot(rt_resid_person_age,
     y = "Residualized RT (log seconds)"
   )
 ```
+\clearpage
+
+@fig-rt-resid shows the distribution of residualised log reaction times (i.e., RTs after adjusting for rotation angle, trial number, and stimulus type) across three age bands and within each site. As in @fig-site-age-slopes the main pattern is that mpieva-de shows a clear shift towards lower residualised RT in older age groups, whereas western-ca shows relatively little change across age bands and uniandes-co shows less consistent age-related shift, with older groups not showing the expected reduction in residualised RT.
+
+Pairwise contrasts (see @tbl-site-pairs) indicate that mpieva-de has higher residualised RT than the other sites at ages 6 and 9, but these differences shrink with age and are largely absent by age 12, with only a small reversal for mpieva-de versus uniandes-co.
+
+```{r}
+#| label: fig-rt-resid
+#| fig-cap: "Residualized reaction time."
+#| fig-width: 8
+#| fig-height: 6
+
+rt_resid_person_age <- rt_residuals_person %>%
+  left_join(run_ages, by = c("user_id", "run_id")) %>%
+  filter(!is.finite(age) == FALSE) %>%    
+  mutate(
+    age_group = cut(
+      age,
+      breaks = c(5, 8, 11, 14),
+      include.lowest = TRUE,
+      right = TRUE
+    )
+  ) %>%
+  drop_na(age_group)
+
+# Violin plot of residualized RT
+ggplot(rt_resid_person_age,
+       aes(x = age_group, y = rt_residual_mean, fill = age_group)) +
+  #geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_jitter(size = 1.5, alpha = 0.4, width = 0.1) + # looking for the z-score to be jittered
+  geom_boxplot(width = 0.15, outlier.shape = NA, width = 10) +
+  facet_wrap(~ site, nrow = 1) +
+  labs(
+    x = "Age group (years)",
+    y = "Residualized RT (log seconds)"
+  ) +
+  theme(legend.position = "none")
+```
+ 
+\clearpage
 
 To quantify the magnitude of cross-cultural differences at distinct developmental stages, we estimated marginal means for residualized reaction time at ages 6, 9, and 12 years (@tbl-site-pairs).
 
@@ -616,14 +688,7 @@ knitr::kable(
   col.names = c("Site Contrast", "Age (years)", "Estimate", "SE", "df", "t", "p")
 )
 ```
-
-### Decomposing Speed: 2D vs. 3D Trajectories
-
-
-Contrary to developmental expectations, the residualized RT model (@fig-site-age-slopes and @tbl-site-pairs) showed no significant age-related increase in processing speed for the Colombia and Canada cohorts. To investigate this plateau, we decomposed the data by stimulus type.
-
-As shown in @fig-validation-raw-rt, the "flat" aggregate trend is actually the result of two opposing developmental trajectories canceling each other out. For 2D stimuli (blue lines), children across all three sites display the expected developmental speed-up, becoming faster with age. However, for 3D stimuli (red lines)—particularly in Colombia and Canada—reaction times do not decrease; instead, older children often take longer to respond than their younger counterparts.
-
+To investigate this unexpected trend in residualized RTs in uniandes-co and western-ca, we broke down the raw data by stimulus type. As shown in @fig-validation-raw-rt, the "flat" aggregate trend is the result of two opposing developmental trajectories canceling each other out. For 2D stimuli (blue lines), children across all three sites become faster with age. However, for 3D stimuli (red lines)— in uniandes-co and western-ca, RTs do not decrease; instead, older children often take longer to respond than their younger counterparts.
 
 ```{r}
 #| label: fig-validation-raw-rt
@@ -631,6 +696,8 @@ As shown in @fig-validation-raw-rt, the "flat" aggregate trend is actually the r
 #| echo: false
 #| message: false
 #| warning: false
+#| fig-width: 8
+#| fig-height: 6
 
 # Prepare Data
 validation_data <- mrot_rt_trial %>%
@@ -669,10 +736,9 @@ ggplot(validation_data, aes(x = Age_Bin, y = Mean_RT, color = item_group)) +
   ) +
   theme(legend.position = "top")
 ```
+\clearpage
 
-To determine whether this "slowing down" on 3D items reflected a failure to automate the task or a strategic adjustment, we analyzed the relationship between speed and accuracy (@fig-strategy-tradeoff).
-
-
+To probe the apparent “slowing” on the 3D items, we examined the relationship between response speed and accuracy (@fig-strategy-tradeoff). For the 2D stimuli, reaction times decreased with age across all three sites, indicating that children responded faster as they got older. In contrast, for the 3D stimuli, reaction times in Canada and Colombia were largely flat or increased with age, suggesting that older children trend to take longer to respond. 
 
 ```{r}
 #| label: fig-strategy-tradeoff
@@ -680,6 +746,8 @@ To determine whether this "slowing down" on 3D items reflected a failure to auto
 #| echo: false
 #| message: false
 #| warning: false
+#| fig-width: 8
+#| fig-height: 6
 
 # Prepare Data
 strategy_comparison <- mrot_rt_trial %>%
@@ -735,53 +803,15 @@ ggplot(strategy_comparison, aes(x = Age_Bin)) +
   ) +
   labs(x = "Age (Years)")
 ```
-
-The results reveal a clear Strategy Shift. In the 2D condition (top row), development is characterized by efficiency: children get faster and more accurate. In the 3D condition (bottom row), however, we observe a speed-accuracy trade-off. Younger children are fast but inaccurate (hovering near chance), suggesting impulsive guessing. In contrast, older children slow down significantly (increasing their reaction time) to achieve high accuracy. Thus, the apparent lack of speed-up in the aggregate data actually reflects a positive developmental milestone: the transition from impulsive responding to deliberate mental rotation.
-
-
 \clearpage
 
 
 
 
 
-## Within-Person Dynamics
-
-To understand how performance fluctuates during the task, we examined reaction time trajectories across the 80 trials. @fig-within-person-trials illustrates the trial-by-trial dynamics. A clear "jump" in reaction time is visible halfway through the task (around trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three populations.
-
-```{r}
-#| label: fig-within-person-trials
-#| fig-cap: "Trial-level Reaction Time Dynamics. The plot shows the mean log-reaction time across the 80 trials for each site. Shaded areas represent standard error. The sharp increase represents the transition to 3D items."
-#| echo: false
-#| message: false
-#| warning: false
-
-# 1. Prepare data with Site Labels
-trial_plot_data <- mrot_rt_trial %>%
-  filter(!is.na(log_rt), correct == 1) %>% # Focus on correct trials for valid RT
-  left_join(run_data %>% select(user_id, run_id, site), by = c("user_id", "run_id")) %>%
-  mutate(site_label = dplyr::recode(site.x, !!!site_labels))
 
 
-ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fill = site_label)) +
-  stat_summary(fun = mean, geom = "line", linewidth = 1) +
-  stat_summary(fun.data = mean_se, geom = "ribbon", alpha = 0.2, color = NA) +
-  scale_color_brewer(palette = "Set1") +
-  scale_fill_brewer(palette = "Set1") +
-  labs(
-    x = "Trial Number (Time)",
-    y = "Log Reaction Time (seconds)",
-    color = "Site",
-    fill = "Site"
-  ) +
-  # REMOVED theme_classic()
-  theme(legend.position = "top") # Keep layout adjustments only
 
-```
-
-Note to F: @fig-within-person-trials is the evidence that children are learning (getting faster) and that the 3D items impose a distinct processing cost compared to the 2D items.
-
-We observed consistent response acceleration (learning) within both the 2D and 3D blocks, as children became faster with practice. However, this trajectory is interrupted by a marked increase in reaction time at the onset of the 3D block (Trial 48), clearly delineating the additional processing cost required for three-dimensional rotation.
 
 \clearpage
 
@@ -1088,9 +1118,6 @@ ggplot(analysis_data, aes(x = Abs_Slope, y = accuracy, color = Strategy_Label)) 
   ) + 
   theme(legend.position = "bottom", strip.text = element_text(face = "bold"))
 ```
-
-
-
 \clearpage
 
 ## Developmental Trajectory of Strategies
@@ -1131,7 +1158,7 @@ ggplot(strategy_trends, aes(x = Age_Bin, y = Pct, color = Strategy_Label)) +
   scale_x_continuous(breaks = 6:12) + 
   scale_color_manual(values = my_colors) + # Uses your defined Red/Blue/Green
   # Remove theme_bw() if you want to use global theme, otherwise keep it
-  theme_bw(base_size = 12) +
+  #theme_bw(base_size = 12) +
   labs(
     x = "Age (Years)",
     y = "Proportion of Children",
@@ -1174,7 +1201,7 @@ Results indicated a significant main effect of age ($\beta = `r age_est`, p `r p
 
 \clearpage
 
-
+<!--
 ```{r}
 #| eval: false
 #| include: false
@@ -1224,7 +1251,7 @@ t.test(Baseline_Speed ~ Detailed_Strategy,
        data = analysis_data_refined %>% filter(Detailed_Strategy %in% c("Mental Rotation", "Pattern Matching")))
 
 ```
-<!--
+
 
 ```{r}
 #| label: within-person-rt
