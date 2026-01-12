@@ -76,6 +76,7 @@ format:
     fig-format: pdf
     # fig-pos: H        
     # tbl-pos: H  
+    
 
 knitr:
   opts_chunk:
@@ -90,6 +91,7 @@ execute:
 ---
 
 # Introduction
+
 Spatial reasoning encompasses a range of abilities for generating, retaining, and manipulating visuospatial information [@lohman2013spatial]. One core component is mental rotation, which involves mentally transforming an object by rotating it in space to predict how it would appear from a different orientation or viewpoint. More broadly, spatial skills support the formation and transformation of mental representations of 2D shapes and 3D objects (e.g., rotating, bending, or folding them) and help us track how spatial relations between locations, shapes, and objects change over time [@frick2014development; @newcombe2014thinking]. In everyday life, we rely on these skills when judging whether an object will fit into a tight space, imagining how a room might look after rearranging furniture, or navigating using a map.
 
 Spatial reasoning is also linked to a wide range of educational outcomes [@wai2018spatial], spanning creative domains such as music [@padulo2020effects; @hetland2000learning] and visual arts [@kell2013creativity; @winner2013relationship], as well as STEM subjects [@wai2009spatial]—and especially mathematics [@atit2022examining; @xie2020spatial; @mix2012relation; @gunderson2012relation; @frick2019spatial]. Mental rotation, the focus of this paper, is one spatial skill that has been repeatedly implicated in these associations, making it a useful target for understanding how spatial reasoning relates to learning and development.
@@ -97,18 +99,21 @@ Spatial reasoning is also linked to a wide range of educational outcomes [@wai20
 Despite its practical and educational importance, significant questions remain regarding how mental rotation varies across contexts. In particular, little is known about whether cultural background shapes children’s mental-rotation skill, whether the canonical linear relationship between reaction time and angular disparity replicates across diverse populations, or which cognitive strategies children employ when solving mental-rotation problems. The present study addresses these gaps by examining children’s mental-rotation performance in Canada, Germany, and Colombia.
 
 ## Emergence and developemnt of spatial skills during childhood
+
 Mental rotation can be observed as early as three months of age [@johnson2020spatial], with rapid development between ages three and five [@frick2013development]. Individual differences are evident early, and a relatively large sex difference in mental rotation performance has been reported in multiple studies [@boone2017sex; @linn1985emergence], with males, on average, outperforming females. However, the mechanisms driving developmental change—and the extent to which performance reflects qualitatively different solution strategies rather than a single underlying ability—remain open questions, particularly in culturally diverse samples.
 
 A growing body of work suggests that spatial skills are malleable, with training studies in children showing gains on mental rotation and broader spatial reasoning measures, and in some cases transfer beyond the trained task [@hawes2015effects; @gilligan2020first; @lowrie2017visuospatial]. Consistent with this, a meta-analysis of 217 studies reported a moderate average effect of spatial training versus control conditions (Hedges’ g = 0.47, SE = 0.04) [@uttal2013malleability].
 
 ## Cross-country comparisons
+
 From a biological perspective, there are strong reasons to expect cross-cultural similarities in mental rotation skills. Humans share a common genetic heritage and sensory-motor systems that shape how we perceive and interact with space. Because the nervous system likely evolved in response to universal demands, such as navigating environments and learning spatial layouts, spatial cognition is considered a relatively conserved neural specialization [@lewis1988signs; @montello1995significant; @nazareth2019meta].
 
-While research on cultural variations in mental rotation is limited, existing studies highlight key predictors of performance. A common thread of these studies is their exploration of sex differences in performance to understand if the male advantage [@linn1985emergence; @maeda2013meta] in mental rotation is universal. For example, a  large-scale multicultural study of 3,367 students in Canada, Germany, and Japan found that males outperformed females with a consistently large effect size across all three nations. However, the study also identified academic program as an independent predictor; students in science and engineering scored higher than those in the arts and social sciences, regardless of sex [@peters2006mental].
+While research on cultural variations in mental rotation is limited, existing studies highlight key predictors of performance. A common thread of these studies is their exploration of sex differences in performance to understand if the male advantage [@linn1985emergence; @maeda2013meta] in mental rotation is universal. For example, a large-scale multicultural study of 3,367 students in Canada, Germany, and Japan found that males outperformed females with a consistently large effect size across all three nations. However, the study also identified academic program as an independent predictor; students in science and engineering scored higher than those in the arts and social sciences, regardless of sex [@peters2006mental].
 
 More recent developmental research suggests that these gender gaps may be more plastic than previously thought, particularly when cultural norms regarding autonomy are shifted. Among Tsimané children in the Bolivian Amazon, the high degree of freedom to explore allowed to both sexes resulted in a notable absence of gender differences in mobility and spatial ability [@davis2019spatial]. Interestingly, while formal schooling in this population improved abstract skills like mental rotation, it correlated with a decrease in large-scale navigational accuracy, suggesting a trade-off between classroom-based learning and environmental exploration. This environmental influence is further evidenced in seminomadic communities in Namibia. While local adults traditionally show a gender gap in spatial skills, recent cultural shifts—such as formal schooling and increased travel requirements—have effectively eliminated these differences in children [@davis2021cultural]. Both boys and girls demonstrated comparable navigational accuracy and mental rotation performance, indicating that when cultural norms provide equal opportunities for exploration and education, traditional sex differences in spatial cognition can disappear.
 
 ## Reaction time
+
 One of the most cited findings in psychology is that of @shepard1971mental, who demonstrated that mental rotation operates in a spatially continuous manner: response times increased approximately linearly with the angular disparity between two objects. This suggests that participants judge whether an object matches a previously seen one by performing a gradual rotation of an internal representation, taking longer for larger disparities (e.g., 75° vs. 110°).
 
 Extending this work from the perspective of visual cognition, @tarr1989mental demonstrated that mental rotation is not only a mechanism for comparing two simultaneous stimuli, but a fundamental process integrated into long-term object recognition. While @shepard1971mental focused on "handedness" (the ability to distinguish a shape from its mirror image), @tarr1989mental showed that this same linear increase in response time occurs when identifying a single shape from memory. Their findings suggest that the human visual system is highly adaptive: as individuals gain experience with an object at new orientations, they store additional "viewpoint-specific" representations. Consequently, mental rotation does not always return to a single "upright" canonical view; instead, the internal representation is rotated to the nearest familiar orientation stored in memory.
@@ -116,6 +121,7 @@ Extending this work from the perspective of visual cognition, @tarr1989mental de
 Examining reaction times across diverse populations, a cross-cultural comparison of children in the Ivory Coast and Switzerland revealed that while both groups utilized the same mental rotation strategies, Swiss children demonstrated significantly higher speed and accuracy [@nunez1998mental]. Interestingly, both groups exhibited an identical, non-linear dip in performance at 30° and 330° angles, suggesting there could be a more universal cognitive constraint in spatial processing that exists independently of cultural background. Notably, age predicted performance in the Swiss group—with older children showing marked improvements—whereas it had no significant effect on the performance of the Ivorean children [@nunez1998mental].
 
 ## Cognitive strategies
+
 The literature has shifted from viewing mental rotation as a monolithic, linear process to understanding it as a strategic choice mediated by cognitive load and task demands. While early models focused on a universal sequence of encoding, rotation, and comparison [@cooper1973chronometric; @desrocher1995stimulus], more recent research identifies a holistic-analytic continuum of strategies that varies significantly across individuals [@gluck2003spatial].
 
 At one end of this continuum is the holistic strategy, where the stimulus is transformed as a single, integrated mental representation. This is often referred to as the ‘pure rotation’ approach and is characterized by high efficiency, lower total gaze times, and fewer transitions between stimuli [@taragin2019mental; @tang2023eye]. Conversely, the ‘piecemeal’ or local-analytic strategy involves decomposing the object into sub-components for sequential transformation and comparison. This strategy is marked by a ‘switching’ eye-pattern, involving frequent back-and-forth saccades as the participant verifies individual features [@nazareth2019strategy; @fernandez2025inducing].
@@ -127,26 +133,31 @@ Furthermore, the "how" of rotation involves the frame of reference used. @zacks2
 Ultimately, successful performance is defined by strategy flexibility—the ability to dynamically alternate between holistic rotation and analytic checking based on the specific demands of the stimulus [@nazareth2019strategy]. When task difficulty increases—such as with mirrored objects or rotations along skewed axes—flexible rotators can shift strategies to manage the increased cognitive load [@hsing2023using; @nolte2022rotational]. This suggests that observed differences in performance may not stem from an inherent inability to rotate, but rather from differences in strategy selection and the stability of those strategies over time [@geiser2008quantitative].
 
 ## The present study
+
 The Learning Variability Network Exchange (LEVANTE) is an international research collaboration that supports coordinated data collection to better understand how children’s learning and development vary across ages and contexts. Partner sites administer a shared, openly available battery designed for a broad developmental range, and data are harmonized into a central repository. With support from the Jacobs Foundation, participating sites are funded to collect longitudinal data using the LEVANTE framework. Contributing researchers receive access to their site’s data first, followed by scheduled public releases for the wider research community. LEVANTE’s long-term aim is to build and openly share a large, high-quality dataset—alongside the measures themselves—capturing children’s development across diverse settings. In the present study, we use data for the mental rotation task only to answer three core research questoins:
 
-1. Does our task demonstrate measurement invariance across sites, consistent with cross-cultural comparability of the underlying construct? 
-2. Do children’s response times increase approximately linearly with angular disparity in our mental rotation task? 
-3. What latent cognitive strategies best characterize children’s mental-rotation performance, and how are these strategies related to task demands (angular disparity; 2D vs 3D stimuli) and site?
+1.  Does our task demonstrate measurement invariance across sites, consistent with cross-cultural comparability of the underlying construct?
+2.  Do children’s response times increase approximately linearly with angular disparity in our mental rotation task?
+3.  What latent cognitive strategies best characterize children’s mental-rotation performance, and how are these strategies related to task demands (angular disparity; 2D vs 3D stimuli) and site?
 
 To our knowledge, LEVANTE is the first study to use item response theory (IRT) models to develop a mental rotation task (see @Kachergis2025LEVANTEcoretasks for further detail). IRT comprises a class of models that estimate, within a single framework, both item properties (e.g., how difficult each item is) and person ability (e.g., each child’s latent skill) [@embretson2013item]. Once fitted, an IRT model yields item parameters that can be used to place a new test-taker on the same latent scale from their response pattern, even if they completed only a subset of items. This allows us to report directly comparable scores for younger children who received mostly easier items and older children who received harder items.
 
 # Methods
 
 ## Participants
-Data for the present study were drawn from three pilot sites participating in LEVANTE: uniandes-co, mpieva-de, and western-ca. Collectively, these sites supported task localisation and technical implementation, iterative piloting, and deployment in varied testing contexts. The resulting pilot datasets enabled preliminary evaluation of construct validity, measurement invariance, test–retest reliability, and calibration for computer-adaptive administration, as well as descriptive assessment of age-related differences across the targeted constructs (refer to @Kachergis2025LEVANTEcoretasks for a full description). 
+
+Data for the present study were drawn from three pilot sites participating in LEVANTE: uniandes-co, mpieva-de, and western-ca. Collectively, these sites supported task localisation and technical implementation, iterative piloting, and deployment in varied testing contexts. The resulting pilot datasets enabled preliminary evaluation of construct validity, measurement invariance, test–retest reliability, and calibration for computer-adaptive administration, as well as descriptive assessment of age-related differences across the targeted constructs (refer to @Kachergis2025LEVANTEcoretasks for a full description).
 
 ### uniandes-co
+
 The Universidad de Los Andes team carried out school-based data collection in Colombia, working with four schools in Bogotá and two public schools in the rural departments of Caquetá and Boyacá. Schools were selected pragmatically from institutions that had previously collaborated with the university. In Bogotá, three schools were affiliated with two family compensation funds and one was operated by a charter-school organisation. Across locations, participating schools largely served children from low-income and lower-middle-income backgrounds. Testing was conducted on tablets provided by the research team using a group-administration format, with group sizes adjusted by age (larger groups for older children; smaller groups for younger children).
 
 ### mpieva-de
+
 At the mpieva-de site, the Max Planck Institute for Evolutionary Anthropology implemented a remote, family-based assessment protocol. Families were recruited via an existing registry of Leipzig residents and were contacted by telephone to invite participation. Families who enrolled were given login details and completed the assigned LEVANTE tasks at home using their own computer or tablet.
 
 ### western-ca
+
 The Western University (Ontario) team recruited children from the surrounding community, primarily via online outreach (e.g., Facebook advertisements and posts in community groups), complemented by physical flyers and announcements distributed through local school newsletters. Families self-enrolled by registering their interest in a participant database. Children were assessed individually by a researcher in a dedicated on-campus testing space.
 
 ## Measure
@@ -162,11 +173,11 @@ The LEVANTE mental rotation task is adapted from @frick2013development. On each 
 knitr::include_graphics("mrot_item_examples.pdf")
 ```
 
-All LEVANTE tasks including mental rotation were originally developed in English and later adapted for Spanish and German through a structured internationalisation workflow carried out with collaborators at the uniandes-co and mpieva-de sites, respectively. We first produced draft translations of all verbal content—including instructions, item text, and recurring terminology (e.g., encouragement prompts)—using DeepL. These drafts were then refined by a professional translator to ensure grammatical accuracy and natural phrasing. Next, a site researcher who was a native speaker of the relevant language and dialect reviewed the materials to confirm clarity and suitability for the specific task context. To check for semantic and conceptual alignment with the English originals, we used AI-assisted back-translation to identify wording that required further revision and native-speaker review. 
+All LEVANTE tasks including mental rotation were originally developed in English and later adapted for Spanish and German through a structured internationalisation workflow carried out with collaborators at the uniandes-co and mpieva-de sites, respectively. We first produced draft translations of all verbal content—including instructions, item text, and recurring terminology (e.g., encouragement prompts)—using DeepL. These drafts were then refined by a professional translator to ensure grammatical accuracy and natural phrasing. Next, a site researcher who was a native speaker of the relevant language and dialect reviewed the materials to confirm clarity and suitability for the specific task context. To check for semantic and conceptual alignment with the English originals, we used AI-assisted back-translation to identify wording that required further revision and native-speaker review.
 
 The mental rotation task has already been implemented in a computer-adaptive task (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (theta) that is re-estimated after each response. The updated theta then guides selection of the next item so that it is appropriately challenging for the individual. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. Refer to @Kachergis2025LEVANTEcoretasks for more information on the CAT versions of all LEVANTE tasks.
 
-## Analytical techniques [TO ADD]
+## Analytical techniques \[TO ADD\]
 
 \clearpage
 
@@ -178,7 +189,7 @@ While we use psychometric modelling to place children’s performance on a commo
 
 Because our data were collected across three sites—with site-specific translations and task adaptations—we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries.
 
-[PLACEHOLDER for stats to evidence the scalar invariance: χ² with df and p,RMSEA, SRMSR CFI/TLI].
+\[PLACEHOLDER for stats to evidence the scalar invariance: χ² with df and p,RMSEA, SRMSR CFI/TLI\].
 
 @fig-dev-trends plots participants’ mental rotation ability estimates (IRT theta) against age, separately for each site, with site-specific trends modeled using generalized additive models (GAMs). Across sites, theta increases with age, indicating developmental improvement in mental rotation ability.
 
@@ -327,6 +338,7 @@ mrot_irt <- ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label))
   )
 mrot_irt
 ```
+
 \clearpage
 
 We tested if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-site variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
@@ -446,11 +458,12 @@ p_mrot_rt_angle_age <- ggplot() +
   )
 p_mrot_rt_angle_age
 ```
+
 \clearpage
 
 ## Within-Person Dynamics
 
-Having established the expected angular-disparity effect across age groups and sites, we next examined how RTs evolved within individuals over the course of the task. Because item difficulty increased adaptively—such that higher-performing children were more likely to encounter the harder 3D items—we analysed trial-by-trial RT trajectories across the 80 trials to distinguish item-driven changes from more gradual time-on-task effects (e.g., fatigue). @fig-within-person-trials illustrates a clear 'jump' in RT about halfway through the task (trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three site populations. We observed consistent response acceleration within both the 2D and 3D blocks, as children became faster with practice. 
+Having established the expected angular-disparity effect across age groups and sites, we next examined how RTs evolved within individuals over the course of the task. Because item difficulty increased adaptively—such that higher-performing children were more likely to encounter the harder 3D items—we analysed trial-by-trial RT trajectories across the 80 trials to distinguish item-driven changes from more gradual time-on-task effects (e.g., fatigue). @fig-within-person-trials illustrates a clear 'jump' in RT about halfway through the task (trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three site populations. We observed consistent response acceleration within both the 2D and 3D blocks, as children became faster with practice.
 
 ```{r}
 #| label: fig-within-person-trials
@@ -483,19 +496,23 @@ ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fi
   theme(legend.position = "top") # Keep layout adjustments only
 
 ```
+
 \clearpage
 
 # Cognitive Strategies Analysis
 
-To determine if children rely on distinct cognitive strategies (e.g., "Effective Rotation" vs. "Impulsive Guessing"), we extracted four cognitive features for each participant using a mixed-effects model:
+To determine if children rely on distinct cognitive strategies (e.g., "Effective Rotation" vs. "Impulsive Guessing") rather than simply varying along a continuous ability scale, we extracted four cognitive features for each participant using a mixed-effects model.
 
-1.  Baseline Speed: Intercept from the linear model.
-2.  Rotation Slope: The "cost" of rotation (purified of stimulus effects).
-3.  Response Variability (RT SD): Intra-individual standard deviation.
-4.  Accuracy: IRT-estimated ability.
+Consistent with the generally log-normal distribution of reaction times, we modeled log-transformed RTs. While the classic @shepard1971mental finding describes a linear relationship with raw RT, fitting the model to log(RT) provides more robust parameter estimates for defining individual strategy profiles in a developing population.
 
-We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cross-cultural validity, we compared a "Global Model" (pooled data) against "Local Models" (country-specific).
+The extracted features were:
 
+1.  Baseline Speed: Intercept from the mixed-effects model (representing speed at 0° rotation).
+2.  Rotation Slope: The "cost" of rotation (slope of angle on log RT), purified of stimulus effects.
+3.  Response Variability (RT SD): Intra-individual standard deviation of log RT.
+4.  Accuracy: IRT-estimated ability ($\theta$).
+
+We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cross-cultural validity, we compared a "Global Model" (pooled data) against "Local Models" (site-specific).
 
 ```{r}
 #| label: strategy-analysis-prep
@@ -507,6 +524,18 @@ We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cros
 
 library(lme4)
 library(broom)
+
+# 0. PRE-REQUISITE: Create ability_runs from all_scores
+#    (Ensuring we have the person-level ability estimates ready for merging)
+ability_runs <- all_scores %>% 
+  filter(item_task == "mrot", metric_type == "ability") %>% 
+  mutate(metric_value = as.numeric(metric_value), age = as.numeric(age)) %>%
+  group_by(site, user_id, run_id) %>% 
+  summarise(
+    ability = mean(metric_value, na.rm = TRUE),
+    age = first(age), 
+    .groups = "drop"
+  )
 
 # 1. PREPARE DATA FOR RICH MODEL
 #    Ensure stimulus is a factor for the interaction term
@@ -521,17 +550,8 @@ mrot_rich_data <- mrot_rt_trial %>%
     stimulus = as.factor(stimulus)
   )
 
-model_data_corrected <- ability_runs %>%
-  inner_join(rt_residuals_person %>% 
-               select(user_id, run_id, rt_resid = rt_residual_mean),
-             by = c("user_id", "run_id")) %>%
-  filter(!is.na(ability), !is.na(rt_resid), !is.na(age)) %>%
-  mutate(
-    # Recode sites for cleaner output
-    site_model = dplyr::recode(site, !!!site_labels)
-  )
 # 2. FIT THE "RICH MODEL" (Intercept + Angle*Stimulus + Trial)
-#    Formula: RT ~ Angle*Stimulus + Trial
+#    Formula: log(RT) ~ Angle*Stimulus + Trial
 #    This separates "Shape Difficulty" (Stimulus) from "Rotation Ability" (Angle)
 m_rich <- lmer(
   log_rt ~ angle_s * stimulus + trial_s + (1 + angle_s + trial_s | user_id) + (1 | item),
@@ -574,18 +594,15 @@ rich_features_final <- rich_features_raw %>%
   left_join(rt_variability_clean, by = "user_id") %>%
   left_join(user_site_map, by = "user_id") %>%
   left_join(
-    model_data_corrected %>% select(user_id, accuracy = ability) %>% distinct(user_id, .keep_all=TRUE), 
+    ability_runs %>% select(user_id, accuracy = ability) %>% distinct(user_id, .keep_all=TRUE), 
     by = "user_id"
   ) %>%
   mutate(
-    Country = case_when(
-      grepl("mpieva", site) ~ "Germany",
-      grepl("uniandes", site) ~ "Colombia",
-      grepl("western", site) ~ "Canada",
-      TRUE ~ NA_character_
-    )
+    # Clean Site Labels: remove "pilot_" and replace "_" with "-"
+    Site = stringr::str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
   filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
+
 ```
 
 ```{r}
@@ -604,32 +621,9 @@ my_colors <- c(
   "Pattern Matching" = "#3498db", # Blue
   "Rotation" = "#2ecc71"          # Green
 )
-# 2. RUN GLOBAL K-MEANS (k=3)
-global_input <- analysis_data %>% 
-  select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% 
-  scale()
-
-set.seed(123)
-k_global <- kmeans(global_input, centers = 3)
-analysis_data$Global_Cluster <- as.factor(k_global$cluster)
-
-#| label: clustering-execution
-#| echo: false
-#| message: false
-#| warning: false
-
-# 1. SETUP CLUSTERING
-analysis_data <- rich_features_final %>%
-  filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
-
-# Define colors for the 3 strategies
-my_colors <- c(
-  "Guessing" = "#e74c3c",         # Red
-  "Pattern Matching" = "#3498db", # Blue
-  "Rotation" = "#2ecc71"          # Green
-)
 
 # 2. RUN GLOBAL K-MEANS (k=3)
+#    Scale inputs to ensure equal weighting
 global_input <- analysis_data %>% 
   select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% 
   scale()
@@ -639,7 +633,6 @@ k_global <- kmeans(global_input, centers = 3)
 analysis_data$Global_Cluster <- as.factor(k_global$cluster)
 
 # 3. ASSIGN LABELS AUTOMATICALLY
-#    We summarize the features of each cluster to define what they are.
 cluster_stats <- analysis_data %>%
   group_by(Global_Cluster) %>%
   summarise(
@@ -677,19 +670,16 @@ analysis_data <- analysis_data %>%
       Global_Cluster == pattern_id ~ "Pattern Matching",
       Global_Cluster == rotation_id ~ "Rotation"
     ),
-    # Order factors for nice plotting (Guessing -> Pattern -> Rotation)
     Strategy_Label = factor(Strategy_Label, levels = c("Guessing", "Pattern Matching", "Rotation"))
   )
 ```
 
-\clearpage
-
 ## Model Selection: Global vs. Local Clustering
 
-To determine whether we can define "ineffective strategies" universally or if we need country-specific definitions, we compared two approaches:
+To determine whether we can define "ineffective strategies" universally or if we need site-specific definitions, we compared two approaches:
 
-- Local Models: Clustering performed independently within each country (optimizing for local variance).
-- Global Model: Clustering performed on the pooled dataset (applying a universal standard).
+-   **Local Models:** Clustering performed independently within each site (optimizing for local variance).
+-   **Global Model:** Clustering performed on the pooled dataset (applying a universal standard).
 
 We then calculated the agreement rate between the two methods to see if the "Global" definition aligns with "Local" realities.
 
@@ -701,8 +691,11 @@ We then calculated the agreement rate between the two methods to see if the "Glo
 #| results: "hide"
 
 # 1. Define Helper to get Local Labels (Binary: Effective/Ineffective)
-get_local_binary_labels <- function(data, country_name) {
-  c_data <- data %>% filter(Country == country_name)
+get_local_binary_labels <- function(data, site_name) {
+  c_data <- data %>% filter(Site == site_name) %>% ungroup()
+  
+  if(nrow(c_data) < 10) return(NULL) # Safety check
+  
   set.seed(123)
   
   # Run Local K-means (k=3)
@@ -724,71 +717,42 @@ get_local_binary_labels <- function(data, country_name) {
     select(user_id, Local_Label)
 }
 
-# 2. Generate Local Labels for all countries
-labs_de <- get_local_binary_labels(analysis_data, "Germany")
-labs_co <- get_local_binary_labels(analysis_data, "Colombia")
-labs_ca <- get_local_binary_labels(analysis_data, "Canada")
+# 2. Generate Local Labels for all sites
+labs_de <- get_local_binary_labels(analysis_data, "mpieva-de")
+labs_co <- get_local_binary_labels(analysis_data, "uniandes-co")
+labs_ca <- get_local_binary_labels(analysis_data, "western-ca")
 
 # 3. Merge Local Labels back into main dataset
 local_labels_all <- bind_rows(labs_de, labs_co, labs_ca)
 
-# Remove Local_Label if it already exists to avoid duplication errors
-if("Local_Label" %in% names(analysis_data)) {
-  analysis_data <- analysis_data %>% select(-Local_Label)
-}
+# Clean up before join
+if("Local_Label" %in% names(analysis_data)) analysis_data <- analysis_data %>% select(-Local_Label)
+if("Global_Label" %in% names(analysis_data)) analysis_data <- analysis_data %>% select(-Global_Label)
 
 analysis_data <- analysis_data %>%
   left_join(local_labels_all, by = "user_id") %>%
   mutate(
-    # Create Global Binary Label for Comparison (Derived from your 3-way Strategy_Label)
     Global_Label = ifelse(Strategy_Label == "Guessing", "Ineffective", "Effective")
   )
 
-# 4. Calculate Agreement Stats (to print in text)
-calc_agreement <- function(data, country) {
-  sub <- data %>% filter(Country == country)
+# 4. Calculate Agreement Stats
+calc_agreement <- function(data, site_name) {
+  sub <- data %>% filter(Site == site_name)
+  if(nrow(sub) == 0) return(NA)
   tbl <- table(sub$Local_Label, sub$Global_Label)
   sum(diag(tbl)) / sum(tbl)
 }
 
-res_de <- calc_agreement(analysis_data, "Germany")
-res_co <- calc_agreement(analysis_data, "Colombia")
-res_ca <- calc_agreement(analysis_data, "Canada")
-# Create the summary table for the manuscript
-agreement_stats <- tibble(
-  Country = c("Germany", "Colombia", "Canada"),
-  Agreement = c(res_de, res_co, res_ca)
-)
-
-print(agreement_stats)
+res_de <- calc_agreement(analysis_data, "mpieva-de")
+res_co <- calc_agreement(analysis_data, "uniandes-co")
+res_ca <- calc_agreement(analysis_data, "western-ca")
 ```
 
+To validate our strategy classification, we calculated the agreement between these models. We found high agreement in identifying 'Ineffective' strategies across all sites (mpieva-de: `r round(res_de*100, 1)`%, western-ca: `r round(res_ca*100, 1)`%, uniandes-co: `r round(res_co*100, 1)`%).
 
+While the differentiation between the two effective strategies ('Pattern Matching' vs. 'Rotation') showed more variance locally, we retained the Global Model definitions for all subtypes. This ensures a consistent standard for 'Pattern Matching' across all populations, allowing for valid cross-site comparisons of strategy prevalence.
 
-To validate our strategy classification, we calculated the agreement between these models. We found high agreement in identifying 'Ineffective' strategies across all sites (Germany: `r round(res_de*100, 1)`%, Canada: `r round(res_ca*100, 1)`%, Colombia: `r round(res_co*100, 1)`%).
-
-While the differentiation between the two effective strategies ('Pattern Matching' vs. 'Rotation') showed more variance locally, we retained the Global Model definitions for all subtypes. This ensures a consistent standard for 'Pattern Matching' across all populations, allowing for valid cross-cultural comparisons of strategy prevalence.
-
-(See Appendix B for full model comparison plots and diagnostic analysis of classification mismatches.)
-
-```{r}
-#| label: fig-strategy-faceted
-#| fig-cap: "Cognitive Strategies. Participants are classified into three distinct strategies: 'Guessing' (Low Accuracy), 'Pattern Matching' (High Accuracy, Flat Slope), and 'Mental Rotation' (High Accuracy, Steep Slope)."
-
-ggplot(analysis_data, aes(x = Abs_Slope, y = accuracy, color = Strategy_Label)) +
-  geom_point(alpha = 0.6, size = 1.8) +
-  # Draw ellipses for the 3 clusters
-  stat_ellipse(aes(group = Strategy_Label), type = "norm", linetype = "dashed", color = "black", size = 0.3) +
-  facet_wrap(~ Country) + 
-  scale_color_manual(values = my_colors) +
-  labs(
-    x = "Rotation Slope", 
-    y = "Accuracy (Theta)",
-    color = "Strategy"
-  ) + 
-  theme(legend.position = "bottom", strip.text = element_text(face = "bold"))
-```
-\clearpage
+*(See @fig-model-comparison in the Appendices for full model comparison plots and diagnostic analysis of classification mismatches.)*
 
 ## Developmental Trajectory of Strategies
 
@@ -804,31 +768,29 @@ We examined the developmental trajectories of the three cognitive strategies. As
 # 1. Prepare Data
 strategy_trends <- analysis_data %>%
   # Join Age data
-  left_join(model_data_corrected %>% select(user_id, age), by = "user_id") %>%
+  left_join(ability_runs %>% select(user_id, age), by = "user_id") %>%
   mutate(Age_Bin = floor(age)) %>%
   filter(!is.na(Age_Bin), Age_Bin >= 6, Age_Bin <= 12) %>%
-  # Count N per Strategy per Country/Age
-  group_by(Country, Age_Bin, Strategy_Label) %>%
+  # Count N per Strategy per Site/Age
+  group_by(Site, Age_Bin, Strategy_Label) %>%
   summarise(N = n(), .groups = "drop_last") %>%
   mutate(
     Total_N = sum(N),
     Pct = N / Total_N,
-    SE = sqrt((Pct * (1 - Pct)) / Total_N) # Standard Error for proportions
+    SE = sqrt((Pct * (1 - Pct)) / Total_N)
   ) %>%
   ungroup()
 
-# 2. Plot (Faceted by Country)
+# 2. Plot (Faceted by Site)
 ggplot(strategy_trends, aes(x = Age_Bin, y = Pct, color = Strategy_Label)) +
   geom_line(linewidth = 1.2) +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = pmax(0, Pct - SE), ymax = pmin(1, Pct + SE)), 
                 width = 0.2, alpha = 0.5) +
-  facet_wrap(~Country) +
+  facet_wrap(~Site) +
   scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
   scale_x_continuous(breaks = 6:12) + 
-  scale_color_manual(values = my_colors) + # Uses your defined Red/Blue/Green
-  # Remove theme_bw() if you want to use global theme, otherwise keep it
-  #theme_bw(base_size = 12) +
+  scale_color_manual(values = my_colors) +
   labs(
     x = "Age (Years)",
     y = "Proportion of Children",
@@ -837,7 +799,7 @@ ggplot(strategy_trends, aes(x = Age_Bin, y = Pct, color = Strategy_Label)) +
   theme(legend.position = "bottom", strip.text = element_text(face="bold"))
 ```
 
-To statistically validate the decline in impulsive behavior, we modeled the probability of using the 'Guessing' strategy as a function of age and country.
+To statistically validate the decline in impulsive behavior, we modeled the probability of using the 'Guessing' strategy as a function of age and site.
 
 ```{r}
 #| label: strategy-stats
@@ -847,16 +809,15 @@ To statistically validate the decline in impulsive behavior, we modeled the prob
 
 # 1. Prepare Data
 stat_data <- analysis_data %>%
-  left_join(model_data_corrected %>% select(user_id, age), by = "user_id") %>%
+  left_join(ability_runs %>% select(user_id, age), by = "user_id") %>%
   filter(!is.na(age), age >= 6, age <= 12) %>%
   mutate(
-    # Target "Guessing" specifically
     Is_Guessing = ifelse(Strategy_Label == "Guessing", 1, 0),
-    Country = relevel(as.factor(Country), ref = "Colombia")
+    Site = relevel(as.factor(Site), ref = "uniandes-co")
   )
 
 # 2. Run Interaction Model
-m_interaction <- glm(Is_Guessing ~ age * Country, 
+m_interaction <- glm(Is_Guessing ~ age * Site, 
                      data = stat_data, 
                      family = "binomial")
 
@@ -867,842 +828,15 @@ age_p   <- res %>% filter(term == "age") %>% pull(p.value)
 p_text  <- ifelse(age_p < .001, "< .001", paste("=", round(age_p, 3)))
 ```
 
-Results indicated a significant main effect of age ($\beta = `r age_est`, p `r p_text`$), confirming that reliance on impulsive guessing declines significantly with development. While baseline rates of guessing varied by site, the interaction between age and country was not statistically significant ($p > .05$), indicating that the rate of this developmental decline (i.e., the transition away from guessing) was consistent across all three populations.
+Results indicated a significant main effect of age ($\beta = `r age_est`, p `r p_text`$), confirming that reliance on impulsive guessing declines significantly with development. While baseline rates of guessing varied by site, the interaction between age and site was not statistically significant ($p > .05$), indicating that the rate of this developmental decline (i.e., the transition away from guessing) was consistent across all three populations.
 
-\clearpage
-
-<!--
-```{r}
-#| eval: false
-#| include: false
-# Fionnuala additional
-analysis_data %>%
-  filter(Strategy_Type == "Effective") %>%
-  summarise(
-    Avg_Slope = mean(Abs_Slope),
-    Min_Slope = min(Abs_Slope),
-    Max_Slope = max(Abs_Slope)
-  )
-
-```
-
-```{r}
-#| eval: false
-#| include: false
-# define strategies within the effective group
-analysis_data_refined <- analysis_data %>%
-  mutate(Detailed_Strategy = case_when(
-    Strategy_Type == "Ineffective" ~ "Guessing/Impulsive",
-    Strategy_Type == "Effective" & Abs_Slope < 0.1 ~ "Pattern Matching",
-    Strategy_Type == "Effective" & Abs_Slope >= 0.1 ~ "Mental Rotation"
-  ))
-
-table(analysis_data_refined$Detailed_Strategy)
-
-```
-
-```{r}
-#| eval: false
-#| include: false
-# 1. Compare the Baseline Speed (Intercept) between the groups
-baseline_analysis <- analysis_data_refined %>%
-  filter(Detailed_Strategy %in% c("Mental Rotation", "Pattern Matching")) %>%
-  group_by(Detailed_Strategy) %>%
-  summarise(
-    Avg_Baseline = mean(Baseline_Speed),
-    Avg_Slope = mean(Abs_Slope),
-    N = n()
-  )
-
-print(baseline_analysis)
-
-# 2. Test if the difference in "Startup Cost" is statistically significant
-t.test(Baseline_Speed ~ Detailed_Strategy, 
-       data = analysis_data_refined %>% filter(Detailed_Strategy %in% c("Mental Rotation", "Pattern Matching")))
-
-```
-
-
-```{r}
-#| label: within-person-rt
-#| echo: false
-#| message: false
-#| cache: true
-
-# 1. Decompose RT for Within-Person Analysis
-within_person_data <- model_rt_data %>%
-  filter(!is.na(log_rt), !is.na(correct)) %>%
-  group_by(user_id) %>%
-  mutate(
-    rt_person_mean = mean(log_rt, na.rm = TRUE),
-    rt_within = log_rt - rt_person_mean # >0 means slower than my usual
-  ) %>%
-  ungroup()
-
-# 2. Fit GLMM (Logistic Regression)
-# Does slowing down predict correctness?
-m_within <- glmer(
-  correct ~ rt_within + rt_person_mean + angle + item_group + trial_number + (1|user_id) + (1|item),
-  data = within_person_data,
-  family = binomial,
-  nAGQ = 0 # Optimization for speed
-)
-
-```
-
-```{r}
-#| label: fig-within-rt-trajectories
-#| fig-cap: "Within-person trajectories of log-transformed RT across trials."
-#| fig-width: 8
-#| fig-height: 6
-
-# Add age info + age groups
-within_plot_data <- within_person_data %>%
-  left_join(run_ages, by = c("user_id", "run_id")) %>%
-  filter(!is.na(age)) %>%
-  mutate(
-    age_group = cut(
-      age,
-      breaks = c(5, 8, 11, 14),
-      include.lowest = TRUE,
-      right = TRUE
-    )
-  )
-
-ggplot(within_plot_sample,
-       aes(x = trial_number, y = log_rt, group = user_id)) +
-  geom_line(alpha = 0.15) +
-  geom_smooth(aes(group = 1),
-              colour = "black",
-              linewidth = 1) +
-  facet_grid(site ~ age_group) +
-  labs(
-    x = "Trial number",
-    y = "Log RT (seconds)",
-    subtitle = "Thin lines = individual trajectories; thick line = average trend"
-  )
-
-
-```
-\clearpage
-
-# Cross-Country Comparisons (Bivariate Model)
-
-## Cross-Population Differences in Ability and Speed
-
-To simultaneously evaluate developmental trends and cross-cultural differences, we fitted a multivariate Bayesian regression model. This model jointly predicts Spatial Ability ($\theta$) and Residualized Processing Speed, accounting for the correlation between the two traits.
-
-```{r}
-#| label: bivariate-prep
-#| echo: false
-#| message: false
-
-# Join existing scores with new residuals
-model_data_corrected <- ability_runs %>%
-  inner_join(rt_residuals_person %>% 
-               select(user_id, run_id, rt_resid = rt_residual_mean),
-             by = c("user_id", "run_id")) %>%
-  filter(!is.na(ability), !is.na(rt_resid), !is.na(age)) %>%
-  mutate(
-    # Recode sites for cleaner output
-    site_model = dplyr::recode(site, !!!site_labels)
-  )
-```
-
-```{r}
-#| label: fig-development
-#| fig-cap: "Developmental Trajectories. Panel A shows the increase in Spatial Ability (Theta) with age. Panel B shows the decrease in Residualized Reaction Time (log seconds) with age, indicating faster processing speed."
-#| echo: false
-#| warning: false
-#| message: false
-
-library(ggplot2)
-library(patchwork)
-
-# 1. Define APA Theme
-theme_apa <- theme_classic(base_size = 12) +
-  theme(
-    text = element_text(family = "serif", color = "black"),
-    axis.line = element_line(color = "black", linewidth = 0.8),
-    axis.ticks = element_line(color = "black"),
-    axis.text = element_text(color = "black", size = 11),
-    axis.title = element_text(face = "bold", size = 12),
-    plot.tag = element_text(face = "bold", size = 16), 
-    panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA)
-  )
-
-# 2. Panel A: Spatial Ability by Age
-plot_a <- ggplot(model_data_corrected, aes(x = age, y = ability)) +
-  geom_jitter(alpha = 0.25, size = 1.2, width = 0.2, color = "grey40") +
-  geom_smooth(method = "lm", color = "black", linewidth = 1, se = TRUE, fill = "grey80") +
-  labs(
-    tag = "A",
-    x = "Age (Years)",
-    y = expression(paste("Spatial Ability (", theta, ")")) 
-  ) 
-  # REMOVED + theme_apa
-
-# 3. Panel B: Processing Speed by Age
-plot_b <- ggplot(model_data_corrected, aes(x = age, y = rt_resid)) +
-  geom_jitter(alpha = 0.25, size = 1.2, width = 0.2, color = "grey40") +
-  geom_smooth(method = "lm", color = "black", linewidth = 1, se = TRUE, fill = "grey80") +
-  labs(
-    tag = "B",
-    x = "Age (Years)",
-    y = "Residualized RT (log seconds)\n(Negative = Faster)"
-  ) 
-  # REMOVED + theme_apa
-# 4. Combine and Print
-plot_a + plot_b
-```
-\clearpage
-
-```{r}
-#| label: run-brms
-#| echo: false
-#| message: false
-#| warning: false
-#| cache: true
-#| results: hide
-
-# NOTE: This chunk uses cache=TRUE because brms takes time to run.
-
-m_joint_corrected <- brm(
-  mvbind(ability, rt_resid) ~ site + age,
-  data = model_data_corrected,
-  chains = 4, 
-  cores = 4, 
-  iter = 2000, 
-  seed = 123
-)
-```
-
-```{r}
-#| label: tbl-bivariate-results
-#| echo: false
-#| message: false
-#| warning: false
-
-# 1. Extract results for Table
-fixef_results <- fixef(m_joint_corrected) %>%
-  as.data.frame() %>%
-  rownames_to_column("Parameter")
-
-# 2. Define SAFE Helper functions (Returns NA instead of crashing if name is missing)
-get_est <- function(pattern) {
-  val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Estimate)
-  if(length(val) == 0) return(NA) else return(val)
-}
-
-get_low <- function(pattern) {
-  val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q2.5)
-  if(length(val) == 0) return(NA) else return(val)
-}
-
-get_up <- function(pattern) {
-  val <- fixef_results %>% filter(Parameter == pattern) %>% pull(Q97.5)
-  if(length(val) == 0) return(NA) else return(val)
-}
-
-# 3. Build Dynamic Dataframe using CONFIRMED parameter names
-site_results <- tibble(
-  Outcome = c("Spatial Ability (SD)", "Spatial Ability (SD)", 
-              "Response Speed (log s)", "Response Speed (log s)"),
-  Comparison = c("Colombia vs. Germany", "Canada vs. Germany", 
-                 "Colombia vs. Germany", "Canada vs. Germany"),
-  
-  # THESE NOW MATCH YOUR CONSOLE OUTPUT EXACTLY:
-  Param_Name = c("ability_sitepilot_uniandes_co", "ability_sitepilot_western_ca",
-                 "rtresid_sitepilot_uniandes_co", "rtresid_sitepilot_western_ca")
-) %>%
-  rowwise() %>%
-  mutate(
-    Beta = get_est(Param_Name),
-    CI_Lower = get_low(Param_Name),
-    CI_Upper = get_up(Param_Name),
-    
-    # Logic to determine significance automatically
-    Sig_Flag = ifelse(sign(CI_Lower) == sign(CI_Upper), "*", "ns"),
-    
-    # Logic to generate the interpretation text
-    Result = case_when(
-      is.na(Beta) ~ "Error: Param Not Found",
-      Outcome == "Spatial Ability (SD)" & Beta < 0 ~ "Significantly Lower",
-      Outcome == "Spatial Ability (SD)" & Beta > 0 ~ "Significantly Higher",
-      Outcome == "Response Speed (log s)" & Beta < 0 & Sig_Flag == "*" ~ "Significantly Faster",
-      Outcome == "Response Speed (log s)" & Beta > 0 & Sig_Flag == "*" ~ "Significantly Slower",
-      Sig_Flag == "ns" ~ "No Difference",
-      TRUE ~ "Other"
-    )
-  ) %>%
-  ungroup() %>%
-  filter(!is.na(Beta))
-
-# 4. Generate GT Table
-site_results %>%
-  select(Outcome, Comparison, Beta, CI_Lower, CI_Upper, Result) %>%
-  group_by(Outcome) %>%
-  gt() %>%
-  tab_header(
-    title = "Cross-Cultural Differences in Ability and Processing Speed",
-    subtitle = "Posterior estimates from Bivariate Bayesian Regression"
-  ) %>%
-  cols_label(
-    Comparison = "Site Comparison",
-    Beta = "Estimate (β)",
-    CI_Lower = "Lower 95% CI",
-    CI_Upper = "Upper 95% CI",
-    Result = "Interpretation"
-  ) %>%
-  fmt_number(columns = c(Beta, CI_Lower, CI_Upper), decimals = 2) %>%
-  tab_options(
-    table.border.top.color = "black",
-    table.border.bottom.color = "black",
-    row_group.font.weight = "bold"
-  )
-```
-
-```{r}
-#| label: fig-site-forest
-#| fig-cap: "Site-Specific Processing Styles. Forest plot showing posterior estimates for Spatial Ability (Panel A) and Processing Speed (Panel B) relative to the German baseline (dashed line at 0). Error bars represent 95% confidence intervals."
-#| echo: false
-#| message: false
-#| warning: false
-
-library(ggplot2)
-library(patchwork)
-library(dplyr)
-
-# 1. Define APA Theme for Forest Plot
-theme_apa_forest <- theme_classic(base_size = 11) +
-  theme(
-    text = element_text(family = "serif"),
-    axis.text.y = element_text(face = "bold", size = 10),
-    panel.grid.major.x = element_line(color = "grey90"),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
-  )
-
-# 2. Extract plotting data from our dynamic dataframe
-# We clean up the site names for the Y-axis labels
-plot_data <- site_results %>%
-  mutate(Site = ifelse(grepl("Colombia", Comparison), "Colombia", "Canada"))
-
-# 3. Panel A: Ability Differences
-p1 <- ggplot(subset(plot_data, Outcome == "Spatial Ability (SD)"), 
-             aes(x = Beta, y = Site)) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
-  geom_point(size = 3, color = "#27ae60") +
-  geom_errorbarh(aes(xmin = CI_Lower, xmax = CI_Upper), height = 0.2, color = "#27ae60") +
-  labs(
-    title = "A. Ability Differences",
-    subtitle = "(Reference: Germany = 0)",
-    x = "Difference in SD units"
-  ) +
-  theme_apa_forest
-
-# 4. Panel B: Speed Differences
-p2 <- ggplot(subset(plot_data, Outcome == "Response Speed (log s)"), 
-             aes(x = Beta, y = Site)) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
-  geom_point(size = 3, color = "#2980b9") +
-  geom_errorbarh(aes(xmin = CI_Lower, xmax = CI_Upper), height = 0.2, color = "#2980b9") +
-  labs(
-    title = "B. Speed Differences",
-    subtitle = "(Negative = Faster)",
-    x = "Difference in log(seconds)"
-  ) +
-  theme_apa_forest
-
-# 5. Combine and Print
-p1 + p2
-```
-
-\clearpage
-
-## Differential Effectiveness of Processing Speed
-
-We further tested whether the accuracy benefits of slowing down varied across cultures by modeling the interaction between site and processing speed. In contrast to the site-specific hypothesis, results indicated a universal benefit to deliberative processing.
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-#| cache: true
-#| results: hide
-# 1. Fit the Interaction Model
-# NOTE: Using cache=TRUE to avoid re-running this slow model every render
-m_strategy <- brm(
-  ability ~ age + site_model * rt_resid, 
-  data = model_data_corrected,
-  chains = 4, 
-  cores = 4, 
-  iter = 2000, 
-  seed = 123
-)
-```
-
-```{r}
-#| label: fig-strategy-interaction
-#| fig-cap: "Universal Speed-Accuracy Trade-off. The relationship between residualized reaction time and spatial ability is consistent across sites. In all three populations, slower processing (higher residualized RT) predicts higher spatial ability scores, as indicated by the parallel positive slopes."
-#| echo: false
-#| message: false
-#| warning: false
-
-
-# 2. Extract trend lines for plotting
-effects_data <- conditional_effects(m_strategy, effects = "rt_resid:site_model")[[1]]
-
-# 3. Define APA Theme
-theme_apa <- theme_classic(base_size = 12) +
-  theme(
-    text = element_text(family = "serif", color = "black"),
-    axis.line = element_line(color = "black", linewidth = 0.8),
-    axis.ticks = element_line(color = "black"),
-    axis.text = element_text(color = "black", size = 11),
-    axis.title = element_text(face = "bold", size = 12),
-    legend.position = "top",
-    legend.title = element_text(face = "bold"),
-    panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA)
-  )
-
-# Prepare data for plotting
-# Note: Ensure site_labels vector exists from previous chunks
-effects_data2 <- effects_data %>%
-  mutate(site_label = dplyr::recode(as.character(site_model), 
-                                    "pilot_uniandes_co" = "Colombia",
-                                    "pilot_mpieva_de" = "Germany",
-                                    "pilot_western_ca" = "Canada"))
-
-# Position for line-end labels (rightmost x for each site)
-label_positions <- effects_data2 %>%
-  group_by(site_label) %>%
-  slice_max(rt_resid, with_ties = FALSE) %>%
-  ungroup()
-
-# 4. Create the Plot
-ggplot(effects_data2, aes(x = rt_resid, y = estimate__, linetype = site_label)) +
-  # Ribbons (Confidence Intervals)
-  geom_ribbon(aes(ymin = lower__, ymax = upper__, fill = site_label), 
-              alpha = 0.15, color = NA) +
-  # Trend Lines
-  geom_line(linewidth = 1.2, color = "black") +
-  # Direct labels near lines
-  geom_text(
-    data = label_positions,
-    aes(x = rt_resid + 0.05, y = estimate__, label = site_label),
-    inherit.aes = FALSE, hjust = 0, size = 4.5, fontface = "bold"
-  ) +
-  # Manual Scales
-  scale_linetype_manual(values = c("Germany" = "solid", "Colombia" = "longdash", "Canada" = "dotted")) +
-  scale_fill_manual(values = c("Germany" = "black", "Colombia" = "black", "Canada" = "black")) +
-  # Labels and Layout
-  labs(
-    x = "Residualized RT (log seconds)\n(Negative = Fast | Positive = Slow)",
-    y = "Predicted Spatial Ability (Theta)"
-  ) +
-  coord_cartesian(clip = "off") + 
-  theme_apa +
-  theme(legend.position = "none", plot.margin = margin(r = 80))
-
-```
-fionnuala cuts
-## Reaction time
-We examined the association between children’s IRT-estimated ability and log-transformed reaction time (see @fig-ability-rt). We use log RT because raw reaction times are typically positively skewed; log-transforming them reduces this skew and stabilises variance, making model assumptions more reasonable and effect estimates easier to interpret.
-
-Across all three sites, the age-specific fits are generally positive, indicating that higher ability is typically associated with longer response times (higher log RT). Put differently, within age bands, children who take more time on the task tend to perform better. The association varies by age and is noisier where sample sizes are smaller, but overall the pattern does not suggest that higher ability corresponds to faster responding.
-
-```{r}
-#| label: fig-ability-rt
-#| fig-cap: "IRT Ability (Theta) vs log RT."
-#| fig-width: 8
-#| fig-height: 6
-
-# get shape and rotation data
-mrot_rt_sum <- all_sum_scores %>%
-  filter(item_task == "mrot") %>%
-  select(site, language, data) %>%
-  unnest(data) %>%                         
-  mutate(
-    correct = as.numeric(correct),
-    rt_s    = as.numeric(rt_numeric) / 1000
-  ) %>%
-  filter(is.finite(rt_s), rt_s > 0) %>%     
-  mutate(log_rt = log(rt_s))
-
-# collapse to run level RT summaries
-mrot_rt_runs <- mrot_rt_sum %>%
-  left_join(run_data %>% 
-              select(site, user_id, run_id, age), 
-            by = c("site", "user_id", "run_id")) %>%
-  group_by(site, user_id, run_id) %>%
-  summarise(
-    # trial-level RT summaries for correct items
-    logrt_median = median(log_rt[correct == 1], na.rm = TRUE),
-    logrt_mean   = mean(log_rt[correct == 1],  na.rm = TRUE),
-    age = first(age),
-    n_items = n_distinct(item_uid),
-    .groups = "drop"
-  )
-
-ability_runs <- all_scores %>% 
-  filter(item_task == "mrot", metric_type == "ability") %>%
-  select(site, user_id, run_id, ability = metric_value, age) %>%
-  group_by(site, user_id, run_id) %>%               
-  summarise(
-    ability = mean(ability, na.rm = TRUE),
-    age     = first(age),
-    .groups = "drop"
-  )
-
-# join RT and ability
-mrot_speed_ability <- ability_runs %>%
-  inner_join(
-    mrot_rt_runs %>% select(site, user_id, run_id, logrt_mean),
-    by = c("site", "user_id", "run_id")
-  )
-
-p_mrot_speed_ability <- mrot_speed_ability %>%
-  mutate(age_binned = as_factor(floor(age))) %>%
-  ggplot(aes(x = logrt_mean, y = ability, colour = age_binned)) +
-  geom_point(alpha = 0.55, size = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~ site) +
-  labs(
-    #title = "IRT Ability (Theta) vs log RT",
-    subtitle = "Each point = participant run; site-wise linear fits",
-    x = "log(RT, seconds)",
-    y = "IRT ability (theta)",
-    colour = "Age (years)"
-  ) 
-p_mrot_speed_ability
-```
-08.01.2025 - REMOVING SECTION ON RESIDUALIZED REACTION TIME FOR NOW
-
-### Reaction Time Scoring (potentially remove)
-
-While our IRT models provide an ability estimate for each child by accounting for item-level difficulty, raw reaction times remain confounded by the specific items a child encounters (e.g., adaptive testing selects harder, naturally slower items for higher-ability children). To account for this, we first regress log-transformed RTs on item characteristics (rotation angle, stimulus type) and test position (trial number) to account for mechanical difficulty and practice effects. The model is defined as:
-$$
-\log(RT_{ij}) = \beta_0 + \beta_1 \cdot \text{Angle}_j
-+ \beta_2 \cdot \text{Stimulus}_j
-+ \beta_3 \cdot \text{Trial}_{ij}
-+ u_j + \epsilon_{ij}
-$$
-
-Where:
-$$
-S_i = \frac{1}{n_i}\sum_{j=1}^{n_i} \hat{\epsilon}_{ij}
-$$
-
-### RT Residualization
-
-As described above, we attempted to mirror the IRT approach which estimates each child’s underlying ability by accounting for item properties such as difficulty and discrimination, we fitted a linear mixed-effects model (LMM) to log reaction times, residualizing RT with respect to rotation angle, trial number, and stimulus type. 
-
-@fig-site-age-slopes shows that residualised RT decreases with age in the mpieva-de site. In contrast, this age trend is not evident at the other sites: residualised RT is approximately flat across age in western-ca and increases with age in uniandes-co.
-
-```{r}
-#| label: residualization
-#| echo: false
-#| message: false
-#| cache: true
-#| results: "hide"
-
-# prepare data for modeling
-model_rt_data <- mrot_rt_trial %>%
-  mutate(
-    # Extract "rabbit" from "rabbit_040" if not already present
-    stimulus = stringr::str_extract(item, "^[a-z]+"), 
-    angle = as.integer(stringr::str_extract(item, "\\d+")) 
-  ) %>%
-  filter(!is.na(angle), !is.na(log_rt))
-
-# Controlling for angle, trial, stimulus, and item grouping
-m_rt_full <- lmer(
-  log_rt ~ angle + trial_number + stimulus + item_group + (1|item), 
-  data = model_rt_data
-)
-
-# extract residuals (Person Speed): these represent speed after accounting for item difficulty
-model_rt_data <- model_rt_data %>%
-  mutate(rt_resid_item = residuals(m_rt_full))
-
-rt_residuals_person <- model_rt_data %>%
-  group_by(site, user_id, run_id) %>%
-  summarise(
-    rt_residual_mean = mean(rt_resid_item, na.rm=TRUE),
-    rt_residual_sd   = sd(rt_resid_item, na.rm=TRUE),
-    n_items = n(),
-    .groups = "drop"
-  )
-
-# Save for later
-#write_csv(rt_residuals_person, here::here("..", "levante-pilots", "02_scoring_outputs", "scores", "rt_residuals_corrected.csv"))
-```
-
-```{r}
-#| label: resid-rt-diff
-#| echo: false
-#| message: false
-#| cache: true
-#| results: "hide"
-
-# quantifying differences in residualized RT with site and age
-rt_resid_person_age <- model_rt_data %>%
-  group_by(site, user_id, run_id) %>%
-  summarise(
-    rt_residual_mean = mean(rt_resid_item, na.rm = TRUE),
-    rt_residual_sd   = sd(rt_resid_item,   na.rm = TRUE),
-    n_items          = n(),
-    .groups          = "drop"
-  ) %>%
-  left_join(
-    run_data %>%
-      transmute(
-        user_id,
-        run_id,
-        age = as.numeric(age)
-      ),
-    by = c("user_id", "run_id")
-  ) %>%
-  filter(is.finite(age),
-         age >= 5,
-         age <= 13)
-
-m_site_age <- lmer(
-  rt_residual_mean ~ site + age + (1 | user_id), # random intercept; each child’s baseline is estimated independently
-  data = rt_resid_person_age
-)
-
-summary(m_site_age)
-anova(m_site_age)
-```
-
-```{r}
-#| label: fig-site-age-slopes
-#| fig-cap: "Cross-Site Trajectories of Residualized Reaction Time from Ages 5–13."
-#| fig-width: 8
-#| fig-height: 6
-#| results: "hide"
-
-# Site-specific age slopes (interaction model)
-m_site_age_int <- lmer(
-  rt_residual_mean ~ site * age + (1 | user_id),
-  data = rt_resid_person_age
-)
-anova(m_site_age, m_site_age_int)  
-
-ggplot(rt_resid_person_age,
-       aes(x = age, y = rt_residual_mean, colour = site)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 4), se = TRUE) +
-  labs(
-    x = "Age (years)",
-    y = "Residualized RT (log seconds)"
-  )
-```
-\clearpage
-
-@fig-rt-resid shows the distribution of residualised log reaction times (i.e., RTs after adjusting for rotation angle, trial number, and stimulus type) across three age bands and within each site. As in @fig-site-age-slopes the main pattern is that mpieva-de shows a clear shift towards lower residualised RT in older age groups, whereas western-ca shows relatively little change across age bands and uniandes-co shows less consistent age-related shift, with older groups not showing the expected reduction in residualised RT.
-
-Pairwise contrasts (see @tbl-site-pairs) indicate that mpieva-de has higher residualised RT than the other sites at ages 6 and 9, but these differences shrink with age and are largely absent by age 12, with only a small reversal for mpieva-de versus uniandes-co.
-
-```{r}
-#| label: fig-rt-resid
-#| fig-cap: "Residualized reaction time."
-#| fig-width: 8
-#| fig-height: 6
-
-rt_resid_person_age <- rt_residuals_person %>%
-  left_join(run_ages, by = c("user_id", "run_id")) %>%
-  filter(!is.finite(age) == FALSE) %>%    
-  mutate(
-    age_group = cut(
-      age,
-      breaks = c(5, 8, 11, 14),
-      include.lowest = TRUE,
-      right = TRUE
-    )
-  ) %>%
-  drop_na(age_group)
-
-# Violin plot of residualized RT
-ggplot(rt_resid_person_age,
-       aes(x = age_group, y = rt_residual_mean, fill = age_group)) +
-  #geom_violin(trim = FALSE, alpha = 0.6) +
-  geom_jitter(size = 1.5, alpha = 0.4, width = 0.1) + # looking for the z-score to be jittered
-  geom_boxplot(width = 0.15, outlier.shape = NA, width = 10) +
-  facet_wrap(~ site, nrow = 1) +
-  labs(
-    x = "Age group (years)",
-    y = "Residualized RT (log seconds)"
-  ) +
-  theme(legend.position = "none")
-```
- 
-\clearpage
-
-To quantify the magnitude of cross-cultural differences at distinct developmental stages, we estimated marginal means for residualized reaction time at ages 6, 9, and 12 years (@tbl-site-pairs).
-
-
-```{r}
-#| label: marginal-means
-#| echo: false
-#| message: false
-#| cache: true
-#| results: "hide"
-
-# marginal means at 6, 9 and 12 to understand the magnitude of differences
-library(emmeans)
-emm <- emmeans(m_site_age_int, ~ site | age,
-               at = list(age = c(6, 9, 12)))
-emm
-pairs(emm)  # pairwise site differences at each age with CIs
-```
-
-```{r}
-#| label: tbl-site-pairs
-#| tbl-cap: "Pairwise site differences in residualized RT at ages 6, 9, and 12 years."
-
-pairs_df <- pairs(emm) %>%
-  as.data.frame() %>%
-  mutate(contrast = gsub("pilot_", "", contrast),
-         contrast = gsub("_", " ", contrast)) %>%
-  select(contrast, age, estimate, SE, df, t.ratio, p.value) %>%
-  mutate(across(where(is.numeric), ~round(., 3))) %>%
-  mutate(p.value = ifelse(p.value < .001, "<.001", sprintf("%.3f", p.value)))
-
-knitr::kable(
-  pairs_df,
-  booktabs = TRUE,
-  col.names = c("Site Contrast", "Age (years)", "Estimate", "SE", "df", "t", "p")
-)
-```
-To investigate this unexpected trend in residualized RTs in uniandes-co and western-ca, we broke down the raw data by stimulus type. As shown in @fig-validation-raw-rt, the "flat" aggregate trend is the result of two opposing developmental trajectories canceling each other out. For 2D stimuli (blue lines), children across all three sites become faster with age. However, for 3D stimuli (red lines)— in uniandes-co and western-ca, RTs do not decrease; instead, older children often take longer to respond than their younger counterparts.
-
-```{r}
-#| label: fig-validation-raw-rt
-#| fig-cap: "Validation Check: Raw Mean Reaction Time by Age. While 2D speed (blue) improves universally, 3D speed (red) slows down or plateaus in Colombia and Canada, explaining the null result in the aggregated residual model."
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-width: 8
-#| fig-height: 6
-
-# Prepare Data
-validation_data <- mrot_rt_trial %>%
-  filter(!is.na(log_rt), correct == 1) %>%
-  left_join(run_data %>% select(user_id, run_id, age, site), by = c("user_id", "run_id")) %>%
-  mutate(
-    Age_Bin = floor(age),
-    # Clean Site Names
-    site_label = case_when(
-       grepl("mpieva", site.x) ~ "Germany",
-       grepl("uniandes", site.x) ~ "Colombia",
-       grepl("western", site.x) ~ "Canada",
-       TRUE ~ site.x
-    )
-  ) %>%
-  filter(!is.na(Age_Bin), Age_Bin >= 5, Age_Bin <= 13) %>%
-  group_by(site_label, Age_Bin, item_group) %>%
-  summarise(
-    Mean_RT = mean(exp(log_rt), na.rm = TRUE),
-    SE = sd(exp(log_rt), na.rm = TRUE) / sqrt(n()),
-    .groups = "drop"
-  )
-
-# Plot
-ggplot(validation_data, aes(x = Age_Bin, y = Mean_RT, color = item_group)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = Mean_RT - SE, ymax = Mean_RT + SE), width = 0.2) +
-  facet_wrap(~ site_label) +
-  # REMOVED theme_bw() to use global theme
-  scale_color_manual(values = c("2d" = "#3498db", "3d" = "#e74c3c")) +
-  labs(
-    x = "Age (Years)",
-    y = "Mean Reaction Time (seconds)",
-    color = "Stimulus Type"
-  ) +
-  theme(legend.position = "top")
-```
-\clearpage
-
-To probe the apparent “slowing” on the 3D items, we examined the relationship between response speed and accuracy (@fig-strategy-tradeoff). For the 2D stimuli, reaction times decreased with age across all three sites, indicating that children responded faster as they got older. In contrast, for the 3D stimuli, reaction times in Canada and Colombia were largely flat or increased with age, suggesting that older children trend to take longer to respond. 
-
-```{r}
-#| label: fig-strategy-tradeoff
-#| fig-cap: "Developmental Trade-off: Speed vs. Accuracy. 2D items (Top) show efficiency gains (faster & better). 3D items (Bottom) show a strategy shift: older children slow down (Teal line goes up) to achieve higher accuracy (Red line goes up)."
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-width: 8
-#| fig-height: 6
-
-# Prepare Data
-strategy_comparison <- mrot_rt_trial %>%
-  filter(!is.na(correct), !is.na(log_rt)) %>%
-  left_join(run_data %>% select(user_id, run_id, age, site), by = c("user_id", "run_id")) %>%
-  mutate(
-    Age_Bin = floor(age),
-    # Clean Site Names
-    site_label = case_when(
-       grepl("mpieva", site.x) ~ "Germany",
-       grepl("uniandes", site.x) ~ "Colombia",
-       grepl("western", site.x) ~ "Canada",
-       TRUE ~ site.x
-    )
-  ) %>%
-  filter(Age_Bin >= 5, Age_Bin <= 13) %>%
-  group_by(site_label, item_group, Age_Bin) %>%
-  summarise(
-    Mean_RT = mean(exp(log_rt), na.rm = TRUE),
-    Accuracy = mean(correct, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Define Colors
-col_speed <- "#1abc9c"  # Teal
-col_acc   <- "#e74c3c"  # Red
-
-ggplot(strategy_comparison, aes(x = Age_Bin)) +
-  # Speed Line (Teal)
-  geom_line(aes(y = Mean_RT, color = "RT (Speed)"), linewidth = 1.2) +
-  geom_point(aes(y = Mean_RT, color = "RT (Speed)"), size = 2) +
-  
-  # Accuracy Line (Red) - Scaled
-  geom_line(aes(y = Accuracy * 10, color = "Accuracy"), linewidth = 1.2) +
-  geom_point(aes(y = Accuracy * 10, color = "Accuracy"), size = 2) +
-  
-  facet_grid(item_group ~ site_label) +
-  
-  # Dual Axis
-  scale_y_continuous(
-    name = "Mean Reaction Time (s)", 
-    sec.axis = sec_axis(~./10, name = "Accuracy (Probability)")
-  ) +
-  scale_color_manual(name = "Metric", values = c("RT (Speed)" = col_speed, "Accuracy" = col_acc)) +
-  
-  # Styling for Clarity
-  theme(
-    axis.title.y.left = element_text(color = col_speed, face = "bold"),
-    axis.text.y.left = element_text(color = col_speed),
-    axis.title.y.right = element_text(color = col_acc, face = "bold"),
-    axis.text.y.right = element_text(color = col_acc),
-    legend.position = "top"
-  ) +
-  labs(x = "Age (Years)")
-```
--->
 
 \newpage
 
-# References
 
-::: {#refs}
-:::
 
-# IRT Ability by Age {.appendix #apx-fig-rt-angle}
+# IRT Ability by Age {#apx-fig-rt-angle .appendix}
+
 ```{r}
 #| label: fig-rt-angle
 #| fig-cap: "Reaction Time by angle within age groups ±95% CI."
@@ -1733,15 +867,16 @@ p_mrot_rt_angle_age
 
 \clearpage
 
-# Strategy Model Validation
+# Strategy Model Validation {#sec-appendix-b}
 
-To validate the robustness of our strategy classification, we compared the labels generated by the Global Model (trained on pooled data) versus Local Models (trained independently on each country's data).
+To validate the robustness of our strategy classification, we compared the labels generated by the **Global Model** (trained on pooled data) versus **Local Models** (trained independently on each site's data).
 
 ## Model Comparison
-@apx-fig-model-comparisoncompares the strategy boundaries. The Global model applies a consistent standard, whereas Local models adapt to country-specific variance.
+
+@fig-model-comparison compares the strategy boundaries. The Global model applies a consistent standard, whereas Local models adapt to site-specific variance. Despite these differences, the classification of "Ineffective" strategies (low accuracy) remains highly consistent across methodologies.
 
 ```{r}
-#| label: apx-fig-model-comparison
+#| label: fig-model-comparison
 #| fig-cap: "Comparison of Local vs. Global Clustering. Red points indicate the 'Ineffective' strategy. The Global model applies a consistent standard across all populations."
 #| echo: false
 #| message: false
@@ -1755,8 +890,10 @@ my_binary_colors <- c("Ineffective" = "#c0392b", "Effective" = "grey60")
 plot_cluster <- function(data, label_col, title_prefix) {
   ggplot(data, aes(x = Abs_Slope, y = accuracy, color = .data[[label_col]])) +
     geom_point(alpha = 0.5, size = 1.5) +
+    # Draw ellipses for the clusters
     stat_ellipse(aes(group = .data[[label_col]]), type = "norm", linetype = "dashed", color = "black", size = 0.3) +
-    facet_wrap(~ Country) +
+    # CHANGE: Facet by Site to match main text
+    facet_wrap(~ Site) + 
     scale_color_manual(values = my_binary_colors) +
     labs(
       title = title_prefix,
@@ -1766,9 +903,10 @@ plot_cluster <- function(data, label_col, title_prefix) {
     theme(legend.position = "none", strip.text = element_text(face = "bold"))
 }
 
-# Plots using the labels created in the main text
-p_local <- plot_cluster(analysis_data, "Local_Label", "A. Local Models (Country-Specific Definitions)")
+# Plots using the labels created in the main text analysis_data dataframe
+p_local <- plot_cluster(analysis_data, "Local_Label", "A. Local Models (Site-Specific Definitions)")
 p_global <- plot_cluster(analysis_data, "Global_Label", "B. Global Model (Universal Definition)")
 
+library(patchwork)
 p_local / p_global
 ```
