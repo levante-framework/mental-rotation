@@ -130,7 +130,7 @@ The selection of these strategies is heavily dictated by Visual Working Memory (
 
 Furthermore, the "how" of rotation involves the frame of reference used. @zacks2008neuroimaging distinguishes between object-based transformations (rotating the object itself) and egocentric perspective-taking (imagining oneself moving around the object). This choice is often influenced by the environment; for instance, 3D Virtual Reality (VR) environments provide stereoscopic depth cues that facilitate holistic, object-based rotations, whereas 2D presentations often force a more cognitively taxing piecemeal approach due to ambiguous depth cues [@tang2023eye].
 
-Ultimately, successful performance is defined by strategy flexibility—the ability to dynamically alternate between holistic rotation and analytic checking based on the specific demands of the stimulus [@nazareth2019strategy]. When task difficulty increases—such as with mirrored objects or rotations along skewed axes—flexible rotators can shift strategies to manage the increased cognitive load [@hsing2023using; @nolte2022rotational]. This suggests that observed differences in performance may not stem from an inherent inability to rotate, but rather from differences in strategy selection and the stability of those strategies over time [@geiser2008quantitative].
+Successful performance is often defined by strategy flexibility—the ability to dynamically alternate between holistic rotation and analytic checking based on the specific demands of the stimulus [@nazareth2019strategy]. When task difficulty increases—such as with mirrored objects or rotations along skewed axes—flexible rotators can shift strategies to manage the increased cognitive load [@hsing2023using; @nolte2022rotational]. This suggests that observed differences in performance may not stem from an inherent inability to rotate, but rather from differences in strategy selection and the stability of those strategies over time [@geiser2008quantitative].
 
 ## The present study
 
@@ -187,13 +187,13 @@ The mental rotation task has already been implemented in a computer-adaptive tas
 
 While we use psychometric modelling to place children’s performance on a common scale, the LEVANTE project is not designed to estimate true, absolute differences between sites. In practice, our framework does not support site-level performance comparisons: sites vary substantially in sampling, recruitment, and test administration, so any apparent cross-site differences in raw performance are heavily confounded. Accordingly, although we report descriptive patterns that may look like absolute site differences, we emphasize that these should not be interpreted as meaningful.
 
-Because our data were collected across three sites—with site-specific translations and task adaptations—we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries.
-
-\[PLACEHOLDER for stats to evidence the scalar invariance: χ² with df and p,RMSEA, SRMSR CFI/TLI\].
+Because our data were collected across three sites—with site-specific translations and task adaptations—we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries (see @tbl-irt-anova).
 
 @fig-dev-trends plots participants’ mental rotation ability estimates (IRT theta) against age, separately for each site, with site-specific trends modeled using generalized additive models (GAMs). Across sites, theta increases with age, indicating developmental improvement in mental rotation ability.
 
 ```{r}
+#| echo: false
+
 # packages
 library(tidyverse)
 library(glue)
@@ -251,9 +251,7 @@ all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_out
 
 ```{r}
 #| label: irt-anova
-#| echo: false
-#| message: false
-#| cache: true
+#| include: false
 
 # IRT model output - import object
 github_dir <- file.path(path.expand("~"), "Documents", "GitHub")
@@ -287,10 +285,6 @@ mrot_2pl_scalar %>%
     `# params`  = df
   ) %>%
   gt() %>%
-  tab_header(
-    title = md("**Mental Rotation (mrot): 2PL Scalar Model Fit Statistics**")
-  ) %>%
-  tab_caption(md("Model fit indices for the selected multigroup IRT model (2PL, scalar invariance).")) %>%
   fmt_number(
     columns = c(`logLik`, AIC, BIC),
     decimals = 2
@@ -307,6 +301,7 @@ mrot_2pl_scalar %>%
     align = "right",
     columns = c(`logLik`, AIC, BIC)
   )
+
 ```
 
 ```{r}
@@ -516,9 +511,6 @@ We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cros
 
 ```{r}
 #| label: strategy-analysis-prep
-#| echo: false
-#| message: false
-#| warning: false
 #| cache: true
 #| results: "hide"
 
@@ -594,26 +586,25 @@ rich_features_final <- rich_features_raw %>%
   left_join(rt_variability_clean, by = "user_id") %>%
   left_join(user_site_map, by = "user_id") %>%
   left_join(
-    ability_runs %>% select(user_id, accuracy = ability) %>% distinct(user_id, .keep_all=TRUE), 
+    ability_runs %>%
+      select(user_id, ability) %>% 
+      distinct(user_id, .keep_all = TRUE),
     by = "user_id"
   ) %>%
   mutate(
     # Clean Site Labels: remove "pilot_" and replace "_" with "-"
     Site = stringr::str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
-  filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
+  filter(if_all(c(ability, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
 
 ```
 
 ```{r}
 #| label: clustering-execution
-#| echo: false
-#| message: false
-#| warning: false
 
 # 1. SETUP CLUSTERING
 analysis_data <- rich_features_final %>%
-  filter(across(c(accuracy, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
+  filter(if_all(c(ability, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
 
 # Define colors for the 3 strategies
 my_colors <- c(
@@ -624,8 +615,8 @@ my_colors <- c(
 
 # 2. RUN GLOBAL K-MEANS (k=3)
 #    Scale inputs to ensure equal weighting
-global_input <- analysis_data %>% 
-  select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% 
+global_input <- analysis_data %>%
+  select(ability, Abs_Slope, Baseline_Speed, RT_SD) %>%
   scale()
 
 set.seed(123)
@@ -636,11 +627,11 @@ analysis_data$Global_Cluster <- as.factor(k_global$cluster)
 cluster_stats <- analysis_data %>%
   group_by(Global_Cluster) %>%
   summarise(
-    mean_acc = mean(accuracy),
+    mean_abil  = mean(ability),
     mean_slope = mean(Abs_Slope),
     .groups = "drop"
   ) %>%
-  arrange(mean_acc)
+  arrange(mean_abil)
 
 # Step A: Identify "Guessing" (Lowest Accuracy)
 guessing_id <- cluster_stats %>% 
@@ -667,12 +658,168 @@ analysis_data <- analysis_data %>%
   mutate(
     Strategy_Label = case_when(
       Global_Cluster == guessing_id ~ "Guessing",
-      Global_Cluster == pattern_id ~ "Pattern Matching",
-      Global_Cluster == rotation_id ~ "Rotation"
+      Global_Cluster == pattern_id  ~ "Analytical (feature matching)",
+      Global_Cluster == rotation_id ~ "Holistic (rotation)"
     ),
-    Strategy_Label = factor(Strategy_Label, levels = c("Guessing", "Pattern Matching", "Rotation"))
+    Strategy_Label = factor(
+      Strategy_Label,
+      levels = c("Guessing", "Analytical (feature matching)", "Holistic (rotation)")
+    )
   )
+
 ```
+
+```{r}
+#| label: justify-slope-assumptions
+#| fig-cap: "Participant-weighted RT–angle functions by strategy cluster (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs)."
+
+library(dplyr)
+library(ggplot2)
+
+# Join strategy labels onto trial-level RT data
+rt_by_strategy <- mrot_rich_data %>%
+  left_join(
+    analysis_data %>% select(user_id, Strategy_Label),
+    by = "user_id"
+  ) %>%
+  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle))
+
+# Person-level mean logRT per angle (each user contributes once per angle)
+rt_user_angle <- rt_by_strategy %>%
+  group_by(Strategy_Label, user_id, angle) %>%
+  summarise(
+    user_mean_log_rt = mean(log_rt, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Strategy-level mean across users at each angle + SE across users
+rt_angle_person_summary <- rt_user_angle %>%
+  group_by(Strategy_Label, angle) %>%
+  summarise(
+    n_users     = n_distinct(user_id),
+    mean_log_rt = mean(user_mean_log_rt, na.rm = TRUE),
+    se_log_rt   = sd(user_mean_log_rt, na.rm = TRUE) / sqrt(n_users),
+    .groups = "drop"
+  )
+
+# Plot (final)
+ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.6) +
+  geom_ribbon(
+    aes(
+      ymin = mean_log_rt - 1.96 * se_log_rt,
+      ymax = mean_log_rt + 1.96 * se_log_rt,
+      fill = Strategy_Label
+    ),
+    alpha = 0.15,
+    colour = NA
+  ) +
+  geom_text(aes(label = n_users), vjust = -0.8, size = 3, show.legend = FALSE) +
+  labs(
+    x = "Rotation angle (degrees)",
+    y = "Mean log(RT) (participant-weighted)",
+    colour = "Strategy",
+    fill = "Strategy"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: emmeans-slope-extract
+#| include: false
+
+library(emmeans)
+library(dplyr)
+
+# Trial-level data with strategy labels for slope validation
+d_emm <- mrot_rich_data %>%
+  left_join(analysis_data %>% select(user_id, Strategy_Label), by = "user_id") %>%
+  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) %>%
+  mutate(angle_s = as.numeric(scale(angle)))  # ensure a plain numeric vector
+
+m_check <- lmer(
+  log_rt ~ angle_s * Strategy_Label + (1 | user_id) + (1 | item),
+  data = d_emm
+)
+
+# Trends (slopes) by strategy
+emm_tr <- emtrends(m_check, ~ Strategy_Label, var = "angle_s")
+emm_tr_df <- as.data.frame(emm_tr)
+
+# Pairwise comparisons of slopes (Tukey-adjusted)
+emm_pairs <- pairs(emm_tr)
+emm_pairs_df <- as.data.frame(emm_pairs)
+
+# Helpers
+fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
+fmt_p <- function(p) ifelse(is.na(p), NA,
+                            ifelse(p < 0.0001, "< 0.0001", fmt_num(p, 4)))
+
+get_row <- function(df, label) df[df$Strategy_Label == label, , drop = FALSE]
+get_contrast <- function(df, contrast_label) df[df$contrast == contrast_label, , drop = FALSE]
+
+# Per-group slopes
+lab_guess <- "Guessing"
+lab_anal  <- "Analytical (feature matching)"
+lab_hol   <- "Holistic (rotation)"
+
+r_guess <- get_row(emm_tr_df, lab_guess)
+r_anal  <- get_row(emm_tr_df, lab_anal)
+r_hol   <- get_row(emm_tr_df, lab_hol)
+
+s_guess <- r_guess$angle_s.trend; se_guess <- r_guess$SE; lcl_guess <- r_guess$asymp.LCL; ucl_guess <- r_guess$asymp.UCL
+s_anal  <- r_anal$angle_s.trend;  se_anal  <- r_anal$SE;  lcl_anal  <- r_anal$asymp.LCL;  ucl_anal  <- r_anal$asymp.UCL
+s_hol   <- r_hol$angle_s.trend;   se_hol   <- r_hol$SE;   lcl_hol   <- r_hol$asymp.LCL;   ucl_hol   <- r_hol$asymp.UCL
+
+# Extract slope differences (re-express as Holistic - Analytical etc. for readability)
+c_ga <- get_contrast(emm_pairs_df, "Guessing - Analytical (feature matching)")
+c_gh <- get_contrast(emm_pairs_df, "Guessing - Holistic (rotation)")
+c_ah <- get_contrast(emm_pairs_df, "Analytical (feature matching) - Holistic (rotation)")
+
+d_a_g  <- -c_ga$estimate; se_a_g <- c_ga$SE; z_a_g <- abs(c_ga$z.ratio); p_a_g <- c_ga$p.value
+d_h_g  <- -c_gh$estimate; se_h_g <- c_gh$SE; z_h_g <- abs(c_gh$z.ratio); p_h_g <- c_gh$p.value
+d_h_a  <- -c_ah$estimate; se_h_a <- c_ah$SE; z_h_a <- abs(c_ah$z.ratio); p_h_a <- c_ah$p.value
+
+```
+Estimated RT–angle slopes (change in log(RT) per 1 SD increase in rotation angle) differed across strategy clusters. The holistic (rotation) cluster showed the steepest positive angle dependence (*b* = `r fmt_num(s_hol)`, SE = `r fmt_num(se_hol)`, 95% CI [`r fmt_num(lcl_hol)`, `r fmt_num(ucl_hol)`]), the analytical (feature matching) cluster showed a smaller positive slope (*b* = `r fmt_num(s_anal)`, SE = `r fmt_num(se_anal)`, 95% CI [`r fmt_num(lcl_anal)`, `r fmt_num(ucl_anal)`]), and the guessing cluster showed a near-zero/negative slope (*b* = `r fmt_num(s_guess)`, SE = `r fmt_num(se_guess)`, 95% CI [`r fmt_num(lcl_guess)`, `r fmt_num(ucl_guess)`]). Tukey-adjusted trend contrasts confirmed that the holistic slope exceeded the analytical slope by Δ*b* = `r fmt_num(d_h_a)` (SE = `r fmt_num(se_h_a)`, *z* = `r fmt_num(z_h_a, 2)`, *p* `r fmt_p(p_h_a)`), and that both effective clusters exceeded the guessing cluster (analytical vs guessing: Δ*b* = `r fmt_num(d_a_g)`, SE = `r fmt_num(se_a_g)`, *z* = `r fmt_num(z_a_g, 2)`, *p* `r fmt_p(p_a_g)`; holistic vs guessing: Δ*b* = `r fmt_num(d_h_g)`, SE = `r fmt_num(se_h_g)`, *z* = `r fmt_num(z_h_g, 2)`, *p* `r fmt_p(p_h_g)`). 
+
+```{r}
+
+# Slope distributions by strategy (your extracted Abs_Slope) ---
+# p_slope <- ggplot(analysis_data2, aes(x = Strategy_Label, y = Abs_Slope)) +
+#   geom_violin(trim = FALSE, alpha = 0.25) +
+#   geom_boxplot(width = 0.18, outlier.alpha = 0.25) +
+#   labs(
+#     x = NULL,
+#     y = "Participant-specific angle slope (Abs_Slope)",
+#     title = "Slope is steepest in the holistic (rotation) cluster and flattest in the analytical (feature-matching) cluster"
+#   ) +
+#   theme_minimal()
+# 
+# print(p_slope)
+# 
+# # --- C) Non-linearity diagnostic (linear vs quadratic angle term within each strategy) ---
+# # Interpretation: if quadratic helps more for a cluster, the RT–angle function is less purely linear.
+# nonlin_diag <- rt_by_strategy %>%
+#   group_by(Strategy_Label) %>%
+#   group_modify(~{
+#     d <- .x %>% mutate(angle_c = angle - mean(angle, na.rm = TRUE))
+#     m_lin  <- lm(log_rt ~ angle_c, data = d)
+#     m_quad <- lm(log_rt ~ angle_c + I(angle_c^2), data = d)
+#     tibble(
+#       n_trials = nrow(d),
+#       AIC_linear = AIC(m_lin),
+#       AIC_quadratic = AIC(m_quad),
+#       delta_AIC = AIC(m_lin) - AIC(m_quad)  # >0 => quadratic fits better
+#     )
+#   }) %>%
+#   ungroup()
+# 
+# print(nonlin_diag)
+
+```
+
 
 ## Model Selection: Global vs. Local Clustering
 
