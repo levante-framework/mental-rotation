@@ -211,6 +211,7 @@ library(dplyr)
 
 ```{r}
 #| echo: false
+#| 
 source(here::here("..", "levante-pilots", "plot_settings.R"))
 source(here::here("..", "levante-pilots", "03_explore_tasks", "explore_helper.R"))
 ```
@@ -356,6 +357,7 @@ mrot_rt_trial <- all_sum_scores %>%
     log_rt  = log(rt_s)
   ) %>%
   dplyr::filter(is.finite(rt_s), rt_s > 0)
+colnames(mrot_rt_trial)
 
 # age per run 
 run_ages <- run_data %>%
@@ -365,18 +367,39 @@ run_ages <- run_data %>%
     age = as.numeric(age)
   ) %>%
   dplyr::filter(is.finite(age))
+```
 
+```{r}
+# removing re-test kids
+library(dplyr)
+
+# identify children with 2 runs (within site)
+two_run_kids <- mrot_rt_trial %>%
+  distinct(site, user_id, run_id) %>%
+  count(site, user_id, name = "n_runs") %>%
+  filter(n_runs == 2) %>%
+  select(site, user_id)
+
+# remove their trials
+mrot_rt_trial_no_retest <- mrot_rt_trial %>%
+  anti_join(two_run_kids, by = c("site", "user_id"))
+
+# check
+mrot_rt_trial_no_retest %>%
+  distinct(site, user_id, run_id) %>%
+  count(site, user_id, name = "n_runs") %>%
+  count(n_runs) # n=489
 ```
 
 ```{r}
 #| label: fig-rt-angle-per-run
-#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI."
+#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI (Note: Re-test data removed)."
 #| fig-width: 8
 #| fig-height: 8
 
 age_breaks <- c(5, 8, 11, 14)
 
-mrot_items_rt_runs <- mrot_rt_trial %>%
+mrot_items_rt_runs <- mrot_rt_trial_no_retest %>%
   mutate(
     stimulus = stringr::str_extract(item, "^[a-z]+"),
     angle    = as.integer(stringr::str_extract(item, "\\d+"))
@@ -462,7 +485,7 @@ Having established the expected angular-disparity effect across age groups and s
 
 ```{r}
 #| label: fig-within-person-trials
-#| fig-cap: "Trial-level Reaction Time Dynamics. The plot shows the mean log-reaction time across the 80 trials for each site. Shaded areas represent standard error. The sharp increase represents the transition to 3D items."
+#| fig-cap: "Trial-level Reaction Time Dynamics. The plot shows the mean log-reaction time across the 80 trials for each site. Shaded areas represent standard error. The sharp increase represents the transition to 3D items (Note: Re-test data removed)."
 #| echo: false
 #| message: false
 #| warning: false
@@ -470,7 +493,7 @@ Having established the expected angular-disparity effect across age groups and s
 #| fig-height: 6
 
 # 1. Prepare data with Site Labels
-trial_plot_data <- mrot_rt_trial %>%
+trial_plot_data <- mrot_rt_trial_no_retest %>%
   filter(!is.na(log_rt), correct == 1) %>% # Focus on correct trials for valid RT
   left_join(run_data %>% select(user_id, run_id, site), by = c("user_id", "run_id")) %>%
   mutate(site_label = dplyr::recode(site.x, !!!site_labels))
@@ -514,107 +537,99 @@ We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cros
 #| cache: true
 #| results: "hide"
 
-library(lme4)
-library(broom)
-
-# 0. PRE-REQUISITE: Create ability_runs from all_scores
-#    (Ensuring we have the person-level ability estimates ready for merging)
-ability_runs <- all_scores %>% 
+# Ability estimate - keep site + user
+ability_user <- all_scores %>% 
   filter(item_task == "mrot", metric_type == "ability") %>% 
-  mutate(metric_value = as.numeric(metric_value), age = as.numeric(age)) %>%
-  group_by(site, user_id, run_id) %>% 
+  mutate(
+    metric_value = as.numeric(metric_value),
+    age = as.numeric(age)
+  ) %>%
+  group_by(site, user_id) %>%
   summarise(
     ability = mean(metric_value, na.rm = TRUE),
-    age = first(age), 
+    age     = first(age),
     .groups = "drop"
   )
 
-# 1. PREPARE DATA FOR RICH MODEL
-#    Ensure stimulus is a factor for the interaction term
-mrot_rich_data <- mrot_rt_trial %>%
-    mutate(
-        stimulus = stringr::str_extract(item, "^[a-z]+"),
-        angle    = as.integer(stringr::str_extract(item, "\\d+"))
-    )%>%
+# Prepare trial-level data for the rich model
+mrot_rich_data <- mrot_rt_trial_no_retest %>%
   mutate(
-    angle_s = scale(angle),
-    trial_s = scale(trial_number),
-    stimulus = as.factor(stimulus)
+    stimulus = str_extract(item, "^[a-z]+"),
+    angle    = as.integer(str_extract(item, "\\d+")),
+    stimulus = as.factor(stimulus),
+    angle_s  = as.numeric(scale(angle)),
+    trial_s  = as.numeric(scale(trial_number))
   )
 
-# 2. FIT THE "RICH MODEL" (Intercept + Angle*Stimulus + Trial)
-#    Formula: log(RT) ~ Angle*Stimulus + Trial
-#    This separates "Shape Difficulty" (Stimulus) from "Rotation Ability" (Angle)
+# Fit the rich mixed model
 m_rich <- lmer(
-  log_rt ~ angle_s * stimulus + trial_s + (1 + angle_s + trial_s | user_id) + (1 | item),
+  log_rt ~ angle_s * stimulus + trial_s +
+    (1 + angle_s + trial_s | user_id) +
+    (1 | item),
   data = mrot_rich_data,
   control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
 )
 
-# 3. EXTRACT PARAMETERS
-#    Get Individual Deviations (Random Effects)
+# Extract subject-level random effects (deviations)
 ran_effs <- ranef(m_rich)$user_id %>%
-  rownames_to_column("user_id") %>%
-  rename(int_dev = `(Intercept)`, slope_dev = angle_s, trial_dev = trial_s) %>%
-  distinct(user_id, .keep_all = TRUE)
+  tibble::rownames_to_column("user_id") %>%
+  rename(
+    int_dev   = `(Intercept)`,
+    slope_dev = angle_s,
+    trial_dev = trial_s
+  )
 
-#    Get Global Averages (Fixed Effects)
+# Fixed effects (global averages)
 fix_int <- fixef(m_rich)["(Intercept)"]
 fix_ang <- fixef(m_rich)["angle_s"]
 fix_tri <- fixef(m_rich)["trial_s"]
 
-# 4. CALCULATE COGNITIVE FEATURES
+
+# Compute cognitive features (on log-RT scale)
 rich_features_raw <- ran_effs %>%
   mutate(
     Baseline_Speed = fix_int + int_dev,
-    Abs_Slope = fix_ang + slope_dev,
-    Rel_Slope = Abs_Slope / Baseline_Speed,
-    Learning_Rate = fix_tri + trial_dev
+    Abs_Slope      = fix_ang + slope_dev,
+    Learning_Rate  = fix_tri + trial_dev
   )
 
-# 5. ADD VARIABILITY & MERGE
-rt_variability_clean <- mrot_rt_trial %>%
-  group_by(user_id) %>%
-  summarise(RT_SD = sd(log_rt, na.rm = TRUE), .groups = "drop") %>%
-  distinct(user_id, .keep_all = TRUE)
+# Add RT variability + site mapping (site-aware) + ability
+rt_variability <- mrot_rt_trial_no_retest %>%
+  group_by(site, user_id) %>%
+  summarise(RT_SD = sd(log_rt, na.rm = TRUE), .groups = "drop")
 
-user_site_map <- mrot_rt_trial %>% 
-  select(user_id, site) %>% 
-  distinct(user_id, .keep_all = TRUE)
+user_site_map <- mrot_rt_trial_no_retest %>%
+  distinct(site, user_id)
+
+stopifnot(
+  user_site_map %>% count(user_id) %>% summarise(max(n)) %>% pull() == 1
+)
 
 rich_features_final <- rich_features_raw %>%
-  left_join(rt_variability_clean, by = "user_id") %>%
   left_join(user_site_map, by = "user_id") %>%
-  left_join(
-    ability_runs %>%
-      select(user_id, ability) %>% 
-      distinct(user_id, .keep_all = TRUE),
-    by = "user_id"
-  ) %>%
+  left_join(rt_variability, by = c("site", "user_id")) %>%
+  left_join(ability_user,  by = c("site", "user_id")) %>%
   mutate(
-    # Clean Site Labels: remove "pilot_" and replace "_" with "-"
-    Site = stringr::str_replace_all(site, c("pilot_" = "", "_" = "-"))
+    Site = str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
   filter(if_all(c(ability, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
-
 ```
 
 ```{r}
 #| label: clustering-execution
 
-# 1. SETUP CLUSTERING
+my_colors <- c(
+  "Low Efficiency" = "#e74c3c",
+  "Analytical (feature matching)" = "#3498db",
+  "Holistic (rotation)" = "#2ecc71"
+)
+
+# 1. Set up clustering
 analysis_data <- rich_features_final %>%
   filter(if_all(c(ability, Abs_Slope, Baseline_Speed, RT_SD), is.finite))
 
-# Define colors for the 3 strategies
-my_colors <- c(
-  "Guessing" = "#e74c3c",         # Red
-  "Pattern Matching" = "#3498db", # Blue
-  "Rotation" = "#2ecc71"          # Green
-)
-
-# 2. RUN GLOBAL K-MEANS (k=3)
-#    Scale inputs to ensure equal weighting
+# Global K-means (k=3)
+# Scale inputs to ensure equal weighting
 global_input <- analysis_data %>%
   select(ability, Abs_Slope, Baseline_Speed, RT_SD) %>%
   scale()
@@ -623,24 +638,24 @@ set.seed(123)
 k_global <- kmeans(global_input, centers = 3)
 analysis_data$Global_Cluster <- as.factor(k_global$cluster)
 
-# 3. ASSIGN LABELS AUTOMATICALLY
+# Assign labels
 cluster_stats <- analysis_data %>%
   group_by(Global_Cluster) %>%
   summarise(
-    mean_abil  = mean(ability),
-    mean_slope = mean(Abs_Slope),
+    mean_abil  = mean(ability, na.rm = TRUE),
+    mean_slope = mean(Abs_Slope, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   arrange(mean_abil)
 
-# Step A: Identify "Guessing" (Lowest Accuracy)
-guessing_id <- cluster_stats %>% 
+# Identify "Low Efficiency" (Lowest Ability)
+low_efficacy_id <- cluster_stats %>% 
   slice(1) %>% 
   pull(Global_Cluster)
 
-# Step B: Separate the remaining two ("Effective") clusters
+# Separate the remaining two ("Effective") clusters
 effective_clusters <- cluster_stats %>% 
-  filter(Global_Cluster != guessing_id) %>%
+  filter(Global_Cluster != low_efficacy_id) %>%
   arrange(mean_slope) # Sort by slope (Lower Slope = Pattern Matching)
 
 # Lower Slope = Pattern Matching
@@ -653,36 +668,34 @@ rotation_id <- effective_clusters %>%
   slice(2) %>% 
   pull(Global_Cluster)
 
-# Step C: Apply the Labels
+# apply labels + enforce factor levels that match my_colors
 analysis_data <- analysis_data %>%
   mutate(
     Strategy_Label = case_when(
-      Global_Cluster == guessing_id ~ "Guessing",
+      Global_Cluster == low_efficacy_id  ~ "Low Efficiency",
       Global_Cluster == pattern_id  ~ "Analytical (feature matching)",
       Global_Cluster == rotation_id ~ "Holistic (rotation)"
     ),
-    Strategy_Label = factor(
-      Strategy_Label,
-      levels = c("Guessing", "Analytical (feature matching)", "Holistic (rotation)")
-    )
+    Strategy_Label = factor(Strategy_Label, levels = names(my_colors))
   )
 
+stopifnot(setequal(levels(analysis_data$Strategy_Label), names(my_colors)))
 ```
 
 ```{r}
 #| label: justify-slope-assumptions
-#| fig-cap: "Participant-weighted RT–angle functions by strategy cluster (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs)."
-
-library(dplyr)
-library(ggplot2)
+#| fig-cap: "Participant-weighted RT–angle functions by strategy cluster (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs) (Note: Re-test data removed)."
 
 # Join strategy labels onto trial-level RT data
 rt_by_strategy <- mrot_rich_data %>%
   left_join(
-    analysis_data %>% select(user_id, Strategy_Label),
-    by = "user_id"
+    analysis_data %>% select(site, user_id, Strategy_Label),
+    by = c("site", "user_id")
   ) %>%
-  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle))
+  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) %>%
+  mutate(
+    Strategy_Label = factor(Strategy_Label, levels = names(my_colors))
+  )
 
 # Person-level mean logRT per angle (each user contributes once per angle)
 rt_user_angle <- rt_by_strategy %>%
@@ -702,7 +715,10 @@ rt_angle_person_summary <- rt_user_angle %>%
     .groups = "drop"
   )
 
-# Plot (final)
+# check colours
+missing_cols <- setdiff(levels(rt_angle_person_summary$Strategy_Label), names(my_colors))
+stopifnot(length(missing_cols) == 0)
+
 ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) +
   geom_line(linewidth = 0.8) +
   geom_point(size = 1.6) +
@@ -716,6 +732,8 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
     colour = NA
   ) +
   geom_text(aes(label = n_users), vjust = -0.8, size = 3, show.legend = FALSE) +
+  scale_colour_manual(values = my_colors, drop = FALSE) +
+  scale_fill_manual(values = my_colors, drop = FALSE) +
   labs(
     x = "Rotation angle (degrees)",
     y = "Mean log(RT) (participant-weighted)",
@@ -730,28 +748,30 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
 #| include: false
 
 library(emmeans)
-library(dplyr)
-
-# Trial-level data with strategy labels for slope validation
+# Trial-level data with strategy labels for slope validation (site-aware join)
 d_emm <- mrot_rich_data %>%
-  left_join(analysis_data %>% select(user_id, Strategy_Label), by = "user_id") %>%
+  left_join(
+    analysis_data %>% select(site, user_id, Strategy_Label),
+    by = c("site", "user_id")
+  ) %>%
   filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) %>%
-  mutate(angle_s = as.numeric(scale(angle)))  # ensure a plain numeric vector
+  mutate(
+    Strategy_Label = factor(Strategy_Label, levels = names(my_colors)),
+    angle_s = as.numeric(scale(angle))  # 1sd increase in angle
+  )
 
 m_check <- lmer(
   log_rt ~ angle_s * Strategy_Label + (1 | user_id) + (1 | item),
   data = d_emm
 )
 
-# Trends (slopes) by strategy
-emm_tr <- emtrends(m_check, ~ Strategy_Label, var = "angle_s")
-emm_tr_df <- as.data.frame(emm_tr)
+# slopes by strategy
+emm_tr_df <- as.data.frame(emtrends(m_check, ~ Strategy_Label, var = "angle_s"))
 
-# Pairwise comparisons of slopes (Tukey-adjusted)
-emm_pairs <- pairs(emm_tr)
-emm_pairs_df <- as.data.frame(emm_pairs)
+# pairwise comparisons of slopes (Tukey-adjusted)
+emm_pairs_df <- as.data.frame(pairs(emtrends(m_check, ~ Strategy_Label, var = "angle_s")))
 
-# Helpers
+# helpers for reporting
 fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
 fmt_p <- function(p) ifelse(is.na(p), NA,
                             ifelse(p < 0.0001, "< 0.0001", fmt_num(p, 4)))
@@ -759,71 +779,391 @@ fmt_p <- function(p) ifelse(is.na(p), NA,
 get_row <- function(df, label) df[df$Strategy_Label == label, , drop = FALSE]
 get_contrast <- function(df, contrast_label) df[df$contrast == contrast_label, , drop = FALSE]
 
+# Labels (match my_colors)
+lab_low  <- "Low Efficiency"
+lab_anal <- "Analytical (feature matching)"
+lab_hol  <- "Holistic (rotation)"
+
 # Per-group slopes
-lab_guess <- "Guessing"
-lab_anal  <- "Analytical (feature matching)"
-lab_hol   <- "Holistic (rotation)"
+r_low  <- get_row(emm_tr_df, lab_low)
+r_anal <- get_row(emm_tr_df, lab_anal)
+r_hol  <- get_row(emm_tr_df, lab_hol)
 
-r_guess <- get_row(emm_tr_df, lab_guess)
-r_anal  <- get_row(emm_tr_df, lab_anal)
-r_hol   <- get_row(emm_tr_df, lab_hol)
+s_low  <- r_low$angle_s.trend;  se_low  <- r_low$SE;  lcl_low  <- r_low$asymp.LCL;  ucl_low  <- r_low$asymp.UCL
+s_anal <- r_anal$angle_s.trend; se_anal <- r_anal$SE; lcl_anal <- r_anal$asymp.LCL; ucl_anal <- r_anal$asymp.UCL
+s_hol  <- r_hol$angle_s.trend;  se_hol  <- r_hol$SE;  lcl_hol  <- r_hol$asymp.LCL;  ucl_hol  <- r_hol$asymp.UCL
 
-s_guess <- r_guess$angle_s.trend; se_guess <- r_guess$SE; lcl_guess <- r_guess$asymp.LCL; ucl_guess <- r_guess$asymp.UCL
-s_anal  <- r_anal$angle_s.trend;  se_anal  <- r_anal$SE;  lcl_anal  <- r_anal$asymp.LCL;  ucl_anal  <- r_anal$asymp.UCL
-s_hol   <- r_hol$angle_s.trend;   se_hol   <- r_hol$SE;   lcl_hol   <- r_hol$asymp.LCL;   ucl_hol   <- r_hol$asymp.UCL
+# Extract slope differences (re-express for readability)
+# emmeans contrasts are printed as "A - B"
+c_la <- get_contrast(emm_pairs_df, paste0(lab_low, " - ", lab_anal)) # Low - Anal
+c_lh <- get_contrast(emm_pairs_df, paste0(lab_low, " - ", lab_hol))  # Low - Hol
+c_ah <- get_contrast(emm_pairs_df, paste0(lab_anal, " - ", lab_hol)) # Anal - Hol
 
-# Extract slope differences (re-express as Holistic - Analytical etc. for readability)
-c_ga <- get_contrast(emm_pairs_df, "Guessing - Analytical (feature matching)")
-c_gh <- get_contrast(emm_pairs_df, "Guessing - Holistic (rotation)")
-c_ah <- get_contrast(emm_pairs_df, "Analytical (feature matching) - Holistic (rotation)")
-
-d_a_g  <- -c_ga$estimate; se_a_g <- c_ga$SE; z_a_g <- abs(c_ga$z.ratio); p_a_g <- c_ga$p.value
-d_h_g  <- -c_gh$estimate; se_h_g <- c_gh$SE; z_h_g <- abs(c_gh$z.ratio); p_h_g <- c_gh$p.value
+# Re-express as:
+# Analytical - Low, Holistic - Low, Holistic - Analytical
+d_a_l  <- -c_la$estimate; se_a_l <- c_la$SE; z_a_l <- abs(c_la$z.ratio); p_a_l <- c_la$p.value
+d_h_l  <- -c_lh$estimate; se_h_l <- c_lh$SE; z_h_l <- abs(c_lh$z.ratio); p_h_l <- c_lh$p.value
 d_h_a  <- -c_ah$estimate; se_h_a <- c_ah$SE; z_h_a <- abs(c_ah$z.ratio); p_h_a <- c_ah$p.value
 
 ```
-Estimated RT–angle slopes (change in log(RT) per 1 SD increase in rotation angle) differed across strategy clusters. The holistic (rotation) cluster showed the steepest positive angle dependence (*b* = `r fmt_num(s_hol)`, SE = `r fmt_num(se_hol)`, 95% CI [`r fmt_num(lcl_hol)`, `r fmt_num(ucl_hol)`]), the analytical (feature matching) cluster showed a smaller positive slope (*b* = `r fmt_num(s_anal)`, SE = `r fmt_num(se_anal)`, 95% CI [`r fmt_num(lcl_anal)`, `r fmt_num(ucl_anal)`]), and the guessing cluster showed a near-zero/negative slope (*b* = `r fmt_num(s_guess)`, SE = `r fmt_num(se_guess)`, 95% CI [`r fmt_num(lcl_guess)`, `r fmt_num(ucl_guess)`]). Tukey-adjusted trend contrasts confirmed that the holistic slope exceeded the analytical slope by Δ*b* = `r fmt_num(d_h_a)` (SE = `r fmt_num(se_h_a)`, *z* = `r fmt_num(z_h_a, 2)`, *p* `r fmt_p(p_h_a)`), and that both effective clusters exceeded the guessing cluster (analytical vs guessing: Δ*b* = `r fmt_num(d_a_g)`, SE = `r fmt_num(se_a_g)`, *z* = `r fmt_num(z_a_g, 2)`, *p* `r fmt_p(p_a_g)`; holistic vs guessing: Δ*b* = `r fmt_num(d_h_g)`, SE = `r fmt_num(se_h_g)`, *z* = `r fmt_num(z_h_g, 2)`, *p* `r fmt_p(p_h_g)`). 
+Estimated RT–angle slopes (change in log(RT) per 1 SD increase in rotation angle) differed across strategy clusters. The holistic (rotation) cluster showed the steepest positive angle dependence (*b* = `r fmt_num(s_hol)`, SE = `r fmt_num(se_hol)`, 95% CI [`r fmt_num(lcl_hol)`, `r fmt_num(ucl_hol)`]), the analytical (feature matching) cluster showed a smaller positive slope (*b* = `r fmt_num(s_anal)`, SE = `r fmt_num(se_anal)`, 95% CI [`r fmt_num(lcl_anal)`, `r fmt_num(ucl_anal)`]), and the low efficacy cluster showed a near-zero/negative slope (*b* = `r fmt_num(s_low)`, SE = `r fmt_num(se_low)`, 95% CI [`r fmt_num(lcl_low)`, `r fmt_num(ucl_low)`]). Tukey-adjusted trend contrasts confirmed that the holistic slope exceeded the analytical slope by Δ*b* = `r fmt_num(d_h_a)` (SE = `r fmt_num(se_h_a)`, *z* = `r fmt_num(z_h_a, 2)`, *p* `r fmt_p(p_h_a)`), and that both the holistic (rotation) and analytical (feature matching) clusters exceeded the low efficacy cluster (analytical vs low efficacy: Δ*b* = `r fmt_num(d_a_l)`, SE = `r fmt_num(se_a_l)`, *z* = `r fmt_num(z_a_l, 2)`, *p* `r fmt_p(p_a_l)`; holistic vs low efficacy: Δ*b* = `r fmt_num(d_h_l)`, SE = `r fmt_num(se_h_l)`, *z* = `r fmt_num(z_h_l, 2)`, *p* `r fmt_p(p_h_l)`). 
 
 ```{r}
+#| label: verifying-low-efficiency
+#| include: false
 
-# Slope distributions by strategy (your extracted Abs_Slope) ---
-# p_slope <- ggplot(analysis_data2, aes(x = Strategy_Label, y = Abs_Slope)) +
-#   geom_violin(trim = FALSE, alpha = 0.25) +
-#   geom_boxplot(width = 0.18, outlier.alpha = 0.25) +
+# This checks whether the Low Efficiency cluster is near chance performance,
+# rather than simply being a slower/less effective but still systematic strategy.
+
+# define clustered sample
+cluster_sample_ids <- analysis_data %>%
+  distinct(site, user_id)
+
+# Compute participant-level raw accuracy from baseline-only RT trials
+acc_user <- mrot_rt_trial_no_retest %>%
+  group_by(site, user_id) %>%
+  summarise(
+    n_trials = sum(!is.na(correct)),
+    acc      = mean(correct, na.rm = TRUE),
+    chance   = mean(chance, na.rm = TRUE),
+    .groups  = "drop"
+  )
+
+# check
+acc_user %>%
+  summarise(
+    n_users     = n(),
+    mean_acc    = mean(acc, na.rm = TRUE),
+    mean_chance = mean(chance, na.rm = TRUE)
+  )
+
+# Restrict accuracy dataset to the clustered sample
+acc_user_in_sample <- acc_user %>%
+  semi_join(cluster_sample_ids, by = c("site", "user_id"))
+
+# Summarise raw accuracy by strategy cluster
+acc_by_strategy <- acc_user_in_sample %>%
+  left_join(
+    analysis_data %>% distinct(site, user_id, Strategy_Label),
+    by = c("site", "user_id")
+  ) %>%
+  filter(!is.na(Strategy_Label)) %>%
+  group_by(Strategy_Label) %>%
+  summarise(
+    n_users     = n(),
+    mean_acc    = mean(acc, na.rm = TRUE),
+    sd_acc      = sd(acc, na.rm = TRUE),
+    mean_chance = mean(chance, na.rm = TRUE),
+    .groups     = "drop"
+  )
+
+acc_by_strategy
+
+# Low Efficiency: near-chance diagnostics
+low_eff_acc <- acc_user_in_sample %>%
+  mutate(acc_minus_chance = acc - chance) %>%
+  left_join(
+    analysis_data %>% distinct(site, user_id, Strategy_Label),
+    by = c("site", "user_id")
+  ) %>%
+  filter(Strategy_Label == "Low Efficiency")
+
+low_eff_acc %>%
+  summarise(
+    n_users                = n(),
+    prop_at_or_below_chance = mean(acc <= chance, na.rm = TRUE),
+    prop_within_5pct_chance = mean(acc <= chance + 0.05, na.rm = TRUE),
+    median_acc_minus_chance = median(acc_minus_chance, na.rm = TRUE)
+  )
+
+# save stats for para
+low_eff_stats <- low_eff_acc %>%
+  summarise(
+    prop_at_or_below_chance = mean(acc <= chance, na.rm = TRUE),
+    prop_within_5pct_chance = mean(acc <= chance + 0.05, na.rm = TRUE),
+    median_acc_minus_chance = median(acc_minus_chance, na.rm = TRUE)
+  )
+
+# The Low Efficacy cluster performed above chance (mean accuracy = 0.63; +0.13 above chance), whereas the Holistic (rotation) cluster showed substantially higher accuracy (0.84; +0.34 above chance). This pattern supports interpreting the lowest-performing cluster as less systematic / less effective, though performance remained above chance.
+```
+Because the Low Efficiency label was assigned on the basis of lowest estimated ability in the clustering step, we examined raw accuracy relative to chance as an external validity check that is diagnostic of near-random responding—whereas for the analytical and holistic clusters the key distinguishing prediction is their RT–angle signature (slope), not their absolute accuracy. Low-efficiency accuracy was modestly above chance (mean accuracy = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`; mean accuracy − chance = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"] - acc_by_strategy$mean_chance[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`). However, performance in this cluster was rarely consistent with chance responding: `r fmt_num(100 * low_eff_stats$prop_at_or_below_chance, 1)`% of participants performed at or below chance and `r fmt_num(100 * low_eff_stats$prop_within_5pct_chance, 1)`% were within 5 percentage points of chance; the median above-chance accuracy was `r fmt_num(low_eff_stats$median_acc_minus_chance, 3)`. Together, these results support interpreting the lowest-performing cluster as low efficiency rather than literal guessing.
+
+```{r}
+#| label: cluster-stability-bootstrap
+#| cache: true
+#| include: false
+
+# inputs
+vars   <- c("ability", "Abs_Slope", "Baseline_Speed", "RT_SD")
+k      <- 3
+B      <- 500 # number of bootstrap resamples
+nstart <- 25 # kmeans stability within each resample
+set.seed(123)
+
+# data: one row per participant
+df_full <- analysis_data %>%
+  select(user_id, Strategy_Label, all_of(vars)) %>%
+  distinct(user_id, .keep_all = TRUE) %>%
+  filter(if_all(all_of(vars), is.finite)) %>%
+  mutate(
+    Strategy_Label = factor(
+      Strategy_Label,
+      levels = levels(analysis_data$Strategy_Label)
+    )
+  )
+
+stopifnot(nlevels(df_full$Strategy_Label) == 3)
+stopifnot(n_distinct(df_full$user_id) == nrow(df_full))
+
+ref_levels <- levels(df_full$Strategy_Label)
+y_ref      <- df_full$Strategy_Label
+ids        <- df_full$user_id
+n          <- nrow(df_full)
+
+# Scaling: lock to full-sample mean/sd (comparable across runs)
+mu  <- df_full %>% summarise(across(all_of(vars), mean, na.rm = TRUE)) %>% as.list()
+sdv <- df_full %>% summarise(across(all_of(vars), sd,   na.rm = TRUE)) %>% as.list()
+
+X_full <- df_full %>%
+  mutate(across(all_of(vars), ~ (. - mu[[cur_column()]]) / sdv[[cur_column()]])) %>%
+  select(all_of(vars)) %>%
+  as.matrix()
+
+# helpers
+ARI <- function(a, b) {
+  a <- as.integer(factor(a))
+  b <- as.integer(factor(b))
+  tab <- table(a, b)
+  n <- sum(tab)
+  if (n <= 1) return(NA_real_)
+
+  comb2 <- function(x) x * (x - 1) / 2
+  sum_ij <- sum(comb2(tab))
+  sum_i  <- sum(comb2(rowSums(tab)))
+  sum_j  <- sum(comb2(colSums(tab)))
+  expected <- (sum_i * sum_j) / comb2(n)
+  max_idx  <- 0.5 * (sum_i + sum_j)
+  denom <- (max_idx - expected)
+  if (denom == 0) return(NA_real_)
+  (sum_ij - expected) / denom
+}
+
+jaccard <- function(set_a, set_b) {
+  inter <- length(intersect(set_a, set_b))
+  uni   <- length(union(set_a, set_b))
+  if (uni == 0) NA_real_ else inter / uni
+}
+
+# permutations for k=3 label matching
+all_perms_3 <- list(
+  c(1,2,3), c(1,3,2),
+  c(2,1,3), c(2,3,1),
+  c(3,1,2), c(3,2,1)
+)
+
+# match cluster IDs -> reference labels by maximum membership overlap
+best_perm_by_overlap <- function(cl_hat, y_ref, ref_levels, all_perms_3) {
+  tab <- table(cl_hat, factor(y_ref, levels = ref_levels))
+  scores <- sapply(all_perms_3, function(p) sum(tab[cbind(1:3, p)]))
+  all_perms_3[[which.max(scores)]]
+}
+
+# reference k-means centres (aligned to reference labels)
+set.seed(123)
+km_ref  <- kmeans(X_full, centers = k, nstart = nstart)
+cl_ref  <- km_ref$cluster
+perm_ref <- best_perm_by_overlap(cl_ref, y_ref, ref_levels, all_perms_3)
+ref_centers <- km_ref$centers[perm_ref, , drop = FALSE]  # rows correspond to ref_levels
+
+# bootstrap loop
+res <- map_dfr(1:B, function(b) {
+
+  set.seed(1000 + b)
+
+  # bootstrap participants (with replacement)
+  idx <- sample.int(n, size = n, replace = TRUE)
+
+  # diagnostics: unique coverage + representation of reference clusters
+  idx_unique <- unique(idx)
+  tab_ref_unique <- table(factor(y_ref[idx_unique], levels = ref_levels))
+  min_ref_unique <- min(tab_ref_unique)
+  min_ref_prop   <- min_ref_unique / length(idx_unique)
+  n_unique       <- length(idx_unique)
+
+  X_b <- X_full[idx, , drop = FALSE]
+
+  # fit kmeans on bootstrap sample
+  km <- kmeans(X_b, centers = k, nstart = nstart)
+
+  # assign all participants to nearest bootstrap center
+  centers_b <- km$centers
+  dists <- sapply(1:k, function(j) {
+    rowSums((X_full - matrix(centers_b[j, ],
+                             nrow = nrow(X_full),
+                             ncol = ncol(X_full),
+                             byrow = TRUE))^2)
+  })
+  cl_hat <- max.col(-dists)  # 1..k
+
+  # resolve label switching via maximal overlap with reference labels
+  perm  <- best_perm_by_overlap(cl_hat, y_ref, ref_levels, all_perms_3)
+  y_hat <- factor(ref_levels[perm[cl_hat]], levels = ref_levels)
+
+  # overall agreement
+  ari <- ARI(y_ref, y_hat)
+
+  # per-cluster Jaccard (label-aligned)
+  jac <- map_dbl(ref_levels, function(lab) {
+    jaccard(ids[y_ref == lab], ids[y_hat == lab])
+  })
+  names(jac) <- paste0("J_", make.names(ref_levels))
+
+  # centroid displacement vs reference
+  centers_b_aligned <- centers_b[perm, , drop = FALSE]  # align rows to ref_levels
+  center_shift <- mean(sqrt(rowSums((centers_b_aligned - ref_centers)^2)))
+
+  tibble(
+    replicate = b,
+    ARI = ari,
+    n_unique = n_unique,
+    min_ref_unique = min_ref_unique,
+    min_ref_prop = min_ref_prop,
+    center_shift = center_shift,
+    !!!as.list(jac)
+  )
+})
+
+# diagnostics plots
+# p_underrep <- ggplot(res, aes(x = min_ref_prop, y = ARI)) +
+#   geom_point(alpha = 0.3) +
+#   geom_smooth(se = FALSE) +
 #   labs(
-#     x = NULL,
-#     y = "Participant-specific angle slope (Abs_Slope)",
-#     title = "Slope is steepest in the holistic (rotation) cluster and flattest in the analytical (feature-matching) cluster"
-#   ) +
-#   theme_minimal()
+#     x = "Min proportion of unique participants from any reference cluster in resample",
+#     y = "ARI (vs reference)",
+#     title = "ARI vs under-representation of a reference cluster"
+#   )
 # 
-# print(p_slope)
+# p_shift <- ggplot(res, aes(x = center_shift, y = ARI)) +
+#   geom_point(alpha = 0.3) +
+#   geom_smooth(se = FALSE) +
+#   labs(
+#     x = "Mean centroid displacement (aligned to reference centres)",
+#     y = "ARI (vs reference)",
+#     title = "Low-ARI runs coincide with larger shifts in estimated cluster centres"
+#   )
 # 
-# # --- C) Non-linearity diagnostic (linear vs quadratic angle term within each strategy) ---
-# # Interpretation: if quadratic helps more for a cluster, the RT–angle function is less purely linear.
-# nonlin_diag <- rt_by_strategy %>%
-#   group_by(Strategy_Label) %>%
-#   group_modify(~{
-#     d <- .x %>% mutate(angle_c = angle - mean(angle, na.rm = TRUE))
-#     m_lin  <- lm(log_rt ~ angle_c, data = d)
-#     m_quad <- lm(log_rt ~ angle_c + I(angle_c^2), data = d)
-#     tibble(
-#       n_trials = nrow(d),
-#       AIC_linear = AIC(m_lin),
-#       AIC_quadratic = AIC(m_quad),
-#       delta_AIC = AIC(m_lin) - AIC(m_quad)  # >0 => quadratic fits better
-#     )
-#   }) %>%
-#   ungroup()
-# 
-# print(nonlin_diag)
+# p_underrep
+# p_shift
+
+# summaries
+stability_summary <- res %>%
+  summarise(
+    B = n(),
+    ARI_median = median(ARI, na.rm = TRUE),
+    ARI_IQR    = IQR(ARI, na.rm = TRUE),
+    center_shift_median = median(center_shift, na.rm = TRUE),
+    center_shift_IQR    = IQR(center_shift, na.rm = TRUE),
+    across(starts_with("J_"),
+           list(median = ~median(.x, na.rm = TRUE),
+                IQR    = ~IQR(.x, na.rm = TRUE)))
+  )
+
+stability_summary
+
+# tail rates for a sentence in text
+ari_tail <- res %>%
+  summarise(
+    pct_ARI_below_0.70 = mean(ARI < 0.70, na.rm = TRUE) * 100,
+    pct_ARI_below_0.60 = mean(ARI < 0.60, na.rm = TRUE) * 100,
+    min_ARI = min(ARI, na.rm = TRUE)
+  )
+
+ari_tail
+```
+
+```{r}
+#| label: cluster-bootstrap-plots
+#| cache: true
+
+p_ari <- ggplot(res, aes(x = ARI)) +
+  geom_histogram(bins = 30) +
+  labs(
+    x = "Adjusted Rand Index (vs reference labels)",
+    y = "Count",
+    title = paste0("Cluster stability under bootstrap resampling (B = ", B, ")")
+  )
+
+# long-form Jaccard with safe mapping back to Strategy_Label
+jac_key <- tibble(
+  col = paste0("J_", make.names(ref_levels)),
+  Strategy_Label = ref_levels
+)
+
+res_long <- res %>%
+  pivot_longer(starts_with("J_"), names_to = "col", values_to = "Jaccard") %>%
+  left_join(jac_key, by = "col") %>%
+  mutate(Strategy_Label = factor(Strategy_Label, levels = ref_levels))
+
+p_jac <- ggplot(res_long, aes(x = Strategy_Label, y = Jaccard)) +
+  geom_boxplot(outlier.alpha = 0.25) +
+  labs(
+    x = NULL,
+    y = "Jaccard (membership overlap vs reference)",
+    title = "Per-cluster membership stability"
+  ) +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+
+p_ari
+p_jac
 
 ```
+
+```{r}
+#| label: cluster-stability-reporting
+#| include: false
+
+fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
+fmt_p   <- function(p) ifelse(is.na(p), NA,
+                              ifelse(p < 0.0001, "< 0.0001", fmt_num(p, 4)))
+# Pull ARI stats
+ari_med <- stability_summary$ARI_median
+ari_iqr <- stability_summary$ARI_IQR
+
+pct_ari_70 <- ari_tail$pct_ARI_below_0.70
+pct_ari_60 <- ari_tail$pct_ARI_below_0.60
+min_ari    <- ari_tail$min_ARI
+
+# Pull Jaccard medians + IQRs (columns produced by stability_summary)
+j_med <- sapply(ref_levels, function(lab) {
+  stability_summary[[paste0("J_", make.names(lab), "_median")]]
+})
+j_iqr <- sapply(ref_levels, function(lab) {
+  stability_summary[[paste0("J_", make.names(lab), "_IQR")]]
+})
+names(j_med) <- ref_levels
+names(j_iqr) <- ref_levels
+
+# For inline text
+j_low_med <- j_med["Low Efficiency"];                 j_low_iqr <- j_iqr["Low Efficiency"]
+j_ana_med <- j_med["Analytical (feature matching)"];  j_ana_iqr <- j_iqr["Analytical (feature matching)"]
+j_hol_med <- j_med["Holistic (rotation)"];            j_hol_iqr <- j_iqr["Holistic (rotation)"]
+
+# quantify relation between centroid shift and ARI (spearman is robust)
+if ("center_shift" %in% names(res)) {
+  rho_shift <- suppressWarnings(cor(res$ARI, res$center_shift, method = "spearman", use = "complete.obs"))
+} else {
+  rho_shift <- NA_real_
+}
+```
+## Cluster robustness
+
+We assessed robustness of the three-strategy solution via participant bootstrap resampling (B = `r stability_summary$B`), refitting k-means to each resample and assigning all participants to the recovered centres (with cluster labels aligned to the reference solution by maximal membership overlap). The recovered partition closely matched the reference clustering (median ARI = `r fmt_num(ari_med, 3)`; IQR = `r fmt_num(ari_iqr, 3)`), indicating that the three-cluster structure is not dependent on a particular sample realisation. Cluster membership was also stable at the strategy level (median Jaccard overlap: Low Efficiency = `r fmt_num(j_low_med, 3)` [IQR = `r fmt_num(j_low_iqr, 3)`], Analytical (feature matching) = `r fmt_num(j_ana_med, 3)` [IQR = `r fmt_num(j_ana_iqr, 3)`], Holistic (rotation) = `r fmt_num(j_hol_med, 3)` [IQR = `r fmt_num(j_hol_iqr, 3)`]). Although a minority of resamples yielded lower agreement (`r fmt_num(pct_ari_70, 1)`% with ARI < 0.70; `r fmt_num(pct_ari_60, 1)`% with ARI < 0.60; minimum ARI = `r fmt_num(min_ari, 3)`), this tail was not explained by simple under-representation of any reference cluster among unique resampled participants. Instead, lower-ARI runs tended to coincide with larger shifts in the estimated cluster centres (Spearman ρ = `r fmt_num(rho_shift, 3)`), consistent with occasional bootstrap draws leading k-means to an alternative local solution and/or reassignment of boundary-case participants, while the typical resample recovered the same three-strategy partition.
+
 
 
 ## Model Selection: Global vs. Local Clustering
 
-To determine whether we can define "ineffective strategies" universally or if we need site-specific definitions, we compared two approaches:
+To determine whether we can define cognitive strategies universally or if we need site-specific definitions, we compared two approaches:
 
 -   **Local Models:** Clustering performed independently within each site (optimizing for local variance).
 -   **Global Model:** Clustering performed on the pooled dataset (applying a universal standard).
@@ -879,7 +1219,7 @@ if("Global_Label" %in% names(analysis_data)) analysis_data <- analysis_data %>% 
 analysis_data <- analysis_data %>%
   left_join(local_labels_all, by = "user_id") %>%
   mutate(
-    Global_Label = ifelse(Strategy_Label == "Guessing", "Ineffective", "Effective")
+    Global_Label = ifelse(Strategy_Label == "Low Efficacy", "Ineffective", "Effective")
   )
 
 # 4. Calculate Agreement Stats
@@ -910,7 +1250,7 @@ We examined the developmental trajectories of the three cognitive strategies. As
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-cap: "Developmental Trajectory of Strategy Use. Across all populations, the prevalence of 'Guessing' (Red) declines with age, replaced by 'Mental Rotation' (Green) and 'Pattern Matching' (Blue)."
+#| fig-cap: "Developmental Trajectory of Strategy Use. Across all populations, the prevalence of 'Low Efficacy' (Red) declines with age, replaced by 'Mental Rotation' (Green) and 'Pattern Matching' (Blue)."
 
 # 1. Prepare Data
 strategy_trends <- analysis_data %>%
