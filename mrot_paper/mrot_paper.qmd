@@ -96,7 +96,7 @@ Spatial reasoning encompasses a range of abilities for generating, retaining, an
 
 Spatial reasoning is also linked to a wide range of educational outcomes [@wai2018spatial], spanning creative domains such as music [@padulo2020effects; @hetland2000learning] and visual arts [@kell2013creativity; @winner2013relationship], as well as STEM subjects [@wai2009spatial]—and especially mathematics [@atit2022examining; @xie2020spatial; @mix2012relation; @gunderson2012relation; @frick2019spatial]. Mental rotation, the focus of this paper, is one spatial skill that has been repeatedly implicated in these associations, making it a useful target for understanding how spatial reasoning relates to learning and development.
 
-Despite its practical and educational importance, significant questions remain regarding how mental rotation varies across contexts. In particular, little is known about whether cultural background shapes children’s mental-rotation skill, whether the canonical linear relationship between reaction time and angular disparity replicates across diverse populations, or which cognitive strategies children employ when solving mental-rotation problems. The present study addresses these gaps by examining children’s mental-rotation performance in Canada, Germany, and Colombia.
+Despite its practical and educational importance, significant questions remain regarding how mental rotation varies across contexts. In particular, little is known about whether cultural background shapes children’s mental-rotation skill, whether the canonical linear relationship between reaction time and angular disparity replicates across diverse populations, or which cognitive strategies children employ when solving mental-rotation problems. The present study addresses these gaps by examining children’s mental-rotation response patterns in Canada, Germany, and Colombia.
 
 ## Emergence and developemnt of spatial skills during childhood
 
@@ -104,7 +104,7 @@ Mental rotation can be observed as early as three months of age [@johnson2020spa
 
 A growing body of work suggests that spatial skills are malleable, with training studies in children showing gains on mental rotation and broader spatial reasoning measures, and in some cases transfer beyond the trained task [@hawes2015effects; @gilligan2020first; @lowrie2017visuospatial]. Consistent with this, a meta-analysis of 217 studies reported a moderate average effect of spatial training versus control conditions (Hedges’ g = 0.47, SE = 0.04) [@uttal2013malleability].
 
-## Cross-country comparisons
+## Cultural Comparisons
 
 From a biological perspective, there are strong reasons to expect cross-cultural similarities in mental rotation skills. Humans share a common genetic heritage and sensory-motor systems that shape how we perceive and interact with space. Because the nervous system likely evolved in response to universal demands, such as navigating environments and learning spatial layouts, spatial cognition is considered a relatively conserved neural specialization [@lewis1988signs; @montello1995significant; @nazareth2019meta].
 
@@ -112,7 +112,7 @@ While research on cultural variations in mental rotation is limited, existing st
 
 More recent developmental research suggests that these gender gaps may be more plastic than previously thought, particularly when cultural norms regarding autonomy are shifted. Among Tsimané children in the Bolivian Amazon, the high degree of freedom to explore allowed to both sexes resulted in a notable absence of gender differences in mobility and spatial ability [@davis2019spatial]. Interestingly, while formal schooling in this population improved abstract skills like mental rotation, it correlated with a decrease in large-scale navigational accuracy, suggesting a trade-off between classroom-based learning and environmental exploration. This environmental influence is further evidenced in seminomadic communities in Namibia. While local adults traditionally show a gender gap in spatial skills, recent cultural shifts—such as formal schooling and increased travel requirements—have effectively eliminated these differences in children [@davis2021cultural]. Both boys and girls demonstrated comparable navigational accuracy and mental rotation performance, indicating that when cultural norms provide equal opportunities for exploration and education, traditional sex differences in spatial cognition can disappear.
 
-## Reaction time
+## Reaction time as a function of rotation angle
 
 One of the most cited findings in psychology is that of @shepard1971mental, who demonstrated that mental rotation operates in a spatially continuous manner: response times increased approximately linearly with the angular disparity between two objects. This suggests that participants judge whether an object matches a previously seen one by performing a gradual rotation of an internal representation, taking longer for larger disparities (e.g., 75° vs. 110°).
 
@@ -136,8 +136,8 @@ Successful performance is often defined by strategy flexibility—the ability to
 
 The Learning Variability Network Exchange (LEVANTE) is an international research collaboration that supports coordinated data collection to better understand how children’s learning and development vary across ages and contexts. Partner sites administer a shared, openly available battery designed for a broad developmental range, and data are harmonized into a central repository. With support from the Jacobs Foundation, participating sites are funded to collect longitudinal data using the LEVANTE framework. Contributing researchers receive access to their site’s data first, followed by scheduled public releases for the wider research community. LEVANTE’s long-term aim is to build and openly share a large, high-quality dataset—alongside the measures themselves—capturing children’s development across diverse settings. In the present study, we use data for the mental rotation task only to answer three core research questoins:
 
-1.  Does our task demonstrate measurement invariance across sites, consistent with cross-cultural comparability of the underlying construct?
-2.  Do children’s response times increase approximately linearly with angular disparity in our mental rotation task?
+1.  Does the mental-rotation task show evidence of cross-site measurement invariance, indicating that it taps a shared underlying ability across cultural contexts?
+2.  Do children’s reaction times increase approximately linearly with angular disparity, consistent with @shepard1971mental?
 3.  What latent cognitive strategies best characterize children’s mental-rotation performance, and how are these strategies related to task demands (angular disparity; 2D vs 3D stimuli) and site?
 
 To our knowledge, LEVANTE is the first study to use item response theory (IRT) models to develop a mental rotation task (see @Kachergis2025LEVANTEcoretasks for further detail). IRT comprises a class of models that estimate, within a single framework, both item properties (e.g., how difficult each item is) and person ability (e.g., each child’s latent skill) [@embretson2013item]. Once fitted, an IRT model yields item parameters that can be used to place a new test-taker on the same latent scale from their response pattern, even if they completed only a subset of items. This allows us to report directly comparable scores for younger children who received mostly easier items and older children who received harder items.
@@ -183,16 +183,14 @@ The mental rotation task has already been implemented in a computer-adaptive tas
 
 # Results
 
-## Cultural similarities
+## Cultural Similarities - cross-site measurement invariance of mental rotation
 
-While we use psychometric modelling to place children’s performance on a common scale, the LEVANTE project is not designed to estimate true, absolute differences between sites. In practice, our framework does not support site-level performance comparisons: sites vary substantially in sampling, recruitment, and test administration, so any apparent cross-site differences in raw performance are heavily confounded. Accordingly, although we report descriptive patterns that may look like absolute site differences, we emphasize that these should not be interpreted as meaningful.
+While we use psychometric modelling to place children’s performance on a common scale, the LEVANTE project is not designed to estimate absolute differences between sites. In practice, LEVANTE does not support site-level performance comparisons: sites vary substantially in sampling, recruitment, and test administration, so any apparent cross-site differences in raw performance are heavily confounded. Accordingly, although we report descriptive patterns that may look like absolute site differences, we emphasize that these should not be interpreted as meaningful.
 
-Because our data were collected across three sites—with site-specific translations and task adaptations—we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries (see @tbl-irt-anova).
-
-@fig-dev-trends plots participants’ mental rotation ability estimates (IRT theta) against age, separately for each site, with site-specific trends modeled using generalized additive models (GAMs). Across sites, theta increases with age, indicating developmental improvement in mental rotation ability.
+Because our data were collected across three sites, we use multi-group IRT to evaluate measurement invariance, i.e., whether the task functions similarly across groups [@putnick2016measurement]. Multi-group models for the mental rotation task supported scalar invariance under a 2PL model, indicating that item difficulty is aligned across sites and that children in each country are being placed on a comparable latent scale. Practically, this means the groups share the same relative ordering of item difficulty—for example, items with larger rotation angles are consistently more difficult for children across all three countries (see @tbl-mrot-2pl-scalar). These results suggest that the core structure of mental rotation performance is largely shared across cultures in our sample: the task appears to tap the same underlying ability, and the same item features drive difficulty in a similar way across contexts. This provides a psychometric foundation for the broader claim that patterns of mental rotation development are more alike than different across the cultural settings represented here.
 
 ```{r}
-#| echo: false
+#| include: false
 
 # packages
 library(tidyverse)
@@ -210,8 +208,10 @@ library(dplyr)
 ```
 
 ```{r}
-#| echo: false
-#| 
+#| label: setup
+#| include: false
+#| cache: false
+
 source(here::here("..", "levante-pilots", "plot_settings.R"))
 source(here::here("..", "levante-pilots", "03_explore_tasks", "explore_helper.R"))
 ```
@@ -270,40 +270,38 @@ mrot_2pl_scalar
 ```
 
 ```{r}
-#| label: tbl-irt-anova
-#| tbl-cap: "Mental Rotation: 2PL Scalar-Invariance Model Fit Statistics."
+#| label: tbl-mrot-2pl-scalar
+#| tbl-cap: "Model fit indices for 2PL scalar invariance models. Note: 2PL = 2-parameter logistic model; scalar invariance indicates that item intercepts and loadings are constrained across groups."
+#| echo: false
 
 library(gt)
 mrot_2pl_scalar %>%
   transmute(
-    Task        = task,
-    Factors     = nfact,
-    Model       = itemtype,
-    Invariance  = invariance,
-    `logLik`    = logLik,
-    AIC         = AIC,
-    BIC         = BIC,
-    `# params`  = df
+    Task       = task,
+    Factors    = nfact,
+    Model      = itemtype,
+    Invariance = invariance,
+    logLik     = logLik,
+    AIC        = AIC,
+    BIC        = BIC,
+    `# params` = df
   ) %>%
   gt() %>%
-  fmt_number(
-    columns = c(`logLik`, AIC, BIC),
-    decimals = 2
-  ) %>%
-  fmt_number(
-    columns = c(`# params`),
-    decimals = 0
-  ) %>%
-  cols_align(
-    align = "center",
-    columns = c(Task, Factors, Model, Invariance, `# params`)
-  ) %>%
-  cols_align(
-    align = "right",
-    columns = c(`logLik`, AIC, BIC)
+  # Ensures the gt title area is clear and doesn't overlap the Quarto caption
+  tab_header(title = md("")) %>% 
+  fmt_number(columns = c(logLik, AIC, BIC), decimals = 2) %>%
+  fmt_number(columns = `# params`, decimals = 0, use_seps = FALSE) %>%
+  cols_align(align = "center", columns = c(Task, Factors, Model, Invariance, `# params`)) %>%
+  cols_align(align = "right",  columns = c(logLik, AIC, BIC)) %>%
+  tab_options(
+    #table.font.size = px(12), # Increased slightly for better legibility
+    table.width = pct(100),   # Ensures it fills the page width nicely
+    data_row.padding = px(3)   # Tighter row spacing often looks better for stats
   )
-
 ```
+\clearpage
+
+@fig-dev-trends plots participants’ mental rotation ability estimates (IRT theta) against age, with separate panels/curves by site and age trends modelled using generalized additive models (GAMs). GAMs allow the developmental association with age to be non-linear, capturing periods of more rapid change and relative flattening without imposing a fixed form. Across sites, theta increases with age, indicating developmental improvement in mental rotation ability, and the dispersion of points within age bands underscores substantial heterogeneity in ability among same-aged children.
 
 ```{r}
 #| label: fig-dev-trends
@@ -337,27 +335,29 @@ mrot_irt
 
 \clearpage
 
-We tested if the typical reaction time-rotation angle relationship first reported by @shepard1971mental replicates in our data (see @fig-rt-angle in the Appendices). @fig-rt-angle-per-run shows trial-level reaction times (points) overlaid with mean RTs and 95% confidence intervals, plotted as a function of rotation angle and stratified by age group and site. Across panels, the raw per-run data indicate substantial within-site variability and a positively skewed RT distribution, with occasional long-response outliers (particularly for the more difficult items).
+## Angular disparity and the RT–angle relationship
 
-We can see that mean RTs for 2D animal (duck/rabbit) stimuli decrease with age across sites, with the oldest group (11–14 years) responding faster overall than the youngest group (5–8 years). RTs increase with rotation angle (angular disparity), consistent with the classic mental-rotation effect (@shepard1971mental). This angle dependence is more pronounced for the 3D shape stimuli than for the 2D stimuli, which show comparatively smaller RT increases across angles. These patterns--faster responses with age and a robust angular-disparity effect, especially for 3D stimuli--appear broadly similar across the three sites, suggesting comparable task behavior across cultural contexts.
+Our aim with this analysis was to test whether the canonical reaction time–rotation angle relationship first reported by @shepard1971mental replicates in our data. @fig-rt-angle-per-run plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by age group (5–7, 7–9, and 9–12 years) and site, with separate series by stimulus and item type (2D vs 3D). To show the underlying dispersion and sample density alongside the summary trends, we provide a second version of @fig-rt-angle-per-run in the Appendix that overlays the raw per-run data (using the same age bins and 95% CIs; see @fig-rt-angle_raw).
+
+Across sites, mean RTs generally decrease with age, with the 9–12 group responding faster overall than the younger groups, particularly for the 2D animal stimuli (duck/rabbit). RTs also tend to increase with rotation angle (angular disparity), consistent with the classic RT–angle effect (@shepard1971mental). This angular-disparity effect is most pronounced for the 3D shape stimuli, which show slower overall RTs and steeper angle-related increases, whereas the 2D stimuli exhibit comparatively flatter RT–angle functions. Despite some differences in absolute RT levels between sites, the same qualitative pattern—faster responses with age and a stronger angular-disparity effect for 3D items—appears across all three sites, suggesting broadly comparable task behaviour across contexts.
 
 ```{r}
 #| label: trial-level-rts
-#| echo: false
-#| message: false
-#| cache: true
+#| include: false
 
 mrot_rt_trial <- all_sum_scores %>%
   dplyr::filter(item_task == "mrot") %>%
-  dplyr::select(site, data) %>%        
-  tidyr::unnest(data) %>%              
+  dplyr::select(site, data) %>%
+  tidyr::unnest(data) %>%
   dplyr::mutate(
-    correct = as.numeric(correct),
-    rt_s    = as.numeric(rt_numeric) / 1000,
-    log_rt  = log(rt_s)
+    correct = dplyr::case_when(
+      is.logical(correct) ~ as.integer(correct),
+      TRUE ~ as.integer(as.numeric(correct))
+    ),
+    rt_s   = as.numeric(rt_numeric) / 1000,
+    log_rt = log(rt_s)
   ) %>%
   dplyr::filter(is.finite(rt_s), rt_s > 0)
-colnames(mrot_rt_trial)
 
 # age per run 
 run_ages <- run_data %>%
@@ -370,39 +370,47 @@ run_ages <- run_data %>%
 ```
 
 ```{r}
-# removing re-test kids
-library(dplyr)
+#| label: remove-retest-data
+#| include: false
 
-# identify children with 2 runs (within site)
-two_run_kids <- mrot_rt_trial %>%
+baseline_runs <- mrot_rt_trial %>%
   distinct(site, user_id, run_id) %>%
-  count(site, user_id, name = "n_runs") %>%
-  filter(n_runs == 2) %>%
-  select(site, user_id)
+  left_join(run_ages, by = c("user_id", "run_id")) %>%  
+  group_by(site, user_id) %>%
+  arrange(age, run_id) %>%           
+  slice(1) %>%
+  ungroup() %>%
+  select(site, user_id, run_id)
 
-# remove their trials
+# keep only trials from those baseline runs
 mrot_rt_trial_no_retest <- mrot_rt_trial %>%
-  anti_join(two_run_kids, by = c("site", "user_id"))
+  semi_join(baseline_runs, by = c("site", "user_id", "run_id"))
 
-# check
+# check: each child should now have exactly 1 run (within site)
 mrot_rt_trial_no_retest %>%
   distinct(site, user_id, run_id) %>%
   count(site, user_id, name = "n_runs") %>%
-  count(n_runs) # n=489
+  count(n_runs)
+
+# how many re-testers?
+mrot_rt_trial %>%
+  distinct(site, user_id, run_id) %>%
+  count(site, user_id, name = "n_runs") %>%
+  count(n_runs) # 133
 ```
 
 ```{r}
 #| label: fig-rt-angle-per-run
-#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI (Note: Re-test data removed)."
+#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
 #| fig-width: 8
 #| fig-height: 8
 
-age_breaks <- c(5, 8, 11, 14)
+age_breaks <- c(5, 7, 9, 12)
 
 mrot_items_rt_runs <- mrot_rt_trial_no_retest %>%
   mutate(
     stimulus = stringr::str_extract(item, "^[a-z]+"),
-    angle    = as.integer(stringr::str_extract(item, "\\d+"))
+    angle = as.integer(stringr::str_extract(item, "(?<=_)\\d+"))
   ) %>%
   filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
   left_join(run_ages, by = c("user_id","run_id")) %>%
@@ -420,61 +428,37 @@ mrot_items_rt_runs <- mrot_rt_trial_no_retest %>%
   )
 
 mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
+  filter(!is.na(rt_med)) %>%
   group_by(site, stimulus, item_group, angle, age_group) %>%
   summarise(
-    y   = mean(rt_med, na.rm = TRUE),
-    sd  = sd(rt_med, na.rm = TRUE),
+    y   = mean(rt_med),
+    sd  = sd(rt_med),
     n   = dplyr::n(),
-    se  = sd / sqrt(pmax(n, 1)),
+    se  = sd / sqrt(n),
     lwr = y - 1.96 * se,
     upr = y + 1.96 * se,
     .groups = "drop"
   )
 
-# Add raw data underneath
-p_mrot_rt_angle_age <- ggplot() +
-  # raw per-run medians
-  geom_point(
-    data = mrot_items_rt_runs,
-    aes(x = angle, y = rt_med,
-        colour = stimulus),
-    size = 0.4,
-    alpha = 0.25,
-    position = position_jitter(width = 3, height = 0)
-  ) +
-  # summary CI + lines
-  geom_errorbar(
-    data = mrot_items_rt_agebin_ci,
-    aes(x = angle, y = y, ymin = lwr, ymax = upr,
-        colour = stimulus, linetype = item_group,
-        group = interaction(item_group, stimulus)),
-    width = 2,
-    linewidth = 0.35,
-    alpha = 0.6
-  ) +
-  geom_point(
-    data = mrot_items_rt_agebin_ci,
-    aes(x = angle, y = y,
-        colour = stimulus, linetype = item_group,
-        group = interaction(item_group, stimulus)),
-    size = 1
-  ) +
-  geom_line(
-    data = mrot_items_rt_agebin_ci,
-    aes(x = angle, y = y,
-        colour = stimulus, linetype = item_group,
-        group = interaction(item_group, stimulus)),
-    alpha = 0.85
-  ) +
+p_mrot_rt_angle_age_1 <- ggplot(
+  mrot_items_rt_agebin_ci,
+  aes(x = angle, y = y,
+      group = interaction(item_group, stimulus),
+      colour = stimulus, linetype = item_group)
+) +
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
+                linewidth = 0.35, alpha = 0.6) +
+  geom_point(size = 1) +
+  geom_line(alpha = 0.85) +
   facet_grid(site ~ age_group) +
   labs(
-    #title = "Mental Rotation: RT by angle within age groups ±95% CI",
+    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
     x = "Rotation angle (°)",
-    y = "RT (s)",
+    y = "RT (s)",                             
     colour = "Stimulus",
-    #linetype = "Item Type"
+    linetype = "Item Type"
   )
-p_mrot_rt_angle_age
+p_mrot_rt_angle_age_1
 ```
 
 \clearpage
@@ -486,11 +470,8 @@ Having established the expected angular-disparity effect across age groups and s
 ```{r}
 #| label: fig-within-person-trials
 #| fig-cap: "Trial-level Reaction Time Dynamics. The plot shows the mean log-reaction time across the 80 trials for each site. Shaded areas represent standard error. The sharp increase represents the transition to 3D items (Note: Re-test data removed)."
-#| echo: false
-#| message: false
-#| warning: false
 #| fig-width: 8
-#| fig-height: 6
+#| fig-height: 5
 
 # 1. Prepare data with Site Labels
 trial_plot_data <- mrot_rt_trial_no_retest %>%
@@ -511,30 +492,19 @@ ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fi
     fill = "Site"
   ) +
   # REMOVED theme_classic()
-  theme(legend.position = "top") # Keep layout adjustments only
+  theme(legend.position = "bottom")
 
 ```
 
 \clearpage
 
-# Cognitive Strategies Analysis
+## Cognitive Strategies
 
-To determine if children rely on distinct cognitive strategies (e.g., "Effective Rotation" vs. "Impulsive Guessing") rather than simply varying along a continuous ability scale, we extracted four cognitive features for each participant using a mixed-effects model.
+To characterize individual differences in how children solved the mental-rotation task, we derived participant-level 'strategy features; from trial-level reaction times. Consistent with the generally log-normal distribution of reaction times, we modeled log-transformed RTs. While the classic @shepard1971mental finding describes an approximately linear relationship with raw RT, fitting the model to log(RT) provides more robust parameter estimates for defining individual strategy profiles in a developing population. We fit a mixed-effects model to log(RT) that captured stimulus and angle-dependent responding alongside within-run practice effects, extracted participant-specific deviations (random effects), and combined these model-derived quantities with RT variability and IRT-estimated ability before clustering participants using k-means (k = 3) on standardized features.
 
-Consistent with the generally log-normal distribution of reaction times, we modeled log-transformed RTs. While the classic @shepard1971mental finding describes a linear relationship with raw RT, fitting the model to log(RT) provides more robust parameter estimates for defining individual strategy profiles in a developing population.
-
-The extracted features were:
-
-1.  Baseline Speed: Intercept from the mixed-effects model (representing speed at 0° rotation).
-2.  Rotation Slope: The "cost" of rotation (slope of angle on log RT), purified of stimulus effects.
-3.  Response Variability (RT SD): Intra-individual standard deviation of log RT.
-4.  Accuracy: IRT-estimated ability ($\theta$).
-
-We then applied K-Means clustering ($k=3$) to identify subgroups. To ensure cross-cultural validity, we compared a "Global Model" (pooled data) against "Local Models" (site-specific).
-
+The extracted features were: (1) Baseline Speed, defined as the intercept from the mixed-effects model (interpretable as expected speed at 0° rotation); (2) Rotation Slope, defined as the “cost” of rotation (the slope of angle on log RT), estimated net of stimulus effects; (3) Response Variability (RT SD), defined as the intra-individual standard deviation of log RT; and (4) IRT-estimated ability (theta).
 ```{r}
 #| label: strategy-analysis-prep
-#| cache: true
 #| results: "hide"
 
 # Ability estimate - keep site + user
@@ -617,6 +587,7 @@ rich_features_final <- rich_features_raw %>%
 
 ```{r}
 #| label: clustering-execution
+#| include: false
 
 my_colors <- c(
   "Low Efficiency" = "#e74c3c",
@@ -683,7 +654,7 @@ stopifnot(setequal(levels(analysis_data$Strategy_Label), names(my_colors)))
 ```
 
 ```{r}
-#| label: justify-slope-assumptions
+#| label: fig-rt-angle-by-strategy
 #| fig-cap: "Participant-weighted RT–angle functions by strategy cluster (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs) (Note: Re-test data removed)."
 
 # Join strategy labels onto trial-level RT data
@@ -742,6 +713,9 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
   ) +
   theme(legend.position = "bottom")
 ```
+### Strategy clusters show distinct RT–angle signatures
+
+Figure @fig-rt-angle-by-strategy shows participant-weighted RT–angle functions by strategy cluster (each participant contributes once per angle; shaded bands show 95% CIs). The Holistic (rotation) cluster exhibited the steepest RT increase with angular disparity, consistent with progressively greater processing demands at larger rotations The Analytical (feature matching) cluster showed a flatter RT–angle relationship, with relatively little change in RT as angular disparity increased. The Low Efficiency cluster showed little to no RT increase with angular disparity, and in some cases a slight decrease, indicating a weak or absent RT–angle relationship.
 
 ```{r}
 #| label: emmeans-slope-extract
@@ -883,14 +857,11 @@ low_eff_stats <- low_eff_acc %>%
     prop_within_5pct_chance = mean(acc <= chance + 0.05, na.rm = TRUE),
     median_acc_minus_chance = median(acc_minus_chance, na.rm = TRUE)
   )
-
-# The Low Efficacy cluster performed above chance (mean accuracy = 0.63; +0.13 above chance), whereas the Holistic (rotation) cluster showed substantially higher accuracy (0.84; +0.34 above chance). This pattern supports interpreting the lowest-performing cluster as less systematic / less effective, though performance remained above chance.
 ```
-Because the Low Efficiency label was assigned on the basis of lowest estimated ability in the clustering step, we examined raw accuracy relative to chance as an external validity check that is diagnostic of near-random responding—whereas for the analytical and holistic clusters the key distinguishing prediction is their RT–angle signature (slope), not their absolute accuracy. Low-efficiency accuracy was modestly above chance (mean accuracy = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`; mean accuracy − chance = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"] - acc_by_strategy$mean_chance[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`). However, performance in this cluster was rarely consistent with chance responding: `r fmt_num(100 * low_eff_stats$prop_at_or_below_chance, 1)`% of participants performed at or below chance and `r fmt_num(100 * low_eff_stats$prop_within_5pct_chance, 1)`% were within 5 percentage points of chance; the median above-chance accuracy was `r fmt_num(low_eff_stats$median_acc_minus_chance, 3)`. Together, these results support interpreting the lowest-performing cluster as low efficiency rather than literal guessing.
+Because the Low Efficiency label was assigned on the basis of lowest estimated ability in the clustering step, we examined raw accuracy relative to chance as an external validity check that is diagnostic of near-random responding--whereas for the analytical (feature-matching) and holistic (rotation) clusters the key distinguishing prediction is their RT–angle signature (slope), not their absolute accuracy. Low-efficiency accuracy was modestly above chance (mean accuracy = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`; mean accuracy − chance = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"] - acc_by_strategy$mean_chance[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`). However, performance in this cluster was rarely consistent with chance responding: `r fmt_num(100 * low_eff_stats$prop_at_or_below_chance, 1)`% of participants performed at or below chance and `r fmt_num(100 * low_eff_stats$prop_within_5pct_chance, 1)`% were within 5 percentage points of chance; the median above-chance accuracy was `r fmt_num(low_eff_stats$median_acc_minus_chance, 3)`. These results therefore support interpreting the lowest-performing cluster as low efficiency rather than literal guessing.
 
 ```{r}
 #| label: cluster-stability-bootstrap
-#| cache: true
 #| include: false
 
 # inputs
@@ -1005,14 +976,14 @@ res <- map_dfr(1:B, function(b) {
   })
   cl_hat <- max.col(-dists)  # 1..k
 
-  # resolve label switching via maximal overlap with reference labels
+  # resolve label switching with maximal overlap with reference labels
   perm  <- best_perm_by_overlap(cl_hat, y_ref, ref_levels, all_perms_3)
   y_hat <- factor(ref_levels[perm[cl_hat]], levels = ref_levels)
 
   # overall agreement
   ari <- ARI(y_ref, y_hat)
 
-  # per-cluster Jaccard (label-aligned)
+  # per-cluster Jaccard
   jac <- map_dbl(ref_levels, function(lab) {
     jaccard(ids[y_ref == lab], ids[y_hat == lab])
   })
@@ -1082,46 +1053,8 @@ ari_tail
 ```
 
 ```{r}
-#| label: cluster-bootstrap-plots
-#| cache: true
-
-p_ari <- ggplot(res, aes(x = ARI)) +
-  geom_histogram(bins = 30) +
-  labs(
-    x = "Adjusted Rand Index (vs reference labels)",
-    y = "Count",
-    title = paste0("Cluster stability under bootstrap resampling (B = ", B, ")")
-  )
-
-# long-form Jaccard with safe mapping back to Strategy_Label
-jac_key <- tibble(
-  col = paste0("J_", make.names(ref_levels)),
-  Strategy_Label = ref_levels
-)
-
-res_long <- res %>%
-  pivot_longer(starts_with("J_"), names_to = "col", values_to = "Jaccard") %>%
-  left_join(jac_key, by = "col") %>%
-  mutate(Strategy_Label = factor(Strategy_Label, levels = ref_levels))
-
-p_jac <- ggplot(res_long, aes(x = Strategy_Label, y = Jaccard)) +
-  geom_boxplot(outlier.alpha = 0.25) +
-  labs(
-    x = NULL,
-    y = "Jaccard (membership overlap vs reference)",
-    title = "Per-cluster membership stability"
-  ) +
-  theme(axis.text.x = element_text(angle = 20, hjust = 1))
-
-p_ari
-p_jac
-
-```
-
-```{r}
 #| label: cluster-stability-reporting
 #| include: false
-
 fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
 fmt_p   <- function(p) ifelse(is.na(p), NA,
                               ifelse(p < 0.0001, "< 0.0001", fmt_num(p, 4)))
@@ -1154,246 +1087,317 @@ if ("center_shift" %in% names(res)) {
 } else {
   rho_shift <- NA_real_
 }
+
 ```
-## Cluster robustness
+## Robutness Checks
 
-We assessed robustness of the three-strategy solution via participant bootstrap resampling (B = `r stability_summary$B`), refitting k-means to each resample and assigning all participants to the recovered centres (with cluster labels aligned to the reference solution by maximal membership overlap). The recovered partition closely matched the reference clustering (median ARI = `r fmt_num(ari_med, 3)`; IQR = `r fmt_num(ari_iqr, 3)`), indicating that the three-cluster structure is not dependent on a particular sample realisation. Cluster membership was also stable at the strategy level (median Jaccard overlap: Low Efficiency = `r fmt_num(j_low_med, 3)` [IQR = `r fmt_num(j_low_iqr, 3)`], Analytical (feature matching) = `r fmt_num(j_ana_med, 3)` [IQR = `r fmt_num(j_ana_iqr, 3)`], Holistic (rotation) = `r fmt_num(j_hol_med, 3)` [IQR = `r fmt_num(j_hol_iqr, 3)`]). Although a minority of resamples yielded lower agreement (`r fmt_num(pct_ari_70, 1)`% with ARI < 0.70; `r fmt_num(pct_ari_60, 1)`% with ARI < 0.60; minimum ARI = `r fmt_num(min_ari, 3)`), this tail was not explained by simple under-representation of any reference cluster among unique resampled participants. Instead, lower-ARI runs tended to coincide with larger shifts in the estimated cluster centres (Spearman ρ = `r fmt_num(rho_shift, 3)`), consistent with occasional bootstrap draws leading k-means to an alternative local solution and/or reassignment of boundary-case participants, while the typical resample recovered the same three-strategy partition.
+We conducted two robustness checks to evaluate whether the three-strategy solution was stable and generalizable. First, we assessed cluster stability under participant bootstrap resampling; second, we compared the pooled (global) clustering solution to site-specific (local) clustering to test whether the same strategy structure emerged within each site.
 
-
-
-## Model Selection: Global vs. Local Clustering
-
-To determine whether we can define cognitive strategies universally or if we need site-specific definitions, we compared two approaches:
-
--   **Local Models:** Clustering performed independently within each site (optimizing for local variance).
--   **Global Model:** Clustering performed on the pooled dataset (applying a universal standard).
-
-We then calculated the agreement rate between the two methods to see if the "Global" definition aligns with "Local" realities.
+### Cluster robustness
+We assessed robustness of the three-strategy solution via participant bootstrap resampling (B = `r stability_summary$B`), refitting k-means to each resample and assigning all participants to the recovered centers (with cluster labels aligned to the reference solution by maximal membership overlap). The recovered partition closely matched the reference clustering (median ARI = `r fmt_num(ari_med, 3)`; IQR = `r fmt_num(ari_iqr, 3)`), indicating that the three-cluster structure is not dependent on a particular sample composition. Cluster membership was also stable at the strategy level (median Jaccard overlap: Low Efficiency = `r fmt_num(j_low_med, 3)` [IQR = `r fmt_num(j_low_iqr, 3)`], Analytical (feature matching) = `r fmt_num(j_ana_med, 3)` [IQR = `r fmt_num(j_ana_iqr, 3)`], Holistic (rotation) = `r fmt_num(j_hol_med, 3)` [IQR = `r fmt_num(j_hol_iqr, 3)`]). Although a minority of resamples yielded lower agreement (`r fmt_num(pct_ari_70, 1)`% with ARI < 0.70; `r fmt_num(pct_ari_60, 1)`% with ARI < 0.60; minimum ARI = `r fmt_num(min_ari, 3)`), this tail was not explained by simple under-representation of any reference cluster among unique resampled participants. Instead, lower-ARI runs tended to coincide with larger shifts in the estimated cluster centers (Spearman ρ = `r fmt_num(rho_shift, 3)`), consistent with occasional bootstrap draws leading k-means to an alternative local solution and/or reassignment of boundary-case participants, while the typical resample recovered the same three-strategy partition. See @fig-cluster-bootstrap-plots in Appendix 2 for bootstrap stability plots (ARI distribution and per-cluster Jaccard overlap).
 
 ```{r}
-#| label: agreement-calculation
-#| echo: false
-#| message: false
-#| warning: false
-#| results: "hide"
+#| label: local-clustering-agreement
+#| include: false
 
-# 1. Define Helper to get Local Labels (Binary: Effective/Ineffective)
-get_local_binary_labels <- function(data, site_name) {
-  c_data <- data %>% filter(Site == site_name) %>% ungroup()
-  
-  if(nrow(c_data) < 10) return(NULL) # Safety check
-  
-  set.seed(123)
-  
-  # Run Local K-means (k=3)
-  input_local <- c_data %>% select(accuracy, Abs_Slope, Baseline_Speed, RT_SD) %>% scale()
-  k_local <- kmeans(input_local, centers = 3)
-  
-  # Identify "Ineffective" Cluster Locally (The one with Lowest Accuracy)
-  local_stats <- c_data %>% 
-    mutate(cid = k_local$cluster) %>% 
-    group_by(cid) %>% 
-    summarise(mean_acc = mean(accuracy), .groups = "drop") %>%
-    arrange(mean_acc)
-    
-  guess_id <- local_stats %>% slice(1) %>% pull(cid)
-  
-  # Return just user_id and the assigned label
-  c_data %>%
-    mutate(Local_Label = ifelse(k_local$cluster == guess_id, "Ineffective", "Effective")) %>%
-    select(user_id, Local_Label)
+vars <- c("ability", "Abs_Slope", "Baseline_Speed", "RT_SD")
+stopifnot(all(vars %in% names(analysis_data)))
+stopifnot(all(c("Site", "user_id", "Strategy_Label") %in% names(analysis_data)))
+stopifnot(nrow(analysis_data) == nrow(dplyr::distinct(analysis_data, Site, user_id)))
+
+# Local k-means (labels same as global model)
+get_local_strategy_labels <- function(df_site,
+                                     k = 3,
+                                     seed = 123,
+                                     nstart = 25,
+                                     min_n = 30) {
+
+  if (nrow(df_site) < min_n) return(NULL)
+  set.seed(seed)
+
+  X <- df_site %>%
+    dplyr::select(dplyr::all_of(vars)) %>%
+    scale() %>%
+    as.matrix()
+
+  km <- kmeans(X, centers = k, nstart = nstart)
+
+  tmp <- df_site %>%
+    mutate(Local_Cluster = factor(km$cluster))
+
+  local_stats <- tmp %>%
+    group_by(Local_Cluster) %>%
+    summarise(
+      mean_abil  = mean(ability, na.rm = TRUE),
+      mean_slope = mean(Abs_Slope, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    arrange(mean_abil)
+
+  # Identify clusters locally using the SAME decision rules as global:
+  # Low Efficiency = lowest mean ability
+  # Among remaining: lower slope = Analytical; higher slope = Holistic
+  low_id <- local_stats %>% slice(1) %>% pull(Local_Cluster)
+
+  other_two <- local_stats %>%
+    filter(Local_Cluster != low_id) %>%
+    arrange(mean_slope)
+
+  analytical_id <- other_two %>% slice(1) %>% pull(Local_Cluster)
+  holistic_id   <- other_two %>% slice(2) %>% pull(Local_Cluster)
+
+  tmp %>%
+    mutate(
+      Strategy_Local = dplyr::case_when(
+        Local_Cluster == low_id        ~ "Low Efficiency",
+        Local_Cluster == analytical_id ~ "Analytical (feature matching)",
+        Local_Cluster == holistic_id   ~ "Holistic (rotation)"
+      ),
+      Strategy_Local = factor(Strategy_Local, levels = levels(analysis_data$Strategy_Label))
+    ) %>%
+    select(Site, user_id, Strategy_Local)
 }
 
-# 2. Generate Local Labels for all sites
-labs_de <- get_local_binary_labels(analysis_data, "mpieva-de")
-labs_co <- get_local_binary_labels(analysis_data, "uniandes-co")
-labs_ca <- get_local_binary_labels(analysis_data, "western-ca")
+# fit local models (k=3) independently within each site
+local_labels_all <- analysis_data %>%
+  group_by(Site) %>%
+  group_split() %>%
+  purrr::map_dfr(get_local_strategy_labels)
 
-# 3. Merge Local Labels back into main dataset
-local_labels_all <- bind_rows(labs_de, labs_co, labs_ca)
+analysis_local <- analysis_data %>%
+  select(-dplyr::any_of("Strategy_Local")) %>%
+  left_join(local_labels_all, by = c("Site", "user_id"))
 
-# Clean up before join
-if("Local_Label" %in% names(analysis_data)) analysis_data <- analysis_data %>% select(-Local_Label)
-if("Global_Label" %in% names(analysis_data)) analysis_data <- analysis_data %>% select(-Global_Label)
-
-analysis_data <- analysis_data %>%
-  left_join(local_labels_all, by = "user_id") %>%
-  mutate(
-    Global_Label = ifelse(Strategy_Label == "Low Efficacy", "Ineffective", "Effective")
+# agreement (3-class)
+agreement_3class <- analysis_local %>%
+  filter(!is.na(Strategy_Local)) %>%
+  group_by(Site) %>%
+  summarise(
+    n = n(),
+    pct_agree = mean(Strategy_Local == Strategy_Label),
+    ARI = ARI(Strategy_Label, Strategy_Local),
+    .groups = "drop"
   )
 
-# 4. Calculate Agreement Stats
-calc_agreement <- function(data, site_name) {
-  sub <- data %>% filter(Site == site_name)
-  if(nrow(sub) == 0) return(NA)
-  tbl <- table(sub$Local_Label, sub$Global_Label)
-  sum(diag(tbl)) / sum(tbl)
-}
+agreement_3class
 
-res_de <- calc_agreement(analysis_data, "mpieva-de")
-res_co <- calc_agreement(analysis_data, "uniandes-co")
-res_ca <- calc_agreement(analysis_data, "western-ca")
-```
+# confusion matrices per site (Local rows x Global cols)
+confusion_by_site <- analysis_local %>%
+  filter(!is.na(Strategy_Local)) %>%
+  group_split(Site) %>%
+  purrr::set_names(purrr::map_chr(., ~ unique(.x$Site))) %>%
+  purrr::map(~ table(.x$Strategy_Local, .x$Strategy_Label))
 
-To validate our strategy classification, we calculated the agreement between these models. We found high agreement in identifying 'Ineffective' strategies across all sites (mpieva-de: `r round(res_de*100, 1)`%, western-ca: `r round(res_ca*100, 1)`%, uniandes-co: `r round(res_co*100, 1)`%).
+confusion_by_site
 
-While the differentiation between the two effective strategies ('Pattern Matching' vs. 'Rotation') showed more variance locally, we retained the Global Model definitions for all subtypes. This ensures a consistent standard for 'Pattern Matching' across all populations, allowing for valid cross-site comparisons of strategy prevalence.
-
-*(See @fig-model-comparison in the Appendices for full model comparison plots and diagnostic analysis of classification mismatches.)*
-
-## Developmental Trajectory of Strategies
-
-We examined the developmental trajectories of the three cognitive strategies. As illustrated in @fig-strategy-age, there is a clear developmental shift across all populations: the prevalence of the 'Guessing' strategy declines with age, while the use of effective strategies ('Mental Rotation' and 'Pattern Matching') increases.
-
-```{r}
-#| label: fig-strategy-age
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-cap: "Developmental Trajectory of Strategy Use. Across all populations, the prevalence of 'Low Efficacy' (Red) declines with age, replaced by 'Mental Rotation' (Green) and 'Pattern Matching' (Blue)."
-
-# 1. Prepare Data
-strategy_trends <- analysis_data %>%
-  # Join Age data
-  left_join(ability_runs %>% select(user_id, age), by = "user_id") %>%
-  mutate(Age_Bin = floor(age)) %>%
-  filter(!is.na(Age_Bin), Age_Bin >= 6, Age_Bin <= 12) %>%
-  # Count N per Strategy per Site/Age
-  group_by(Site, Age_Bin, Strategy_Label) %>%
-  summarise(N = n(), .groups = "drop_last") %>%
-  mutate(
-    Total_N = sum(N),
-    Pct = N / Total_N,
-    SE = sqrt((Pct * (1 - Pct)) / Total_N)
-  ) %>%
+# recall (given global label) + purity (given local label)
+recall_tbl <- analysis_local %>%
+  filter(!is.na(Strategy_Local)) %>%
+  count(Site, Strategy_Label, Strategy_Local) %>%
+  group_by(Site, Strategy_Label) %>%
+  mutate(recall = n / sum(n)) %>%
   ungroup()
 
-# 2. Plot (Faceted by Site)
-ggplot(strategy_trends, aes(x = Age_Bin, y = Pct, color = Strategy_Label)) +
-  geom_line(linewidth = 1.2) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = pmax(0, Pct - SE), ymax = pmin(1, Pct + SE)), 
-                width = 0.2, alpha = 0.5) +
-  facet_wrap(~Site) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  scale_x_continuous(breaks = 6:12) + 
-  scale_color_manual(values = my_colors) +
-  labs(
-    x = "Age (Years)",
-    y = "Proportion of Children",
-    color = "Strategy"
-  ) +
-  theme(legend.position = "bottom", strip.text = element_text(face="bold"))
-```
+purity_tbl <- analysis_local %>%
+  filter(!is.na(Strategy_Local)) %>%
+  count(Site, Strategy_Local, Strategy_Label) %>%
+  group_by(Site, Strategy_Local) %>%
+  mutate(purity = n / sum(n)) %>%
+  ungroup()
 
-To statistically validate the decline in impulsive behavior, we modeled the probability of using the 'Guessing' strategy as a function of age and site.
-
-```{r}
-#| label: strategy-stats
-#| echo: false
-#| message: false
-#| warning: false
-
-# 1. Prepare Data
-stat_data <- analysis_data %>%
-  left_join(ability_runs %>% select(user_id, age), by = "user_id") %>%
-  filter(!is.na(age), age >= 6, age <= 12) %>%
-  mutate(
-    Is_Guessing = ifelse(Strategy_Label == "Guessing", 1, 0),
-    Site = relevel(as.factor(Site), ref = "uniandes-co")
+diag_summary <- recall_tbl %>%
+  filter(Strategy_Label == Strategy_Local) %>%
+  transmute(Site, Strategy = Strategy_Label, recall) %>%
+  left_join(
+    purity_tbl %>%
+      filter(Strategy_Local == Strategy_Label) %>%
+      transmute(Site, Strategy = Strategy_Local, purity),
+    by = c("Site", "Strategy")
   )
 
-# 2. Run Interaction Model
-m_interaction <- glm(Is_Guessing ~ age * Site, 
-                     data = stat_data, 
-                     family = "binomial")
+diag_summary
 
-# 3. Extract Values for Text
-res <- broom::tidy(m_interaction)
-age_est <- res %>% filter(term == "age") %>% pull(estimate) %>% round(2)
-age_p   <- res %>% filter(term == "age") %>% pull(p.value)
-p_text  <- ifelse(age_p < .001, "< .001", paste("=", round(age_p, 3)))
 ```
 
-Results indicated a significant main effect of age ($\beta = `r age_est`, p `r p_text`$), confirming that reliance on impulsive guessing declines significantly with development. While baseline rates of guessing varied by site, the interaction between age and site was not statistically significant ($p > .05$), indicating that the rate of this developmental decline (i.e., the transition away from guessing) was consistent across all three populations.
+```{r}
+#| label: local-vs-pooled-reporting
+#| cache: true
+#| include: false
 
+fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
+fmt_pct <- function(x, d = 1) paste0(formatC(100*x, format = "f", digits = d), "%")
+
+get_row <- function(df, site) df[df$Site == site, , drop = FALSE]
+
+# sites
+s_mpi <- "mpieva-de"
+s_uni <- "uniandes-co"
+s_wes <- "western-ca"
+
+# agreement table
+a_mpi <- get_row(agreement_3class, s_mpi)
+a_uni <- get_row(agreement_3class, s_uni)
+a_wes <- get_row(agreement_3class, s_wes)
+
+# Diagonal recall/purity per label
+get_diag <- function(site, label) {
+out <- diag_summary[diag_summary$Site == site & diag_summary$Strategy == label, , drop = FALSE]
+stopifnot(nrow(out) == 1)
+out
+}
+
+lab_low  <- "Low Efficiency"
+lab_ana  <- "Analytical (feature matching)"
+lab_hol  <- "Holistic (rotation)"
+
+d_mpi_low <- get_diag(s_mpi, lab_low)
+d_mpi_ana <- get_diag(s_mpi, lab_ana)
+d_mpi_hol <- get_diag(s_mpi, lab_hol)
+
+d_uni_low <- get_diag(s_uni, lab_low)
+d_uni_ana <- get_diag(s_uni, lab_ana)
+d_uni_hol <- get_diag(s_uni, lab_hol)
+
+d_wes_low <- get_diag(s_wes, lab_low)
+d_wes_ana <- get_diag(s_wes, lab_ana)
+d_wes_hol <- get_diag(s_wes, lab_hol)
+
+# Dominant off-diagonal moves (from confusion matrices: rows = local, cols = global)
+get_move <- function(tab, local_lab, global_lab) {
+stopifnot(local_lab %in% rownames(tab), global_lab %in% colnames(tab))
+n <- tab[local_lab, global_lab]
+denom <- sum(tab[, global_lab])
+list(n = as.numeric(n), denom = as.numeric(denom), prop = as.numeric(n)/as.numeric(denom))
+}
+
+tab_mpi <- confusion_by_site[[s_mpi]]
+tab_uni <- confusion_by_site[[s_uni]]
+tab_wes <- confusion_by_site[[s_wes]]
+
+# Global Holistic -> Local Analytical (the key swap in mpieva + western)
+mpi_h2a <- get_move(tab_mpi, lab_ana, lab_hol)
+wes_h2a <- get_move(tab_wes, lab_ana, lab_hol)
+
+# Global Analytical -> Local Holistic (key swap in uniandes)
+uni_a2h <- get_move(tab_uni, lab_hol, lab_ana)
+
+```
+
+### Cross-site generalizability: pooled vs site-local clustering
+To evaluate whether the three-strategy structure depends on pooling across sites, we refit k-means clustering (k = 3) independently within each site using the same four participant-level features (ability, RT–angle slope, baseline speed, and within-person RT variability), and labelled the recovered clusters using the same rule as in the pooled analysis: the lowest-ability cluster was labelled Low Efficiency, and the remaining two clusters were distinguished by RT–angle slope as Analytical (shallower slope) versus Holistic (steeper slope).
+
+Agreement between the site-specific and pooled solutions was moderate overall (mpieva-de: n = `r a_mpi$n`, % agreement = `r fmt_pct(a_mpi$pct_agree, 1)`, ARI = `r fmt_num(a_mpi$ARI, 3)`; uniandes-co: n = `r a_uni$n`, % agreement = `r fmt_pct(a_uni$pct_agree, 1)`, ARI = `r fmt_num(a_uni$ARI, 3)`; western-ca: n = `r a_wes$n`, % agreement = `r fmt_pct(a_wes$pct_agree, 1)`, ARI = `r fmt_num(a_wes$ARI, 3)`).
+
+Across sites, the Low Efficiency cluster showed high recall (`r fmt_num(d_mpi_low$recall, 3)`–`r fmt_num(d_wes_low$recall, 3)`) and moderate-to-high purity (`r fmt_num(d_mpi_low$purity, 3)`–`r fmt_num(d_uni_low$purity, 3)`), indicating that the lowest-ability subgroup is consistently recovered under local optimisation. In contrast, disagreement between local and pooled solutions was concentrated in reassignment between the Analytical and Holistic clusters.
+
+In mpieva-de and western-ca, a subset of globally Holistic participants was reassigned to the local Analytical cluster (mpieva-de: `r mpi_h2a$n`/`r mpi_h2a$denom`, `r fmt_pct(mpi_h2a$prop, 1)`; western-ca: `r wes_h2a$n`/`r wes_h2a$denom`, `r fmt_pct(wes_h2a$prop, 1)`), while in uniandes-co a subset of globally Analytical participants was reassigned to the local Holistic cluster (`r uni_a2h$n`/`r uni_a2h$denom`, `r fmt_pct(uni_a2h$prop, 1)`). Together, these results suggest that the primary separation of the lowest-ability cluster is robust across local models, whereas the boundary between Analytical and Holistic strategies is comparatively more site-sensitive.
+
+
+# Discussion \[TO ADD\]
 
 \newpage
 
+# References
 
+::: {#refs}
+:::
 
 # IRT Ability by Age {#apx-fig-rt-angle .appendix}
 
 ```{r}
-#| label: fig-rt-angle
-#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
+#| label: fig-rt-angle_raw
+#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI."
 #| fig-width: 8
 #| fig-height: 8
 
-p_mrot_rt_angle_age <- ggplot(
-  mrot_items_rt_agebin_ci,
-  aes(x = angle, y = y,
-      group = interaction(item_group, stimulus),
-      colour = stimulus, linetype = item_group)
-) +
-  # raw data layer added below (step 2) ...
-  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
-                linewidth = 0.35, alpha = 0.6) +
-  geom_point(size = 1) +
-  geom_line(alpha = 0.85) +
+# Add raw data underneath
+p_mrot_rt_angle_age_2 <- ggplot() +
+  # raw per-run medians
+  geom_point(
+    data = mrot_items_rt_runs,
+    aes(x = angle, y = rt_med,
+        colour = stimulus),
+    size = 0.4,
+    alpha = 0.25,
+    position = position_jitter(width = 3, height = 0)
+  ) +
+  # summary CI + lines
+  geom_errorbar(
+    data = mrot_items_rt_agebin_ci,
+    aes(x = angle, y = y, ymin = lwr, ymax = upr,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    width = 2,
+    linewidth = 0.35,
+    alpha = 0.6
+  ) +
+  geom_point(
+    data = mrot_items_rt_agebin_ci,
+    aes(x = angle, y = y,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    size = 1
+  ) +
+  geom_line(
+    data = mrot_items_rt_agebin_ci,
+    aes(x = angle, y = y,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    alpha = 0.85
+  ) +
   facet_grid(site ~ age_group) +
   labs(
-    #title    = "Mental Rotation: RT by angle within age groups ±95% CI",
+    #title = "Mental Rotation: RT by angle within age groups ±95% CI",
     x = "Rotation angle (°)",
-    y = "RT (s)",                             
+    y = "RT (s)",
     colour = "Stimulus",
-    linetype = "Item Type"
+    #linetype = "Item Type"
   )
-p_mrot_rt_angle_age
+p_mrot_rt_angle_age_2
 ```
 
 \clearpage
 
-# Strategy Model Validation {#sec-appendix-b}
-
-To validate the robustness of our strategy classification, we compared the labels generated by the **Global Model** (trained on pooled data) versus **Local Models** (trained independently on each site's data).
-
-## Model Comparison
-
-@fig-model-comparison compares the strategy boundaries. The Global model applies a consistent standard, whereas Local models adapt to site-specific variance. Despite these differences, the classification of "Ineffective" strategies (low accuracy) remains highly consistent across methodologies.
-
+::: {.landscape}
+# Cluster Bootstrap plots {#apx-cluster-bootstrap-plots .appendix}
 ```{r}
-#| label: fig-model-comparison
-#| fig-cap: "Comparison of Local vs. Global Clustering. Red points indicate the 'Ineffective' strategy. The Global model applies a consistent standard across all populations."
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-height: 8
-
-# Binary colors for validation plots
-my_binary_colors <- c("Ineffective" = "#c0392b", "Effective" = "grey60")
-
-# Helper for plotting
-plot_cluster <- function(data, label_col, title_prefix) {
-  ggplot(data, aes(x = Abs_Slope, y = accuracy, color = .data[[label_col]])) +
-    geom_point(alpha = 0.5, size = 1.5) +
-    # Draw ellipses for the clusters
-    stat_ellipse(aes(group = .data[[label_col]]), type = "norm", linetype = "dashed", color = "black", size = 0.3) +
-    # CHANGE: Facet by Site to match main text
-    facet_wrap(~ Site) + 
-    scale_color_manual(values = my_binary_colors) +
-    labs(
-      title = title_prefix,
-      x = "Rotation Slope", y = "Accuracy (Theta)",
-      color = "Strategy"
-    ) +
-    theme(legend.position = "none", strip.text = element_text(face = "bold"))
-}
-
-# Plots using the labels created in the main text analysis_data dataframe
-p_local <- plot_cluster(analysis_data, "Local_Label", "A. Local Models (Site-Specific Definitions)")
-p_global <- plot_cluster(analysis_data, "Global_Label", "B. Global Model (Universal Definition)")
+#| label: fig-cluster-bootstrap-plots
+#| cache: true
+#| fig-width: 11
+#| fig-height: 4.5
+#| fig-align: center
 
 library(patchwork)
-p_local / p_global
+
+p_ari <- ggplot(res, aes(x = ARI)) +
+  geom_histogram(bins = 30) +
+  labs(
+    x = "Adjusted Rand Index (vs reference labels)",
+    y = "Count",
+    title = paste0("Cluster stability under bootstrap resampling (B = ", B, ")")
+  )
+
+# long-form Jaccard with safe mapping back to Strategy_Label
+jac_key <- tibble(
+  col = paste0("J_", make.names(ref_levels)),
+  Strategy_Label = ref_levels
+)
+
+res_long <- res %>%
+  pivot_longer(starts_with("J_"), names_to = "col", values_to = "Jaccard") %>%
+  left_join(jac_key, by = "col") %>%
+  mutate(Strategy_Label = factor(Strategy_Label, levels = ref_levels))
+
+p_jac <- ggplot(res_long, aes(x = Strategy_Label, y = Jaccard)) +
+  geom_boxplot(outlier.alpha = 0.25) +
+  labs(
+    x = NULL,
+    y = "Jaccard (membership overlap vs reference)",
+    title = "Per-cluster membership stability"
+  ) +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1)) +
+  theme_minimal()
+
+(p_ari | p_jac)
 ```
+:::
