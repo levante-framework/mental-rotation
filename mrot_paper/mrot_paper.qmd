@@ -255,7 +255,7 @@ all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_out
 #| include: false
 
 # IRT model output - import object
-github_dir <- file.path(path.expand("~"), "Documents", "GitHub")
+github_dir <- file.path(path.expand("~"), "Documents")
 task_anova_path <- file.path(github_dir, "levante-pilots", "02_scoring_outputs", "task_anova.rds")
 
 stopifnot(file.exists(task_anova_path))
@@ -299,6 +299,7 @@ mrot_2pl_scalar %>%
     data_row.padding = px(3)   # Tighter row spacing often looks better for stats
   )
 ```
+
 \clearpage
 
 @fig-dev-trends plots participants’ mental rotation ability estimates (IRT theta) against age, with separate panels/curves by site and age trends modelled using generalized additive models (GAMs). GAMs allow the developmental association with age to be non-linear, capturing periods of more rapid change and relative flattening without imposing a fixed form. Across sites, theta increases with age, indicating developmental improvement in mental rotation ability, and the dispersion of points within age bands underscores substantial heterogeneity in ability among same-aged children.
@@ -502,7 +503,8 @@ ggplot(trial_plot_data, aes(x = trial_number, y = log_rt, color = site_label, fi
 
 To characterize individual differences in how children solved the mental-rotation task, we derived participant-level 'strategy features; from trial-level reaction times. Consistent with the generally log-normal distribution of reaction times, we modeled log-transformed RTs. While the classic @shepard1971mental finding describes an approximately linear relationship with raw RT, fitting the model to log(RT) provides more robust parameter estimates for defining individual strategy profiles in a developing population. We fit a mixed-effects model to log(RT) that captured stimulus and angle-dependent responding alongside within-run practice effects, extracted participant-specific deviations (random effects), and combined these model-derived quantities with RT variability and IRT-estimated ability before clustering participants using k-means (k = 3) on standardized features.
 
-The extracted features were: (1) Baseline Speed, defined as the intercept from the mixed-effects model (interpretable as expected speed at 0° rotation); (2) Rotation Slope, defined as the “cost” of rotation (the slope of angle on log RT), estimated net of stimulus effects; (3) Response Variability (RT SD), defined as the intra-individual standard deviation of log RT; and (4) IRT-estimated ability (theta).
+The extracted features were: (1) Baseline Speed, defined as the intercept from the mixed-effects model (interpretable as expected speed at 0° rotation); (2) Rotation Slope, defined as the “cost” of rotation (the slope of angle on log RT), estimated as the average slope across stimulus types; (3) Response Variability (RT SD), defined as the intra-individual standard deviation of log RT; and (4) IRT-estimated ability (theta).
+
 ```{r}
 #| label: strategy-analysis-prep
 #| results: "hide"
@@ -531,6 +533,11 @@ mrot_rich_data <- mrot_rt_trial_no_retest %>%
     trial_s  = as.numeric(scale(trial_number))
   )
 
+# --- Doria's FIX: Set Sum-to-Zero Contrasts ---
+# By default, R uses treatment contrasts (Duck = reference). 
+# This makes the "Angle" slope represent only Ducks (which is flat for everyone).
+# Setting sum contrasts ensures the "Angle" slope represents the GRAND MEAN slope across all stimuli.
+contrasts(mrot_rich_data$stimulus) <- contr.sum(levels(mrot_rich_data$stimulus))
 # Fit the rich mixed model
 m_rich <- lmer(
   log_rt ~ angle_s * stimulus + trial_s +
@@ -559,6 +566,7 @@ fix_tri <- fixef(m_rich)["trial_s"]
 rich_features_raw <- ran_effs %>%
   mutate(
     Baseline_Speed = fix_int + int_dev,
+    # Abs_Slope now captures the average rotation cost (including 3D shapes)
     Abs_Slope      = fix_ang + slope_dev,
     Learning_Rate  = fix_tri + trial_dev
   )
@@ -713,9 +721,18 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
   ) +
   theme(legend.position = "bottom")
 ```
+
 ### Strategy clusters show distinct RT–angle signatures
 
-Figure @fig-rt-angle-by-strategy shows participant-weighted RT–angle functions by strategy cluster (each participant contributes once per angle; shaded bands show 95% CIs). The Holistic (rotation) cluster exhibited the steepest RT increase with angular disparity, consistent with progressively greater processing demands at larger rotations The Analytical (feature matching) cluster showed a flatter RT–angle relationship, with relatively little change in RT as angular disparity increased. The Low Efficiency cluster showed little to no RT increase with angular disparity, and in some cases a slight decrease, indicating a weak or absent RT–angle relationship.
+Figure @fig-rt-angle-by-strategy shows participant-weighted RT–angle functions by strategy cluster (each participant contributes once per angle; shaded bands show 95% CIs). The Holistic (rotation) cluster exhibited the steepest RT increase with angular disparity, consistent with progressively greater processing demands at larger rotations. ***The Analytical (feature matching) cluster exhibited a shallower RT–angle relationship, maintaining relatively consistent speeds regardless of angle. In contrast, the Low Efficiency cluster displayed a distinct negative RT–angle relationship. Participants in this group responded slower on easier (small-angle) trials but significantly faster on harder (large-angle) trials. This pattern of speeding up as difficulty increases strongly suggests an impulsive guessing strategy, in which participants disengage from the rotation process when task demands exceed their capacity.***
+
+\<!--
+
+commented-out paragraph:
+
+The Analytical (feature matching) cluster showed a flatter RT–angle relationship, with relatively little change in RT as angular disparity increased. The Low Efficiency cluster showed little to no RT increase with angular disparity, and in some cases a slight decrease, indicating a weak or absent RT–angle relationship.
+
+--\>
 
 ```{r}
 #| label: emmeans-slope-extract
@@ -780,7 +797,8 @@ d_h_l  <- -c_lh$estimate; se_h_l <- c_lh$SE; z_h_l <- abs(c_lh$z.ratio); p_h_l <
 d_h_a  <- -c_ah$estimate; se_h_a <- c_ah$SE; z_h_a <- abs(c_ah$z.ratio); p_h_a <- c_ah$p.value
 
 ```
-Estimated RT–angle slopes (change in log(RT) per 1 SD increase in rotation angle) differed across strategy clusters. The holistic (rotation) cluster showed the steepest positive angle dependence (*b* = `r fmt_num(s_hol)`, SE = `r fmt_num(se_hol)`, 95% CI [`r fmt_num(lcl_hol)`, `r fmt_num(ucl_hol)`]), the analytical (feature matching) cluster showed a smaller positive slope (*b* = `r fmt_num(s_anal)`, SE = `r fmt_num(se_anal)`, 95% CI [`r fmt_num(lcl_anal)`, `r fmt_num(ucl_anal)`]), and the low efficacy cluster showed a near-zero/negative slope (*b* = `r fmt_num(s_low)`, SE = `r fmt_num(se_low)`, 95% CI [`r fmt_num(lcl_low)`, `r fmt_num(ucl_low)`]). Tukey-adjusted trend contrasts confirmed that the holistic slope exceeded the analytical slope by Δ*b* = `r fmt_num(d_h_a)` (SE = `r fmt_num(se_h_a)`, *z* = `r fmt_num(z_h_a, 2)`, *p* `r fmt_p(p_h_a)`), and that both the holistic (rotation) and analytical (feature matching) clusters exceeded the low efficacy cluster (analytical vs low efficacy: Δ*b* = `r fmt_num(d_a_l)`, SE = `r fmt_num(se_a_l)`, *z* = `r fmt_num(z_a_l, 2)`, *p* `r fmt_p(p_a_l)`; holistic vs low efficacy: Δ*b* = `r fmt_num(d_h_l)`, SE = `r fmt_num(se_h_l)`, *z* = `r fmt_num(z_h_l, 2)`, *p* `r fmt_p(p_h_l)`). 
+
+Estimated RT–angle slopes (change in log(RT) per 1 SD increase in rotation angle) differed across strategy clusters. The holistic (rotation) cluster showed the steepest positive angle dependence (*b* = `r fmt_num(s_hol)`, SE = `r fmt_num(se_hol)`, 95% CI \[`r fmt_num(lcl_hol)`, `r fmt_num(ucl_hol)`\]), the analytical (feature matching) cluster showed a smaller positive slope (*b* = `r fmt_num(s_anal)`, SE = `r fmt_num(se_anal)`, 95% CI \[`r fmt_num(lcl_anal)`, `r fmt_num(ucl_anal)`\]), and the low efficacy cluster showed a ***negative, though not statistically significant, slope*** (*b* = `r fmt_num(s_low)`, SE = `r fmt_num(se_low)`, 95% CI \[`r fmt_num(lcl_low)`, `r fmt_num(ucl_low)`\]). Tukey-adjusted trend contrasts confirmed that the holistic slope exceeded the analytical slope by Δ*b* = `r fmt_num(d_h_a)` (SE = `r fmt_num(se_h_a)`, *z* = `r fmt_num(z_h_a, 2)`, *p* `r fmt_p(p_h_a)`), and that both the holistic (rotation) and analytical (feature matching) clusters exceeded the low efficacy cluster (analytical vs low efficacy: Δ*b* = `r fmt_num(d_a_l)`, SE = `r fmt_num(se_a_l)`, *z* = `r fmt_num(z_a_l, 2)`, *p* `r fmt_p(p_a_l)`; holistic vs low efficacy: Δ*b* = `r fmt_num(d_h_l)`, SE = `r fmt_num(se_h_l)`, *z* = `r fmt_num(z_h_l, 2)`, *p* `r fmt_p(p_h_l)`).
 
 ```{r}
 #| label: verifying-low-efficiency
@@ -858,7 +876,8 @@ low_eff_stats <- low_eff_acc %>%
     median_acc_minus_chance = median(acc_minus_chance, na.rm = TRUE)
   )
 ```
-Because the Low Efficiency label was assigned on the basis of lowest estimated ability in the clustering step, we examined raw accuracy relative to chance as an external validity check that is diagnostic of near-random responding--whereas for the analytical (feature-matching) and holistic (rotation) clusters the key distinguishing prediction is their RT–angle signature (slope), not their absolute accuracy. Low-efficiency accuracy was modestly above chance (mean accuracy = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`; mean accuracy − chance = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"] - acc_by_strategy$mean_chance[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`). However, performance in this cluster was rarely consistent with chance responding: `r fmt_num(100 * low_eff_stats$prop_at_or_below_chance, 1)`% of participants performed at or below chance and `r fmt_num(100 * low_eff_stats$prop_within_5pct_chance, 1)`% were within 5 percentage points of chance; the median above-chance accuracy was `r fmt_num(low_eff_stats$median_acc_minus_chance, 3)`. These results therefore support interpreting the lowest-performing cluster as low efficiency rather than literal guessing.
+
+Because the Low Efficiency label was assigned on the basis of lowest estimated ability in the clustering step, we examined raw accuracy relative to chance as an external validity check that is diagnostic of near-random responding--whereas for the analytical (feature-matching) and holistic (rotation) clusters the key distinguishing prediction is their RT–angle signature (slope), not their absolute accuracy. Low-efficiency accuracy was modestly above chance (mean accuracy = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`; mean accuracy − chance = `r fmt_num(acc_by_strategy$mean_acc[acc_by_strategy$Strategy_Label == "Low Efficiency"] - acc_by_strategy$mean_chance[acc_by_strategy$Strategy_Label == "Low Efficiency"], 3)`). However, performance in this cluster was rarely consistent with chance responding: `r fmt_num(100 * low_eff_stats$prop_at_or_below_chance, 1)`% of participants performed at or below chance and `r fmt_num(100 * low_eff_stats$prop_within_5pct_chance, 1)`% were within 5 percentage points of chance; the median above-chance accuracy was `r fmt_num(low_eff_stats$median_acc_minus_chance, 3)`. ***These results indicate that while these participants likely guessed on harder items, their overall performance remained above chance, distinguishing this profile as low efficiency rather than pure random responding.***
 
 ```{r}
 #| label: cluster-stability-bootstrap
@@ -1089,12 +1108,14 @@ if ("center_shift" %in% names(res)) {
 }
 
 ```
+
 ## Robutness Checks
 
 We conducted two robustness checks to evaluate whether the three-strategy solution was stable and generalizable. First, we assessed cluster stability under participant bootstrap resampling; second, we compared the pooled (global) clustering solution to site-specific (local) clustering to test whether the same strategy structure emerged within each site.
 
 ### Cluster robustness
-We assessed robustness of the three-strategy solution via participant bootstrap resampling (B = `r stability_summary$B`), refitting k-means to each resample and assigning all participants to the recovered centers (with cluster labels aligned to the reference solution by maximal membership overlap). The recovered partition closely matched the reference clustering (median ARI = `r fmt_num(ari_med, 3)`; IQR = `r fmt_num(ari_iqr, 3)`), indicating that the three-cluster structure is not dependent on a particular sample composition. Cluster membership was also stable at the strategy level (median Jaccard overlap: Low Efficiency = `r fmt_num(j_low_med, 3)` [IQR = `r fmt_num(j_low_iqr, 3)`], Analytical (feature matching) = `r fmt_num(j_ana_med, 3)` [IQR = `r fmt_num(j_ana_iqr, 3)`], Holistic (rotation) = `r fmt_num(j_hol_med, 3)` [IQR = `r fmt_num(j_hol_iqr, 3)`]). Although a minority of resamples yielded lower agreement (`r fmt_num(pct_ari_70, 1)`% with ARI < 0.70; `r fmt_num(pct_ari_60, 1)`% with ARI < 0.60; minimum ARI = `r fmt_num(min_ari, 3)`), this tail was not explained by simple under-representation of any reference cluster among unique resampled participants. Instead, lower-ARI runs tended to coincide with larger shifts in the estimated cluster centers (Spearman ρ = `r fmt_num(rho_shift, 3)`), consistent with occasional bootstrap draws leading k-means to an alternative local solution and/or reassignment of boundary-case participants, while the typical resample recovered the same three-strategy partition. See @fig-cluster-bootstrap-plots in Appendix 2 for bootstrap stability plots (ARI distribution and per-cluster Jaccard overlap).
+
+We assessed robustness of the three-strategy solution via participant bootstrap resampling (B = `r stability_summary$B`), refitting k-means to each resample and assigning all participants to the recovered centers (with cluster labels aligned to the reference solution by maximal membership overlap). The recovered partition closely matched the reference clustering (median ARI = `r fmt_num(ari_med, 3)`; IQR = `r fmt_num(ari_iqr, 3)`), indicating that the three-cluster structure is not dependent on a particular sample composition. Cluster membership was also stable at the strategy level (median Jaccard overlap: Low Efficiency = `r fmt_num(j_low_med, 3)` \[IQR = `r fmt_num(j_low_iqr, 3)`\], Analytical (feature matching) = `r fmt_num(j_ana_med, 3)` \[IQR = `r fmt_num(j_ana_iqr, 3)`\], Holistic (rotation) = `r fmt_num(j_hol_med, 3)` \[IQR = `r fmt_num(j_hol_iqr, 3)`\]). Although a minority of resamples yielded lower agreement (`r fmt_num(pct_ari_70, 1)`% with ARI \< 0.70; `r fmt_num(pct_ari_60, 1)`% with ARI \< 0.60; minimum ARI = `r fmt_num(min_ari, 3)`), this tail was not explained by simple under-representation of any reference cluster among unique resampled participants. Instead, lower-ARI runs tended to coincide with larger shifts in the estimated cluster centers (Spearman ρ = `r fmt_num(rho_shift, 3)`), consistent with occasional bootstrap draws leading k-means to an alternative local solution and/or reassignment of boundary-case participants, while the typical resample recovered the same three-strategy partition. See @fig-cluster-bootstrap-plots in Appendix 2 for bootstrap stability plots (ARI distribution and per-cluster Jaccard overlap).
 
 ```{r}
 #| label: local-clustering-agreement
@@ -1284,6 +1305,7 @@ uni_a2h <- get_move(tab_uni, lab_hol, lab_ana)
 ```
 
 ### Cross-site generalizability: pooled vs site-local clustering
+
 To evaluate whether the three-strategy structure depends on pooling across sites, we refit k-means clustering (k = 3) independently within each site using the same four participant-level features (ability, RT–angle slope, baseline speed, and within-person RT variability), and labelled the recovered clusters using the same rule as in the pooled analysis: the lowest-ability cluster was labelled Low Efficiency, and the remaining two clusters were distinguished by RT–angle slope as Analytical (shallower slope) versus Holistic (steeper slope).
 
 Agreement between the site-specific and pooled solutions was moderate overall (mpieva-de: n = `r a_mpi$n`, % agreement = `r fmt_pct(a_mpi$pct_agree, 1)`, ARI = `r fmt_num(a_mpi$ARI, 3)`; uniandes-co: n = `r a_uni$n`, % agreement = `r fmt_pct(a_uni$pct_agree, 1)`, ARI = `r fmt_num(a_uni$ARI, 3)`; western-ca: n = `r a_wes$n`, % agreement = `r fmt_pct(a_wes$pct_agree, 1)`, ARI = `r fmt_num(a_wes$ARI, 3)`).
@@ -1291,7 +1313,6 @@ Agreement between the site-specific and pooled solutions was moderate overall (m
 Across sites, the Low Efficiency cluster showed high recall (`r fmt_num(d_mpi_low$recall, 3)`–`r fmt_num(d_wes_low$recall, 3)`) and moderate-to-high purity (`r fmt_num(d_mpi_low$purity, 3)`–`r fmt_num(d_uni_low$purity, 3)`), indicating that the lowest-ability subgroup is consistently recovered under local optimisation. In contrast, disagreement between local and pooled solutions was concentrated in reassignment between the Analytical and Holistic clusters.
 
 In mpieva-de and western-ca, a subset of globally Holistic participants was reassigned to the local Analytical cluster (mpieva-de: `r mpi_h2a$n`/`r mpi_h2a$denom`, `r fmt_pct(mpi_h2a$prop, 1)`; western-ca: `r wes_h2a$n`/`r wes_h2a$denom`, `r fmt_pct(wes_h2a$prop, 1)`), while in uniandes-co a subset of globally Analytical participants was reassigned to the local Holistic cluster (`r uni_a2h$n`/`r uni_a2h$denom`, `r fmt_pct(uni_a2h$prop, 1)`). Together, these results suggest that the primary separation of the lowest-ability cluster is robust across local models, whereas the boundary between Analytical and Holistic strategies is comparatively more site-sensitive.
-
 
 # Discussion \[TO ADD\]
 
@@ -1358,8 +1379,9 @@ p_mrot_rt_angle_age_2
 
 \clearpage
 
-::: {.landscape}
+::: landscape
 # Cluster Bootstrap plots {#apx-cluster-bootstrap-plots .appendix}
+
 ```{r}
 #| label: fig-cluster-bootstrap-plots
 #| cache: true
