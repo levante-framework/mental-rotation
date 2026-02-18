@@ -206,6 +206,8 @@ library(patchwork)
 library(brms)
 library(ggplot2)
 library(dplyr)
+library(ggpubr)
+library(factoextra)
 ```
 
 ```{r}
@@ -608,16 +610,21 @@ rich_features_final <- rich_features_raw %>%
 #| include: false
 
 my_colors <- c(
-  "Low Efficacy" = "#e74c3c",
-  "Analytical (feature matching)" = "#3498db",
-  "Holistic (rotation)" = "#2ecc71"
+  "Ineffective Strategies" = "#e74c3c",
+  "Other Effective Strategies (Flipping/Matching)" = "#3498db",
+  "Mental Rotation" = "#2ecc71"
 )
 
-# --- 1. Set up Clustering Input ---
-# Filter out any missing rows first
-analysis_data <- rich_features_final %>%
-  filter(if_all(c(Baseline_Speed, Rel_Slope, Abs_Slope,
-         Instability, Learning_Rate), is.finite))
+# --- Apply the Labels (UPDATED) ---
+# Old labels: "Low Efficacy", "Analytical", "Holistic"
+# New labels: "Ineffective", "Other Effective (Flipping/Matching)", "Mental Rotation"
+
+analysis_data <- analysis_data %>%
+  mutate(Strategy_Label = case_when(
+    Global_Cluster == low_eff_id ~ "Ineffective Strategies",
+    Global_Cluster == analytical_id ~ "Other Effective Strategies (Flipping/Matching)",
+    Global_Cluster == holistic_id ~ "Mental Rotation"
+  ))
 
 # Global K-means (k=3)
 # We select the 5 features we agreed on:
@@ -1149,6 +1156,45 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
   
   (p_ari | p_jac)
 ```
+```{r}
+#| label: fig-tsne-check
+#| fig-cap: "t-SNE Visualization of Strategy Clusters. The distinct separation between 'Mental Rotation' and 'Other Effective' suggests distinct cognitive mechanisms, while 'Ineffective' participants form a more dispersed cloud."
 
+library(Rtsne) # Make sure to install this package
+
+# 1. Prep data (t-SNE hates duplicates)
+tsne_input <- analysis_data %>%
+    select(user_id, ability, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) %>%
+    distinct() %>% 
+    na.omit()
+
+# 2. Run t-SNE
+set.seed(42) 
+tsne_result <- Rtsne(
+    as.matrix(tsne_input %>% select(-user_id)), 
+    dims = 2, 
+    perplexity = 30, 
+    verbose = FALSE, 
+    max_iter = 500
+)
+
+# 3. Plot
+tsne_plot_data <- tsne_input %>%
+    mutate(
+        tSNE_1 = tsne_result$Y[,1],
+        tSNE_2 = tsne_result$Y[,2]
+    ) %>%
+    left_join(analysis_data %>% select(user_id, Strategy_Label), by = "user_id")
+
+ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
+    geom_point(alpha = 0.7, size = 2) +
+    scale_color_manual(values = my_colors) + # Ensure my_colors names match new labels!
+    labs(
+        x = "Dimension 1",
+        y = "Dimension 2"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+```
 
 :::
