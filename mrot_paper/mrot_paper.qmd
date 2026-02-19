@@ -596,90 +596,81 @@ user_site_map <- mrot_rt_trial_no_retest %>%
 # 5. Join and Prepare for Clustering
 rich_features_final <- rich_features_raw %>%
   left_join(user_site_map, by = "user_id") %>%
-  left_join(instability_data, by = c("site", "user_id")) %>% # Joined the new Instability metric
+  left_join(instability_data, by = c("site", "user_id")) %>% 
   left_join(ability_user,  by = c("site", "user_id")) %>%
   mutate(
     Site = str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
   # Filter to ensure all needed features are finite
-  filter(if_all(c(ability, Abs_Slope, Rel_Slope, Baseline_Speed, Instability), is.finite))
+  # UPDATED: Added Learning_Rate to the list
+  filter(if_all(c(ability, Abs_Slope, Rel_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
 ```
 
 ```{r}
 #| label: clustering-execution
 #| include: false
 
+# Define the colors matching the NEW labels
 my_colors <- c(
   "Ineffective Strategies" = "#e74c3c",
   "Other Effective Strategies (Flipping/Matching)" = "#3498db",
   "Mental Rotation" = "#2ecc71"
 )
 
-# --- Apply the Labels (UPDATED) ---
-# Old labels: "Low Efficacy", "Analytical", "Holistic"
-# New labels: "Ineffective", "Other Effective (Flipping/Matching)", "Mental Rotation"
+# --- Step 1: Set up Clustering Input ---
+# Filter out any missing rows first
+# This creates the 'analysis_data' object that was missing
+analysis_data <- rich_features_final %>%
+  filter(if_all(c(ability, Baseline_Speed, Rel_Slope, Abs_Slope, 
+                  Instability, Learning_Rate), is.finite))
 
+# Global K-means (k=3)
+global_input <- analysis_data %>%
+  select(Baseline_Speed, Rel_Slope, Abs_Slope, 
+         Instability, Learning_Rate) %>%
+  scale()
+
+# --- Step 2: Run K-Means ---
+set.seed(123)
+k_global <- kmeans(global_input, centers = 3, nstart = 25)
+analysis_data$Global_Cluster <- as.factor(k_global$cluster)
+
+# --- Step 3: Identify Clusters via Centroids ---
+cluster_stats <- analysis_data %>%
+  group_by(Global_Cluster) %>%
+  summarise(
+    mean_ability = mean(ability),
+    mean_slope   = mean(Rel_Slope), 
+    .groups = "drop"
+  )
+
+# A. Identify "Ineffective" -> Lowest Ability
+low_eff_id <- cluster_stats %>%
+  arrange(mean_ability) %>% 
+  slice(1) %>% 
+  pull(Global_Cluster)
+
+# B. Identify "Effective" groups -> Split remaining by Slope
+effective_clusters <- cluster_stats %>%
+  filter(Global_Cluster != low_eff_id) %>%
+  arrange(mean_slope) 
+
+# Analytical/Flipping = Flatter Slope
+analytical_id <- effective_clusters %>%
+  slice(1) %>% 
+  pull(Global_Cluster)
+
+# Rotation = Steeper Slope
+holistic_id <- effective_clusters %>%
+  slice(2) %>% 
+  pull(Global_Cluster)
+
+# --- Step 4: Apply NEW Labels (Mike's Feedback) ---
 analysis_data <- analysis_data %>%
   mutate(Strategy_Label = case_when(
     Global_Cluster == low_eff_id ~ "Ineffective Strategies",
     Global_Cluster == analytical_id ~ "Other Effective Strategies (Flipping/Matching)",
     Global_Cluster == holistic_id ~ "Mental Rotation"
-  ))
-
-# Global K-means (k=3)
-# We select the 5 features we agreed on:
-
-global_input <- analysis_data %>%
-  select(Baseline_Speed, Rel_Slope, Abs_Slope,
-         Instability, Learning_Rate) %>%
-  scale()
-
-# --- 2. Run K-Means ---
-set.seed(123)
-k_global <- kmeans(global_input, centers = 3, nstart = 25) # nstart=25 adds stability
-analysis_data$Global_Cluster <- as.factor(k_global$cluster)
-# Assign labels
-# We need to map the random numbers (1,2,3) to human names based on centroids.
-
-# Calculate cluster centroids
-cluster_stats <- analysis_data %>%
-  group_by(Global_Cluster) %>%
-  summarise(
-    mean_ability = mean(ability),
-    mean_slope   = mean(Rel_Slope), # Use Rel_Slope to distinguish strategies
-    .groups = "drop"
-  )
-# A. Identify "Low Efficiency" -> The cluster with the LOWEST Ability
-
-low_eff_id <- cluster_stats %>%
-  arrange(mean_ability) %>%  # Sort Lowest to Highest Accuracy
-  slice(1) %>%               # Grab the absolute lowest group
-  pull(Global_Cluster)
-
-# --- Step 3: Define the "Effective" Strategies (The Success Groups) ---
-# Remove the Low Efficacy group, then split the remaining two by Slope.
-effective_clusters <- cluster_stats %>%
-  filter(Global_Cluster != low_eff_id) %>%
-  arrange(mean_slope) # Sort by Slope (Flat -> Steep)
-
-# A. Analytical (Feature Matching)
-# Definition: High Accuracy + Flat Slope
-analytical_id <- effective_clusters %>%
-  slice(1) %>% # The flatter of the two high-performing groups
-  pull(Global_Cluster)
-
-# B. Holistic (Rotation)
-# Definition: High Accuracy + Steep Slope
-holistic_id <- effective_clusters %>%
-  slice(2) %>% # The steeper of the two high-performing groups
-  pull(Global_Cluster)
-
-# --- Step 4: Apply the Labels ---
-analysis_data <- analysis_data %>%
-  mutate(Strategy_Label = case_when(
-    Global_Cluster == low_eff_id ~ "Low Efficacy",
-    Global_Cluster == analytical_id ~ "Analytical (feature matching)",
-    Global_Cluster == holistic_id ~ "Holistic (rotation)"
   ))
 
 # --- 4. Plot (Optional check) ---
@@ -828,10 +819,11 @@ validation_table %>%
 
 # --- 2. Visualization with Significance Bars ---
 # We define the comparisons we want to test visually
+# UPDATED NAMES TO MATCH NEW LABELS
 my_comparisons <- list(
-  c("Low Efficacy", "Analytical (feature matching)"),
-  c("Low Efficacy", "Holistic (rotation)"),
-  c("Analytical (feature matching)", "Holistic (rotation)")
+  c("Ineffective Strategies", "Other Effective Strategies (Flipping/Matching)"),
+  c("Ineffective Strategies", "Mental Rotation"),
+  c("Other Effective Strategies (Flipping/Matching)", "Mental Rotation")
 )
 
 # Plot A: 
