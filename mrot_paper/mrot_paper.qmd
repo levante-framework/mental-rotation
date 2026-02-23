@@ -258,7 +258,7 @@ all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_out
 #| include: false
 
 # IRT model output - import object
-github_dir <- file.path(path.expand("~"), "Documents")
+github_dir <- file.path(path.expand("~"), "Documents", "GitHub")
 task_anova_path <- file.path(github_dir, "levante-pilots", "02_scoring_outputs", "task_anova.rds")
 
 stopifnot(file.exists(task_anova_path))
@@ -562,7 +562,6 @@ ran_effs <- ranef(m_rich)$user_id %>%
 fix_int <- fixef(m_rich)["(Intercept)"]
 fix_ang <- fixef(m_rich)["angle_s"]
 fix_tri <- fixef(m_rich)["trial_s"]
-
 
 # Compute cognitive features (on log-RT scale)
 rich_features_raw <- ran_effs %>%
@@ -1148,6 +1147,7 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
   
   (p_ari | p_jac)
 ```
+
 ```{r}
 #| label: fig-tsne-check
 #| fig-cap: "t-SNE Visualization of Strategy Clusters. The distinct separation between 'Mental Rotation' and 'Other Effective' suggests distinct cognitive mechanisms, while 'Ineffective' participants form a more dispersed cloud."
