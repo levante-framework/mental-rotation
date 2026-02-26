@@ -462,7 +462,7 @@ p_mrot_rt_angle_age_1 <- ggplot(
     y = "RT (s)",                             
     colour = "Stimulus",
     linetype = "Item Type"
-  )
+  ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
 p_mrot_rt_angle_age_1
 ```
 
@@ -527,13 +527,27 @@ ability_user <- all_scores %>%
     .groups = "drop"
   )
 
-# Prepare trial-level data for the rich model
 mrot_rich_data <- mrot_rt_trial_no_retest %>%
   mutate(
     stimulus = str_extract(item, "^[a-z]+"),
-    angle    = as.integer(str_extract(item, "\\d+")),
+    
+    # 1. Extract the base angle (e.g., 40)
+    base_angle = as.integer(str_extract(item, "\\d+")), 
+    
+    # 2. Detect if the original item was a "Negative/Counter-Clockwise" rotation
+    # Looking for 'rn' prefix in item_original (e.g., rn040)
+    is_ccw = str_detect(item_original, "^rn"),
+    
+    # 3. RECONSTRUCT the full 0-360 angle
+    angle = ifelse(is_ccw, 360 - base_angle, base_angle),
+    
+    # 4. Calculate shortest distance to center (disparity) for the model
+    # This ensures the model still measures 'Rotation Cost' correctly
+    ang_disparity = pmin(angle, 360 - angle),
+    
     stimulus = as.factor(stimulus),
-    angle_s  = as.numeric(scale(angle)),
+    # SCALE THE DISPARITY, NOT THE RAW ANGLE
+    angle_s  = as.numeric(scale(ang_disparity)), 
     trial_s  = as.numeric(scale(trial_number))
   )
 
@@ -741,7 +755,8 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
     colour = "Strategy",
     fill = "Strategy"
   ) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") +
+  scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
 
 ```
 ```{r}
@@ -785,7 +800,7 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
     x = "Rotation angle (degrees)",
     y = "Mean Accuracy (participant-weighted)",
     colour = "Strategy", fill = "Strategy"
-  ) +
+  ) +scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
   theme_minimal() + theme(legend.position = "bottom")
 ```
 
@@ -935,7 +950,9 @@ slope_stability <- split_data %>%
     # We only care about the slope (coefficient for angle)
     # We use a safe lm() call wrapped in tryCatch to handle kids with too few trials
     Raw_Slope = tryCatch(
-      coef(lm(log_rt ~ angle, data = pick(everything())))["angle"], 
+      #coef(lm(log_rt ~ angle, data = pick(everything())))["angle"], 
+      # Use distance from 0 so the slope represents 'cost of rotation'
+  coef(lm(log_rt ~ pmin(angle, 360 - angle), data = pick(everything())))[2],
       error = function(e) NA_real_
     ),
     .groups = "drop"
@@ -1147,7 +1164,7 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
       y = "RT (s)",
       colour = "Stimulus",
       #linetype = "Item Type"
-    )
+    )+ scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
   p_mrot_rt_angle_age_2
 ```
   
