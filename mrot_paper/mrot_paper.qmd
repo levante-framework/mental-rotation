@@ -208,6 +208,8 @@ library(ggplot2)
 library(dplyr)
 library(ggpubr)
 library(factoextra)
+library(gridExtra)
+library(umap)
 ```
 
 ```{r}
@@ -460,7 +462,7 @@ p_mrot_rt_angle_age_1 <- ggplot(
     y = "RT (s)",                             
     colour = "Stimulus",
     linetype = "Item Type"
-  )
+  ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
 p_mrot_rt_angle_age_1
 ```
 
@@ -525,13 +527,27 @@ ability_user <- all_scores %>%
     .groups = "drop"
   )
 
-# Prepare trial-level data for the rich model
 mrot_rich_data <- mrot_rt_trial_no_retest %>%
   mutate(
     stimulus = str_extract(item, "^[a-z]+"),
-    angle    = as.integer(str_extract(item, "\\d+")),
+    
+    # 1. Extract the base angle (e.g., 40)
+    base_angle = as.integer(str_extract(item, "\\d+")), 
+    
+    # 2. Detect if the original item was a "Negative/Counter-Clockwise" rotation
+    # Looking for 'rn' prefix in item_original (e.g., rn040)
+    is_ccw = str_detect(item_original, "^rn"),
+    
+    # 3. RECONSTRUCT the full 0-360 angle
+    angle = ifelse(is_ccw, 360 - base_angle, base_angle),
+    
+    # 4. Calculate shortest distance to center (disparity) for the model
+    # This ensures the model still measures 'Rotation Cost' correctly
+    ang_disparity = pmin(angle, 360 - angle),
+    
     stimulus = as.factor(stimulus),
-    angle_s  = as.numeric(scale(angle)),
+    # SCALE THE DISPARITY, NOT THE RAW ANGLE
+    angle_s  = as.numeric(scale(ang_disparity)), 
     trial_s  = as.numeric(scale(trial_number))
   )
 
@@ -738,9 +754,55 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
     colour = "Strategy",
     fill = "Strategy"
   ) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") +
+  scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
 
 ```
+```{r}
+#| label: fig-accuracy-angle-by-strategy (0223)
+#| fig-cap: "Participant-weighted Accuracy-angle functions by strategy cluster."
+
+acc_by_strategy <- mrot_rich_data %>%
+  left_join(
+    analysis_data %>% select(site, user_id, Strategy_Label),
+    by = c("site", "user_id")
+  ) %>%
+  filter(!is.na(Strategy_Label), is.finite(angle)) %>%
+  mutate(Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
+
+acc_user_angle <- acc_by_strategy %>%
+  group_by(Strategy_Label, user_id, angle) %>%
+  summarise(
+    user_mean_acc = mean(correct, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+acc_summary <- acc_user_angle %>%
+  group_by(Strategy_Label, angle) %>%
+  summarise(
+    n_users   = n_distinct(user_id),
+    mean_acc  = mean(user_mean_acc, na.rm = TRUE),
+    se_acc    = sd(user_mean_acc, na.rm = TRUE) / sqrt(n_users),
+    .groups = "drop"
+  )
+
+ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.6) +
+  geom_ribbon(
+    aes(ymin = mean_acc - 1.96 * se_acc, ymax = mean_acc + 1.96 * se_acc, fill = Strategy_Label),
+    alpha = 0.15, colour = NA
+  ) +
+  scale_colour_manual(values = my_colors, drop = FALSE) +
+  scale_fill_manual(values = my_colors, drop = FALSE) +
+  labs(
+    x = "Rotation angle (degrees)",
+    y = "Mean Accuracy (participant-weighted)",
+    colour = "Strategy", fill = "Strategy"
+  ) +scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
+  theme_minimal() + theme(legend.position = "bottom")
+```
+
 
 ```{r}
 #| label: descriptive-validation-stats
@@ -887,7 +949,9 @@ slope_stability <- split_data %>%
     # We only care about the slope (coefficient for angle)
     # We use a safe lm() call wrapped in tryCatch to handle kids with too few trials
     Raw_Slope = tryCatch(
-      coef(lm(log_rt ~ angle, data = pick(everything())))["angle"], 
+      #coef(lm(log_rt ~ angle, data = pick(everything())))["angle"], 
+      # Use distance from 0 so the slope represents 'cost of rotation'
+  coef(lm(log_rt ~ pmin(angle, 360 - angle), data = pick(everything())))[2],
       error = function(e) NA_real_
     ),
     .groups = "drop"
@@ -943,7 +1007,7 @@ Unlike the stable 'Analytical' group, the 'Holistic' and 'Low Efficacy' groups d
 #| include: false
 
 
-# Ensure your input is ready (Same input as your final model)
+# 
 # global_input <- analysis_data %>% select(ability, Baseline_Speed, Rel_Slope, Instability) %>% scale()
 
 # --- Method A: The Elbow Plot (Total Within-Cluster Sum of Squares) ---
@@ -1099,7 +1163,7 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
       y = "RT (s)",
       colour = "Stimulus",
       #linetype = "Item Type"
-    )
+    )+ scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
   p_mrot_rt_angle_age_2
 ```
   
@@ -1156,7 +1220,7 @@ library(Rtsne) # Make sure to install this package
 
 # 1. Prep data (t-SNE hates duplicates)
 tsne_input <- analysis_data %>%
-    select(user_id, ability, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) %>%
+    select(user_id, Learning_Rate, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) %>%
     distinct() %>% 
     na.omit()
 
@@ -1188,5 +1252,99 @@ ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
     theme_minimal() +
     theme(legend.position = "bottom")
 ```
+
+```{r}
+#| label: fig-pca-check (0223)
+#| fig-cap: "PCA Visualization of Strategy Clusters."
+
+pca_result <- prcomp(tsne_input %>% select(-user_id), center = TRUE, scale. = TRUE)
+
+pca_plot_data <- tsne_input %>%
+    mutate(PC1 = pca_result$x[,1], PC2 = pca_result$x[,2]) %>%
+    left_join(analysis_data %>% select(user_id, Strategy_Label), by = "user_id")
+
+ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Strategy_Label)) +
+    geom_point(alpha = 0.7, size = 2) +
+    scale_color_manual(values = my_colors) + 
+    labs(x = "PC1", y = "PC2") +
+    theme_minimal() + theme(legend.position = "bottom")
+```
+```{r}
+library(tidyverse)
+library(tidytext) # For reorder_within() to make the bars look clean
+
+# ==============================================================================
+# 1. EXTRACT LOADINGS FROM YOUR PCA OBJECT
+# (Assuming your PCA object is named 'pca_result' e.g., pca_result <- prcomp(data))
+# ==============================================================================
+
+# Extract the rotation matrix (the loadings) and convert to a dataframe
+loadings_df <- as.data.frame(pca_result$rotation) %>%
+  rownames_to_column(var = "Angle_Condition")
+
+# ==============================================================================
+# 2. RESHAPE FOR GGPLOT2
+# ==============================================================================
+
+# Pivot to a long format, focusing just on PC1 and PC2 for Mike
+loadings_long <- loadings_df %>%
+  select(Angle_Condition, PC1, PC2) %>%
+  pivot_longer(
+    cols = c(PC1, PC2), 
+    names_to = "Principal_Component", 
+    values_to = "Loading"
+  )
+
+# ==============================================================================
+# 3. VISUALIZE THE LOADINGS
+# ==============================================================================
+
+pca_loading_plot <- ggplot(loadings_long, aes(
+    x = Loading, 
+    # reorder_within sorts the bars cleanly inside each facet
+    y = reorder_within(Angle_Condition, Loading, Principal_Component), 
+    fill = Loading > 0
+  )) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ Principal_Component, scales = "free_y") +
+  scale_y_reordered() + # Cleans up the y-axis labels from reorder_within
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "indianred")) +
+  theme_minimal() +
+  labs(
+    title = "PCA Loadings: Mental Rotation Strategies",
+    subtitle = "Which angles are driving Component 1 and Component 2?",
+    x = "Loading Weight",
+    y = "Angle / Condition"
+  ) +
+  theme(
+    strip.text = element_text(face = "bold", size = 12),
+    plot.title = element_text(face = "bold", size = 14),
+    axis.text.y = element_text(size = 11),
+    panel.grid.minor = element_blank()
+  )
+
+# Display the plot to save and send to Mike
+print(pca_loading_plot)
+```
+
+```{r}
+#| label: fig-umap-check (0223)
+#| fig-cap: "UMAP Visualization of Strategy Clusters."
+
+
+set.seed(42) 
+umap_result <- umap(as.matrix(tsne_input %>% select(-user_id)))
+
+umap_plot_data <- tsne_input %>%
+    mutate(UMAP_1 = umap_result$layout[,1], UMAP_2 = umap_result$layout[,2]) %>%
+    left_join(analysis_data %>% select(user_id, Strategy_Label), by = "user_id")
+
+ggplot(umap_plot_data, aes(x = UMAP_1, y = UMAP_2, color = Strategy_Label)) +
+    geom_point(alpha = 0.7, size = 2) +
+    scale_color_manual(values = my_colors) + 
+    labs(x = "UMAP Dimension 1", y = "UMAP Dimension 2") +
+    theme_minimal() + theme(legend.position = "bottom")
+```
+
 
 :::
