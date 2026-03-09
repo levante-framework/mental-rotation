@@ -20,8 +20,8 @@ library("here")
 
 ```{r helper functions}
 #| echo: false
-source(here::here("plot_settings.R"))
-source(here("03_explore_tasks/explore_helper.R"))
+source(here::here("..", "levante-pilots", "plot_settings.R"))
+source(here::here("..", "levante-pilots", "03_explore_tasks", "explore_helper.R"))
 ```
 
 ```{r load irt data}
@@ -38,11 +38,11 @@ core_tasks   <- c("matrix","mrot","math","hf","mg","sds",
                   "trog","vocab","tom")
 
 # Run data
-run_data <- readr::read_rds(here::here("01_fetched_data/run_data.rds"))
+run_data <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data/run_data.rds"))
 #colnames(run_data)
 
 # IRT data
-all_scores <- readr::read_rds(here::here("02_scoring_outputs","scores","scores_combined.rds"))
+all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs","scores","scores_combined.rds"))
 # colnames(all_scores)
 # table(all_scores$item_task)
 # table(all_scores$metric_type)
@@ -51,7 +51,7 @@ all_scores <- readr::read_rds(here::here("02_scoring_outputs","scores","scores_c
 ## Sample size by site
 
 ```{r mrot counts}
-all_sum_scores <- readr::read_rds(here::here("01_fetched_data","task_data_nested.rds"))
+all_sum_scores <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data","task_data_nested.rds"))
 # colnames(all_sum_scores)
 # glimpse(all_sum_scores$data[[1]])
 # glimpse(all_sum_scores %>% filter(item_task == "mrot") %>% pull(data) %>% .[[1]])
@@ -61,7 +61,7 @@ mrot <- all_sum_scores %>%
   select(site, language, data) %>%
   unnest(data) %>%
   filter(!is.na(correct)) %>%
-  mutate(correct = as.numeric(correct))  
+  mutate(correct = as.numeric(correct)) 
 
 counts_site <- mrot %>%
   summarise(
@@ -220,7 +220,8 @@ mrot_irt
 ### (4) Difficulty by rotation angle (2PL scalar)
 
 ```{r subset 2pl scalar item params}
-coefs <- readr::read_rds(here::here("02_scoring_outputs","all_coefs.rds"))
+coefs <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs","all_coefs.rds"))
+
 # colnames(coefs)
 # table(coefs$invariance)
 # table(coefs$group)
@@ -257,7 +258,7 @@ mrot_diff_2pl <- mrot_2pl_scalar %>%
   filter(
     stimulus %in% c("duck","rabbit","shape"),
     !is.na(angle),
-    angle != 20L                  # <-- filter here, not in transmute
+    angle != 20L                 
   ) %>%
   transmute(
     site, stimulus, item_group, angle,
@@ -277,6 +278,7 @@ plot_mrot_diff_2pl <- ggplot(mrot_diff_2pl, aes(x = angle, y = value, col = stim
     subtitle = "IRT difficulty estimates (2PL scalar), higher = more difficult",
     colour = "Stimulus"
   ) 
+plot_mrot_diff_2pl
 
 ggsave(
   "mrot_diff_2pl.png",
@@ -387,7 +389,7 @@ mrot_prop_correct <- mrot_runs %>%
 mrot_year_binned <- mrot_prop_correct %>%
   tidyr::drop_na(age, logrt_mean, correct) %>%
   mutate(
-    age_binned = floor(age),                                   # <-- floor to whole years
+    age_binned = floor(age),                                  
     age_binned = factor(age_binned, levels = sort(unique(age_binned)))
   )
 
@@ -439,6 +441,7 @@ p_mrot_speed_ability <- mrot_speed_ability |>
     subtitle = "Each point = participant run; line = linear fit per site",
     x = "log RT (s)", y = "IRT Ability (Thetas)", color = "Age (y)"
   )
+p_mrot_speed_ability
 
 ggsave(
   "mrot_speed_ability.png",
