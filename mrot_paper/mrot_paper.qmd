@@ -50,7 +50,7 @@ author-note:
 
 abstract: To add.
 
-keywords: ["cognitive development", "mental rotation", "spatial reasoning"]
+keywords: ["Cognitive Development", "Mental Rotation", "Spatial Reasoning"]
 word-count: true
 
 bibliography: library_mrot.bib
@@ -945,7 +945,7 @@ validation_table %>%
 
 ```{r}
 #| label: fig-validation-boxplots
-#| fig-width: 6
+#| fig-width: 9
 #| fig-height: 5
 #| fig-cap: "Cluster validation. Left: ability (theta) by strategy group. Right: relative RT slope by strategy group. Significance bars show pairwise t-tests; non-significant comparisons hidden."
 
@@ -962,7 +962,7 @@ p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = S
   stat_compare_means(comparisons = my_comparisons, method = "t.test", 
                      label = "p.signif", hide.ns = TRUE, vjust = 0.5) +
   labs(title = "1. Defined by Ability", y = "Ability (Theta)", x = NULL) +
-  theme(legend.position = "none", axis.text.x = element_text(angle = 15, hjust = 1))
+  theme(legend.position = "none", axis.text.x = element_text(angle = 32, hjust = 1))
 
 p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
@@ -972,7 +972,7 @@ p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = S
   stat_compare_means(comparisons = my_comparisons, method = "t.test", 
                      label = "p.signif", hide.ns = TRUE, vjust = 0.5) +
   labs(title = "2. Defined by RT Slope", y = "Relative Slope", x = NULL) +
-  theme(legend.position = "none", axis.text.x = element_text(angle = 12, hjust = 1))
+  theme(legend.position = "none", axis.text.x = element_text(angle = 32, hjust = 1))
 
 p_ability + p_slope
 
@@ -997,8 +997,7 @@ Cluster labels were assigned based on mean ability and relative slope: a low-abi
 The three clusters differed significantly on both dimensions (@fig-validation-boxplots). Ability differed across all pairwise comparisons (all *p*s < .0001), with the Ineffective Strategies group showing markedly lower ability (M = `` `r round(ineff$Mean_Ability, 2)` ``, SD = `` `r round(ineff$SD_Ability, 2)` ``) than both the Flipping/Matching (M = `` `r round(flip$Mean_Ability, 2)` ``, SD = `` `r round(flip$SD_Ability, 2)` ``) and Mental Rotation (M = `` `r round(mrot$Mean_Ability, 2)` ``, SD = `` `r round(mrot$SD_Ability, 2)` ``) groups. Relative RT slope also differed significantly across all pairwise comparisons (all *p*s < .001), with the Mental Rotation cluster showing the steepest slope (M = `` `r round(mrot$Mean_Slope, 2)` ``), consistent with analog rotation processes that scale with angular disparity.
 
 Inspection of the RT-by-angle functions (@fig-rt-by-disparity) provided further validation of the cluster solution and offered mechanistic insight into the nature of each strategy. Rather than slowing with increasing angle as would be expected under systematic rotation, the Ineffective Strategies group showed decreasing RTs, suggesting they were relying on a more holistic or perceptual strategy rather than engaging in analytic rotation, consistent with their steeply declining accuracy (@fig-accuracy-by-angle). In contrast, both effective strategy groups showed increasing RTs with angular disparity, consistent with effortful but accurate processing. Critically, however, the two effective groups diverged at high angular disparities: whereas the Mental Rotation group continued to slow monotonically, the Flipping/Matching group showed a decrease in RT at 160°, crossing below the Mental Rotation line. This pattern could suggest a flipping strategy — rather than rotating a stimulus through its full angular distance, participants may exploit the reflective symmetry of the task by flipping the stimulus and rotating through the shorter complementary angle (e.g., 180° − 160° = 20°). Under this account, flipping becomes increasingly advantageous at high angular disparities, producing the inverted-U RT function observed. The Flipping/Matching group also maintained the highest accuracy across all angles despite elevated overall RTs, consistent with a slower but highly reliable alternative strategy.
-
-
+\clearpage
 
 # References
 
@@ -1125,7 +1124,7 @@ Results were consistent across all three methods in one key respect: the Ineffec
 Inspection of the PCA loadings offered interpretive support for the feature set. PC1 loaded positively on Baseline_Speed, Learning_Rate, and Abs_Slope, and negatively on Instability, reflecting a general processing efficiency dimension. PC2 loaded primarily on Rel_Slope and Abs_Slope, reflecting a rotation cost dimension. The fact that these two components map cleanly onto theoretically meaningful dimensions provides confidence that the clustering features are capturing distinct aspects of task performance.
 ```{r}
 #| label: fig-tsne-check
-#| fig-width: 6
+#| fig-width: 8
 #| fig-height: 5
 #| fig-cap: "**t-SNE visualization of strategy clusters.** The Ineffective Strategies group forms a distinct region in the top-left, while the Mental Rotation and Flipping/Matching groups show considerable overlap in the central and right regions, suggesting softer boundaries between the two effective strategy groups."
 
@@ -1166,7 +1165,7 @@ ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
 
 ```{r}
 #| label: fig-pca-check
-#| fig-width: 6
+#| fig-width: 8
 #| fig-height: 5
 #| fig-cap: "**PCA projection of the five clustering features coloured by strategy group.** The Ineffective Strategies group separates clearly along PC1, while the Mental Rotation and Flipping/Matching groups overlap along both components."
 
@@ -1232,7 +1231,7 @@ ggplot(loadings_long, aes(
 ::: {.landscape}
 ```{r}
 #| label: fig-umap-check
-#| fig-width: 6
+#| fig-width: 8
 #| fig-height: 5
 #| fig-cap: "**UMAP projection of the five clustering features coloured by strategy group.** The Ineffective Strategies group forms a distinct region in the bottom-left, while the Mental Rotation and Flipping/Matching groups show substantial overlap in the central and right regions."
 
