@@ -95,35 +95,37 @@ execute:
 
 From fitting puzzle pieces together at age three to navigating complex diagrams in school, spatial reasoning underpins a broad array of cognitive achievements — and children differ substantially in how these skills develop. Such variability is detectable early, across a wide range of spatial tasks in primary school-aged children [@hodgkiss2021developmental; @lauer2019development], and its consequences are far-reaching: spatial ability predicts outcomes spanning creative domains such as music [@padulo2020effects; @hetland2000learning] and the visual arts [@kell2013creativity; @winner2013relationship], mathematical achievement [@gunderson2012relation], science learning [@gilligan2020first], and long-term educational and occupational outcomes in STEM fields [@wai2009spatial]. Understanding what drives this variability is therefore a question of both theoretical and practical importance. The present study takes a step toward that goal by examining children's performance on a mental rotation task across three culturally diverse countries, asking both what is consistent across children and what varies.
 
-Spatial reasoning encompasses abilities for representing, transforming, and reasoning about visuospatial information [@lohman1996spatial]. Rather than a single unified capacity, it is better understood as a family of related but distinguishable skills, including mental rotation, spatial visualization, perspective-taking, and navigation, that differ in the type of spatial information involved and the cognitive operations required [@uttal2013malleability; newcombe2018three]. Skills are organized along two dimensions: whether the spatial relations in question are intrinsic to an object or extrinsic between objects, and whether the task requires dynamic mental transformation or only static representation [@uttal2013malleability]. Mental rotation — the focus of the present study — falls in the intrinsic-dynamic quadrant of this framework, involving the mental transformation of an object's orientation in space.
+Spatial reasoning encompasses abilities for representing, transforming, and reasoning about visuospatial information [@lohman1996spatial]. Rather than a single unified capacity, it is better understood as a family of related but distinguishable skills, including mental rotation, spatial visualization, perspective-taking, and navigation, that differ in the type of spatial information involved and the cognitive operations required [@uttal2013malleability; @newcombe2018three]. Skills are organized along two dimensions: whether the spatial relations are intrinsic to an object or extrinsic between objects, and whether the task requires dynamic mental transformation or only static representation [@uttal2013malleability]. Mental rotation — the focus of the present study — falls in the intrinsic-dynamic quadrant of this framework, involving the mental transformation of an object's orientation in space.
 
 Mental rotation is the ability to mentally transform an object by rotating it in space to predict how it would appear from a different orientation or viewpoint [@shepard1971mental]. It is one of the most studied spatial skills in cognitive and developmental psychology, in part because it yields one of the most robust and replicable findings in the field: response times increase approximately linearly with the angular disparity between two objects, suggesting that mental rotation operates as a spatially continuous process rather than a discrete rule-based one [@shepard1971mental; @cooper1973chronometric]. We return to this finding in detail below.
 
-Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; moore2008mental], and performance on explicit rotation tasks improves substantially between ages three and twelve [@frick2013development; @marmor1975development], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages five to twelve, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
+Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12  [@frick2013development; @marmor1975development], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5-12, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
 
 The standard mental rotation task, as developed by @shepard1971mental, presents participants with pairs of objects at varying angular disparities and asks them to judge whether the objects are identical or mirror-reversed. Response time and accuracy are the key dependent variables. While this paradigm has generated decades of remarkably consistent findings, an important interpretive caveat applies: performance on the task may not reflect a single, unitary process of mental rotation. Research with adults suggests that solvers draw on a range of strategies, spanning a holistic-analytic continuum [@gluck2003spatial]. At the holistic end, the stimulus is transformed as an integrated mental representation — the so-called "pure rotation" approach. At the analytic end, solvers decompose the object into sub-components and verify features sequentially, a more piecemeal strategy that places greater demands on working memory [@just1985cognitive; @khooshabeh2013individual]. Strategy selection is not fixed: individuals differ in their preferred approach, and the same individual may shift strategies depending on task demands such as the complexity of the stimulus or the degree of angular disparity [@nazareth2019strategy]. Importantly, far less is known about which strategies children employ when solving mental rotation problems, and whether strategy use varies with age, ability, or cultural context. This question motivates the exploratory component of the present study, which we describe below.
 
 The vast majority of developmental research on mental rotation has been conducted with children from Western, educated populations [@davis2019spatial; @peters2006mental], raising questions about whether findings about its developmental trajectory, psychometric properties, and underlying cognitive processes generalise beyond the populations in which they were established.
 
-The limited cross-cultural evidence that does exist offers a mixed picture. A large-scale study of 3,367 students across Canada, Germany, and Japan found that a male performance advantage on mental rotation was consistent across all three nations, suggesting some cross-cultural robustness in group-level patterns [@peters2006mental]. However, cross-cultural comparisons of children specifically are rare. One notable exception compared children in the Ivory Coast and Switzerland and found that while both groups showed evidence of mental rotation, Swiss children demonstrated substantially higher speed and accuracy — and crucially, age predicted performance in the Swiss group but not in the Ivorean group [@nunez1998mental]. More recent work in non-WEIRD populations has shown that environmental and cultural factors — including access to formal schooling, freedom to explore the physical environment, and culturally-specific spatial practices — can substantially shape both the level and the pattern of spatial performance in children [@davis2019spatial; @davis2021cultural].
+The limited cross-cultural evidence that does exist offers a mixed picture. A large-scale study of 3,367 students across Canada, Germany, and Japan found that a male performance advantage on mental rotation was consistent across all three nations, suggesting some cross-cultural robustness in group-level patterns [@peters2006mental]. However, cross-cultural comparisons of children specifically are rare. One notable exception compared children in the Ivory Coast and Switzerland and found that while both groups showed evidence of mental rotation, Swiss children demonstrated substantially higher speed and accuracy — and crucially, age predicted performance in the Swiss group but not in the Ivorean group [@nunez1998mental]. More recent work in non-WEIRD (i.e., Western, Educated, Industrialized, Rich, and Democratic) populations has shown that environmental and cultural factors — including access to formal schooling, freedom to explore the physical environment, and culturally-specific spatial practices — can substantially shape both the level and the pattern of spatial performance in children [@davis2019spatial; @davis2021cultural].
 
-Taken together, this evidence highlights two distinct but related gaps. First, we have limited data on whether mental rotation tasks developed and validated in Western samples are measuring the same underlying construct when administered to children in different cultural contexts — a question of measurement invariance rather than simply mean-level differences. Second, even where cross-cultural comparisons have been made, they have rarely examined whether the core cognitive signatures of mental rotation replicate across diverse populations of children. The linear relationship between reaction time and angular disparity — one of the most robust findings in cognitive psychology — has been demonstrated repeatedly in Western adult samples, but its replication in children across culturally diverse sites remains largely untested. Beyond these two gaps, relatively little is known about the cognitive strategies children employ when solving mental rotation problems, and whether these vary across cultural contexts — a question we explore tentatively here. The present study addresses these gaps.
+Taken together, this evidence highlights two distinct but related gaps. First, we have limited data on whether mental rotation tasks developed and validated in Western samples are measuring the same underlying construct when administered to children in different cultural contexts — a question of measurement invariance rather than simply mean-level differences. Second, even where cross-cultural comparisons have been made, they have rarely examined whether the core cognitive signatures of mental rotation replicate across diverse populations of children. The linear relationship between reaction time and angular disparity — one of the most robust findings in cognitive psychology — has been demonstrated repeatedly in Western adult samples, but its replication in children across culturally diverse sites remains largely untested. Beyond these two gaps, relatively little is known about the cognitive strategies children employ when solving mental rotation problems, and whether these vary across cultural contexts — a question we explore tentatively here. The present study attempts to address these gaps.
 
-Returning to the question that opened this paper — why do children vary in spatial reasoning, and what does that variation reflect? Cross-cultural data offer a potentially powerful way to answer this. But before individual differences observed across cultural contexts can be meaningfully interpreted, two preconditions must be met.
+Returning to the initial question; why do children vary in spatial reasoning, and what does that variation reflect? Cross-cultural data offer a potentially powerful way to answer this. But before individual variability observed across cultural contexts can be meaningfully interpreted, two preconditions must be met. 
 
 The first is measurement invariance. If a task is not measuring the same underlying construct across different cultural contexts, then findings about its developmental trajectory — even within a single site — cannot be confidently attributed to the development of spatial reasoning per se. They may instead reflect something more specific to the cultural and educational context in which the task was developed. Establishing that a task achieves measurement invariance across diverse sites is therefore crucial evidence that the construct being measured is genuinely spatial in nature, and that developmental conclusions drawn from it are likely to generalize beyond any single cultural setting.
 
 The second precondition is process-level validity. Even if a task achieves measurement invariance across sites, we need evidence that it is sensitive to the spatial properties of the stimuli in the way theory predicts. The key benchmark here is the angular disparity effect (described above), first demonstrated by @shepard1971mental: as the angular difference between two objects increases, so too does the time required to judge whether they match. If children across three culturally diverse sites show this same systematic pattern, this constitutes strong evidence that performance is being driven by the spatial demands of the task, and that this signature is not specific to the Western samples in which it was originally established. This does not require that all children are using identical strategies — what matters is that the angular disparity effect emerges consistently, indicating that children are engaging with the spatial structure of the problem. Only once these two preconditions are established does it become meaningful to ask what the sources of individual variability actually are — including, tentatively, whether children are employing different cognitive strategies.
 
-The present study uses data from the Learning Variability Network Exchange (LEVANTE), an international research collaboration designed to capture how children's learning and development vary across ages and cultural contexts. LEVANTE's central aim is to build a large, openly shared dataset of children's cognitive development across diverse settings, with a particular focus on individual variability — what differs across children, and why. Data were collected across three geographically and culturally diverse pilot sites: Canada, Germany, and Colombia. Here we use data from a single task in the LEVANTE battery: a chronometric mental rotation task developed using item response theory, which allows directly comparable ability estimates to be derived across children who completed different subsets of items [@Kachergis2025LEVANTEcoretasks].
+## The Present Study
 
-Against this backdrop, the present study pursues three aims. First, we examine whether the mental rotation task achieves measurement invariance across the three LEVANTE sites, establishing that it captures a consistent underlying construct across cultural contexts. Second, we test whether the canonical Shepard-Metzler angular disparity effect replicates across all three sites in children aged 5 to 12 — extending this foundational finding to a culturally diverse developmental sample. Third, in an exploratory analysis, we ask what cognitive strategies children appear to employ when solving mental rotation problems, and whether strategy use varies with age or angular disparity. Taken together, these analyses move from establishing what is consistent across children and contexts, toward a first look at what varies — and how that variation might be characterized.
+The present study uses data from the Learning Variability Network Exchange (LEVANTE), an international research collaboration designed to capture how children's learning and development vary across ages and cultural contexts. LEVANTE's central aim is to build a large, openly shared dataset of children's cognitive development across diverse settings, with a particular focus on individual variability — what differs across children, and why. Data were collected freom three geographically and culturally diverse pilot sites: Canada, Germany, and Colombia. Here we use data from a single task in the LEVANTE battery: a mental rotation task developed using item response theory, which allows directly comparable ability estimates to be derived across children who completed different subsets of items [@Kachergis2025LEVANTEcoretasks].
+
+Against this backdrop, the present study pursues three aims. First, we examine whether the mental rotation task achieves measurement invariance across the three LEVANTE pilot sites, establishing that it captures a consistent underlying construct across cultural contexts. Second, we test whether the canonical Shepard-Metzler angular disparity effect replicates across all three sites in children aged 5 to 12 — extending this foundational finding to a culturally diverse developmental sample. Third, in an exploratory analysis, we ask what cognitive strategies children appear to employ when solving mental rotation problems, and whether strategy use varies with age or angular disparity. Taken together, these analyses move from establishing what is consistent across children and contexts, toward a first look at what varies — and how that variation might be characterized.
 
 # Methods
 
 ## Participants
 
-Data for the present study were drawn from three pilot sites participating in LEVANTE: uniandes-co, mpieva-de, and western-ca. Collectively, these sites supported task localisation and technical implementation, iterative piloting, and deployment in varied testing contexts. The resulting pilot datasets enabled preliminary evaluation of construct validity, measurement invariance, test–retest reliability, and calibration for computer-adaptive administration, as well as descriptive assessment of age-related differences across the targeted constructs (refer to @Kachergis2025LEVANTEcoretasks for a full description).
+Data for the present study were drawn from three pilot sites participating in LEVANTE: uniandes-co, mpieva-de, and western-ca. Collectively, these sites supported task localization and technical implementation, iterative piloting, and deployment in varied testing contexts. The resulting pilot datasets enabled preliminary evaluation of construct validity, measurement invariance, test–retest reliability, and calibration for computer-adaptive administration, as well as descriptive assessment of age-related differences across the targeted constructs (refer to @Kachergis2025LEVANTEcoretasks for a full description).
 
 ### uniandes-co
 
@@ -150,15 +152,15 @@ The LEVANTE mental rotation task is adapted from @frick2013development. On each 
 knitr::include_graphics("mrot_item_examples.pdf")
 ```
 
-All LEVANTE tasks including mental rotation were originally developed in English and later adapted for Spanish and German through a structured internationalisation workflow carried out with collaborators at the uniandes-co and mpieva-de sites, respectively. We first produced draft translations of all verbal content—including instructions, item text, and recurring terminology (e.g., encouragement prompts)—using DeepL. These drafts were then refined by a professional translator to ensure grammatical accuracy and natural phrasing. Next, a site researcher who was a native speaker of the relevant language and dialect reviewed the materials to confirm clarity and suitability for the specific task context. To check for semantic and conceptual alignment with the English originals, we used AI-assisted back-translation to identify wording that required further revision and native-speaker review.
+All LEVANTE tasks including mental rotation were originally developed in English and later adapted for Spanish and German through a structured internationalization workflow carried out with collaborators at the uniandes-co and mpieva-de sites, respectively. We first produced draft translations of all verbal content—including instructions, item text, and recurring terminology (e.g., encouragement prompts)—using DeepL. These drafts were then refined by a professional translator to ensure grammatical accuracy and natural phrasing. Next, a site researcher who was a native speaker of the relevant language and dialect reviewed the materials to confirm clarity and suitability for the specific task context. To check for semantic and conceptual alignment with the English originals, we used AI-assisted back-translation to identify wording that required further revision and native-speaker review.
 
-The mental rotation task has already been implemented in a computer-adaptive task (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (theta) that is re-estimated after each response. The updated theta then guides selection of the next item so that it is appropriately challenging for the individual. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. Refer to @Kachergis2025LEVANTEcoretasks for more information on the CAT versions of all LEVANTE tasks.
+The mental rotation task has already been implemented in a computer-adaptive task (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (theta) that is re-estimated after each response. The updated theta then guides selection of the next item so that it is appropriately challenging for each individual child. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. Refer to @Kachergis2025LEVANTEcoretasks for more information on the CAT versions of all LEVANTE tasks.
 
 # Results
 
 ## Cross-Cultural Measurement Invariance of the Mental Rotation Task
 
-We first establish whether the mental rotation task measures the same underlying construct across all three sites. We addressed this using multi-group IRT to evaluate measurement invariance [@putnick2016measurement]. Multi-group models supported scalar invariance under a 2PL model, indicating that item difficulty is aligned across sites and that children in each country are being placed on a comparable latent scale. Practically, this means the groups share the same relative ordering of item difficulty — items with larger rotation angles are consistently more difficult across all three countries (see @tbl-mrot-2pl-scalar). The core structure of mental rotation performance is thus largely shared across the cultural settings represented here: the same item features drive difficulty in a similar way regardless of site. With this foundation established, we turn to the second precondition: whether the task shows the process-level sensitivity to angular disparity that theory predicts. 
+We first established whether the mental rotation task measures the same underlying construct across all three sites. To  evaluate measurement invariance, we used multi-group IRT [@putnick2016measurement]. Multi-group models supported scalar invariance under a 2PL model, indicating that item difficulty is aligned across sites and that children in each country are being placed on a comparable latent scale. Practically, this means the groups share the same relative ordering of item difficulty — items with larger rotation angles are consistently more difficult across all three countries (see @tbl-mrot-2pl-scalar). The core structure of mental rotation performance is thus largely shared across the cultural settings represented here: the same item features drive difficulty in a similar way regardless of site. With this foundation established, we turn to the second precondition: whether the task shows the process-level sensitivity to angular disparity that theory predicts. 
 
 It should be noted that while we use psychometric modelling to place children’s performance on a common scale, the LEVANTE project is not designed to estimate absolute differences between sites. In practice, LEVANTE does not support site-level performance comparisons: sites vary substantially in sampling, recruitment, and test administration, so any apparent cross-site differences in raw performance are heavily confounded. Accordingly, although we report descriptive patterns that may look like absolute site differences, we emphasize that these should not be interpreted as meaningful.
 
@@ -321,7 +323,7 @@ plot_scatter <- function(data, x_var, y_var, x_lab, y_lab) {
   ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]],
                    label = item_label)) +
     geom_abline(intercept = 0, slope = 1,
-                linetype = "dashed", colour = "grey50") +
+                linetype = "dashed", colour = pal$grey) +
     geom_point(size = 2.5, na.rm = TRUE) +
     ggrepel::geom_text_repel(size = 2.8,
                     max.overlaps = Inf,
@@ -329,9 +331,7 @@ plot_scatter <- function(data, x_var, y_var, x_lab, y_lab) {
                     point.padding = 0.3,
                     na.rm = TRUE) +
     coord_equal(xlim = c(-2.5, 4), ylim = c(-2.5, 4)) +
-    labs(x = x_lab, y = y_lab) +
-    theme_bw()
-    #theme(panel.grid.minor = element_blank())
+    labs(x = x_lab, y = y_lab)
 }
 
 p1 <- plot_scatter(mrot_wide_d, "Canada", "Germany",   "Canada", "Germany")
@@ -355,7 +355,7 @@ all_coefs |>
 
 ```
 
-@fig-dev-trends plots participants' mental rotation ability estimates (IRT theta) against age, with curves by site modelled using generalized additive models (GAMs). GAMs allow the developmental association with age to be non-linear, capturing periods of more rapid change and relative flattening without imposing a fixed form. Across all three sites, theta increases with age, indicating that the task captures developmental change consistently across cultural contexts. The dispersion of points within age bands underscores substantial individual variability in ability among same-aged children. Note that vertical offsets between sites reflect differences in sample composition and recruitment rather than true cross-cultural performance differences, and are not interpreted further here.
+@fig-dev-trends plots participants' mental rotation ability estimates (IRT theta) against age, with curves by site modeled using generalized additive models (GAMs). GAMs allow the developmental association with age to be non-linear, capturing periods of more rapid change and relative flattening without imposing a fixed form. Across all three sites, theta increases with age, indicating that the task captures developmental change consistently across cultural contexts. The dispersion of points within age bands underscores substantial individual variability in ability among same-aged children. Note that vertical offsets between sites reflect differences in sample composition and recruitment rather than true cross-cultural performance differences, and are not interpreted further here.
 
 ```{r}
 #| label: fig-dev-trends
@@ -387,9 +387,9 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
 
 ## Angular disparity and the RT–angle relationship
 
-Our aim with this analysis was to test whether the canonical reaction time–rotation angle relationship first reported by @shepard1971mental replicates in our data. @fig-rt-angle-per-run plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by age group (5–7, 7–9, and 9–12 years) and site, with separate series by stimulus and item type (2D vs 3D). To show the underlying dispersion and sample density alongside the summary trends, we provide a second version of @fig-rt-angle-per-run in the Appendix that overlays the raw per-run data (using the same age bins and 95% CIs; see @fig-rt-angle_raw).
+Our aim with this analysis was to test whether the canonical reaction time–rotation angle relationship first reported by @shepard1971mental replicates in our data. @fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by age group (5–7, 7–9, and 9–12 years) and site, with separate series by stimulus and item type (2D vs 3D). CAT trials are excluded from this analysis, as adaptive item selection introduces a systematic confound: higher-ability children are disproportionately routed to harder items at larger angles, which would artificially compress the RT–angle slope. To show the underlying dispersion and sample density alongside the summary trends, we provide a second version of @fig-rt-angle-per-run-no-cat in the Appendix that overlays the raw per-run data (using the same age bins and 95% CIs; see @fig-rt-angle_raw).
 
-Across sites, mean RTs generally decrease with age, with the 9–12 group responding faster overall than the younger groups, particularly for the 2D animal stimuli (duck/rabbit). RTs also tend to increase with rotation angle (angular disparity), consistent with the classic RT–angle effect (@shepard1971mental). This angular-disparity effect is most pronounced for the 3D shape stimuli, which show slower overall RTs and steeper angle-related increases, whereas the 2D stimuli exhibit comparatively flatter RT–angle functions. Despite some differences in absolute RT levels between sites, the same qualitative pattern—faster responses with age and a stronger angular-disparity effect for 3D items—appears across all three sites, suggesting broadly comparable task behaviour across contexts.
+The pattern with respect to angular disparity depends substantially on stimulus type. For 3D shape stimuli, RTs are slower overall and show a consistent positive relationship with rotation angle across all three sites and age groups, closely matching the classic RT–angle effect [@shepard1971mental]. For 2D stimuli (duck and rabbit), RT–angle functions are notably flat across all sites and age groups, suggesting these items do not impose sufficient rotational demands to elicit the angular disparity effect reliably. This stimulus-dependence is an interesting finding in its own right: the angular disparity effect is sensitive to the complexity and dimensionality of the stimuli, rather than being an invariant feature of mental rotation performance in children. Patterns for the 5–7 age group are more irregular, particularly for 3D stimuli in Colombia and Germany, though the wide confidence intervals in these cells suggest this reflects limited sample size rather than a substantively different pattern.
 
 ```{r}
 #| label: trial-level-rts
@@ -451,6 +451,7 @@ mrot_rt_trial %>%
 
 ```{r}
 #| label: fig-rt-angle-per-run
+#| include: false
 #| fig-cap: "Reaction Time by angle within age groups ±95% CI."
 #| fig-width: 8
 #| fig-height: 8
@@ -507,21 +508,19 @@ p_mrot_rt_angle_age_1 <- ggplot(
     y = "RT (s)",                             
     colour = "Stimulus",
     linetype = "Item Type"
-  ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) 
-p_mrot_rt_angle_age_1
+  ) + scale_x_continuous(breaks = c(40, 80, 120, 160)) +
+  .scale_colour_stimulus()
 ```
 
-## Within-Person Dynamics
-
-Having established the expected angular-disparity effect across age groups and sites, we next examined how RTs evolved within individuals over the course of the task. Because item difficulty increased adaptively—such that higher-performing children were more likely to encounter the harder 3D items—we analysed trial-by-trial RT trajectories across the 80 trials to distinguish item-driven changes from more gradual time-on-task effects (e.g., fatigue). @fig-within-person-trials illustrates a clear 'jump' in RT about halfway through the task (trial 48), corresponding to the transition from 2D to 3D stimuli, which required significantly more processing time across all three site populations. We observed consistent response acceleration within both the 2D and 3D blocks, as children became faster with practice.
-
 ```{r}
-#| label: fig-within-person-trials
-#| fig-cap: "**Trial-level Reaction Time Dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Re-test and CAT data removed."
-#| fig-width: 6
-#| fig-height: 4
+#| label: fig-rt-angle-per-run-no-cat
+#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
+#| fig-width: 8
+#| fig-height: 8
 
-# get CAT data
+age_breaks <- c(5, 7, 9, 12)
+
+# load CAT metadata if not already in environment
 cat_data <- read_rds(here("..", "levante-pilots", "02_scoring_outputs", "scores", "scores_combined.rds")) %>%
   group_by(user_id, item_task) %>%
   arrange(time_started) %>%
@@ -531,6 +530,75 @@ cat_data <- read_rds(here("..", "levante-pilots", "02_scoring_outputs", "scores"
   filter(item_task == "mrot") %>%
   filter(run_number == 1 | (run_number == 2 & age_gap > 1/6)) %>%
   distinct(user_id, run_id, adaptive)
+
+mrot_items_rt_runs <- mrot_rt_trial_no_retest %>%
+  left_join(cat_data, by = c("user_id", "run_id")) %>%
+  filter(adaptive == FALSE) %>%
+  mutate(
+    stimulus = stringr::str_extract(item, "^[a-z]+"),
+    angle = as.integer(stringr::str_extract(item, "(?<=_)\\d+"))
+  ) %>%
+  filter(stimulus %in% c("duck", "rabbit", "shape"), !is.na(angle)) %>%
+  left_join(run_ages, by = c("user_id","run_id")) %>%
+  filter(!is.na(age)) %>%
+  mutate(
+    age_group = cut(age, breaks = age_breaks,
+                    include.lowest = TRUE, right = TRUE)
+  ) %>%
+  tidyr::drop_na(age_group) %>%
+  group_by(site, user_id, run_id, age, age_group,
+           stimulus, item_group, angle) %>%
+  summarise(
+    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
+    .groups = "drop"
+  )
+
+mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
+  filter(!is.na(rt_med)) %>%
+  group_by(site, stimulus, item_group, angle, age_group) %>%
+  summarise(
+    y   = mean(rt_med),
+    sd  = sd(rt_med),
+    n   = dplyr::n(),
+    se  = sd / sqrt(n),
+    lwr = y - 1.96 * se,
+    upr = y + 1.96 * se,
+    .groups = "drop"
+  )
+
+p_mrot_rt_angle_age_1 <- ggplot(
+  mrot_items_rt_agebin_ci,
+  aes(x = angle, y = y,
+      group = interaction(item_group, stimulus),
+      colour = stimulus, linetype = item_group)
+) +
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
+                linewidth = 0.35, alpha = 0.6) +
+  geom_point(size = 1) +
+  geom_line(alpha = 0.85) +
+  facet_grid(site ~ age_group) +
+  labs(
+    x = "Rotation angle (°)",
+    y = "RT (s)",                             
+    colour = "Stimulus",
+    linetype = "Item Type"
+  ) +
+scale_x_continuous(breaks = c(40, 80, 120, 160)) +
+  .scale_colour_stimulus()
+
+p_mrot_rt_angle_age_1
+```
+## Within-Person Dynamics
+
+Having established that 3D stimuli elicit a clear angular disparity effect while 2D stimuli do not, we next examined how RTs evolved within individuals over the course of the task. This analysis asks a complementary question: not whether children are sensitive to rotation angle, but whether they show sensitivity to task demands as they unfold in real time. To isolate time-on-task effects from item-driven RT changes, we residualized log-RTs on angle, stimulus, and item type prior to analysis.
+
+@fig-within-person-trials reveals two consistent patterns across all three sites. First, there is a pronounced jump in residual RT at trial 48, corresponding to the transition from 2D to 3D stimuli. This is consistent with the between-stimulus RT difference established in the previous analysis, and extends it: the increase is immediate rather than gradual, suggesting children recalibrate their processing demands at the block transition rather than adapting incrementally. Second, within each block, RTs decrease across trials, indicating a practice effect that operates independently of angular disparity. This is notable given the flat RT–angle functions observed for 2D stimuli earlier: children are getting faster with practice on these items even in the absence of a detectable rotation effect, suggesting the two measures are capturing distinct aspects of performance. Both patterns — the block transition jump and the within-block acceleration — are qualitatively consistent across all three sites, further extending the cross-cultural consistency observed in the angular disparity analysis. Germany shows a somewhat flatter trajectory overall, with less acceleration in the 2D block and a less pronounced jump at the transition; this may reflect differences in sample composition or task familiarity,
+
+```{r}
+#| label: fig-within-person-trials
+#| fig-cap: "**Trial-level Reaction Time Dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Re-test and CAT data removed."
+#| fig-width: 6
+#| fig-height: 4
 
 # prep: remove CAT data
 trial_resid_data <- mrot_rt_trial_no_retest %>%
@@ -559,9 +627,6 @@ trial_resid_data <- trial_resid_data %>%
     block      = if_else(trial_number < transition_trial, "2D", "3D")
   )
 
-# recode site_pal names to match site_label values
-names(site_pal_labelled) <- dplyr::recode(names(site_pal), !!!site_labels)
-
 # plot
 ggplot(trial_resid_data, 
        aes(x = trial_number, y = log_rt_resid, 
@@ -584,11 +649,10 @@ ggplot(trial_resid_data,
   theme(legend.position = "bottom")
 ```
 \clearpage
-## Cognitive Strategies
 
-To characterize individual differences in how children solved the mental-rotation task, we derived participant-level 'strategy features; from trial-level reaction times. Consistent with the generally log-normal distribution of reaction times, we modeled log-transformed RTs. While the classic @shepard1971mental finding describes an approximately linear relationship with raw RT, fitting the model to log(RT) provides more robust parameter estimates for defining individual strategy profiles in a developing population. We fit a mixed-effects model to log(RT) that captured stimulus and angle-dependent responding alongside within-run practice effects, extracted participant-specific deviations (random effects), and combined these model-derived quantities with RT variability and IRT-estimated ability before clustering participants using k-means (k = 3) on standardized features.
+## Strategy Identification via Clustering
 
-The extracted features were: (1) Baseline Speed, defined as the intercept from the mixed-effects model (interpretable as expected speed at 0° rotation); (2) Rotation Slope, defined as the “cost” of rotation (the slope of angle on log RT), estimated as the average slope across stimulus types; (3) Response Variability (RT SD), defined as the intra-individual standard deviation of log RT; and (4) IRT-estimated ability (theta).
+The preceding analyses established that the mental rotation task measures a consistent underlying construct across sites, and that the canonical angular disparity effect partially replicates — robustly for 3D stimuli, and less consistently for 2D stimuli. Having established what is consistent across children, we now turn to an exploratory question: do children vary in the cognitive strategies they employ, and can meaningful strategy groups be identified from trial-level behavioral signatures? We emphasize throughout that this analysis is exploratory. The clusters we identify are inferred from behavioral proxies rather than directly observed strategies, the solution is sensitive to analytic choices, and replication with larger samples is required before strong conclusions can be drawn.
 
 ```{r}
 #| label: strategy-analysis-prep
@@ -980,23 +1044,65 @@ p_ability + p_slope
 \clearpage
 
 ```{r}
-#| label: inline-values
+#| label: strategy-reporting-objects
 #| include: false
 
-ineff <- validation_table %>% filter(Strategy_Label == "Ineffective Strategies")
-flip  <- validation_table %>% filter(Strategy_Label == "Other Effective Strategies (Flipping/Matching)")
-mrot  <- validation_table %>% filter(Strategy_Label == "Mental Rotation")
+ineff <- analysis_data %>%
+  filter(Strategy_Label == "Ineffective Strategies") %>%
+  summarise(
+    N            = n(),
+    Mean_Ability = mean(ability, na.rm = TRUE),
+    SD_Ability   = sd(ability, na.rm = TRUE),
+    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Instab  = mean(Instability, na.rm = TRUE)
+  )
+
+flip <- analysis_data %>%
+  filter(Strategy_Label == "Other Effective Strategies (Flipping/Matching)") %>%
+  summarise(
+    N            = n(),
+    Mean_Ability = mean(ability, na.rm = TRUE),
+    SD_Ability   = sd(ability, na.rm = TRUE),
+    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Instab  = mean(Instability, na.rm = TRUE)
+  )
+
+mrot <- analysis_data %>%
+  filter(Strategy_Label == "Mental Rotation") %>%
+  summarise(
+    N            = n(),
+    Mean_Ability = mean(ability, na.rm = TRUE),
+    SD_Ability   = sd(ability, na.rm = TRUE),
+    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Instab  = mean(Instability, na.rm = TRUE)
+  )
 ```
 
-### Strategy Identification via Clustering
+### Strategy Identification
 
-To identify distinct cognitive strategies used during the mental rotation task, we extracted five subject-level features from a mixed-effects model of log-transformed reaction times: baseline speed, absolute RT-angle slope, relative RT-angle slope, response instability, and learning rate across trials. These features were entered into a k-means clustering algorithm (k = 3, nstart = 25), yielding three distinct strategy groups.
+To characterize individual differences in how children approach the task, we fitted a mixed-effects model predicting log-RT from rotation angle, stimulus type, and trial number, with by-participant random slopes for angle and trial number. This allowed us to extract three person-level behavioral signatures for each child: their baseline response speed, the slope of their RT–angle function (both absolute and relative to their baseline speed), and their rate of within-task acceleration (learning rate). We additionally computed response instability as the standard deviation of model residuals, capturing trial-to-trial variability in RT not explained by item properties. These features were submitted to k-means clustering (k = 3).
 
-Cluster labels were assigned based on mean ability and relative slope: a low-ability cluster with a near-zero RT-angle slope was labeled "Ineffective Strategies" (n = `` `r ineff$N` ``); a higher-ability cluster with a moderate positive slope was labeled "Mental Rotation" (n = `` `r mrot$N` ``); and the largest cluster was labeled "Other Effective Strategies (Flipping/Matching)" (n = `` `r flip$N` ``). Summary statistics are presented in @tbl-cluster-summary.
+Cluster labels were assigned based on mean ability and relative slope: a low-ability cluster with a near-zero RT–angle slope was labeled "Ineffective Strategies" (n = r ineff$N); a higher-ability cluster with a moderate positive slope was labeled "Mental Rotation" (n = r mrot$N); and the largest cluster was labeled "Other Effective Strategies (Flipping/Matching)" (n = r flip$N). Summary statistics are presented in @tbl-cluster-summary.
 
-The three clusters differed significantly on both dimensions (@fig-validation-boxplots). Ability differed across all pairwise comparisons (all *p*s < .0001), with the Ineffective Strategies group showing markedly lower ability (M = `` `r round(ineff$Mean_Ability, 2)` ``, SD = `` `r round(ineff$SD_Ability, 2)` ``) than both the Flipping/Matching (M = `` `r round(flip$Mean_Ability, 2)` ``, SD = `` `r round(flip$SD_Ability, 2)` ``) and Mental Rotation (M = `` `r round(mrot$Mean_Ability, 2)` ``, SD = `` `r round(mrot$SD_Ability, 2)` ``) groups. Relative RT slope also differed significantly across all pairwise comparisons (all *p*s < .001), with the Mental Rotation cluster showing the steepest slope (M = `` `r round(mrot$Mean_Slope, 2)` ``), consistent with analog rotation processes that scale with angular disparity.
+The three clusters differed significantly on both dimensions (@fig-validation-boxplots). Ability differed across all pairwise comparisons (all *p*s < .0001), with the Ineffective Strategies group showing markedly lower ability (M = `r round(ineffMeanAbility,2)‘,SD=‘rround(ineffMean_Ability, 2)`, SD = `r round(ineff MeanAbility,2)‘,SD=‘rround(ineffSD_Ability, 2)`) than both the Flipping/Matching (M = `r round(flipMeanAbility,2)‘,SD=‘rround(flipMean_Ability, 2)`, SD = `r round(flip
+MeanAbility,2)‘,SD=‘rround(flipSD_Ability, 2)`) and Mental Rotation (M = `r round(mrotMean_Ability,2)‘,SD=‘rround(mrotMean_Ability, 2)`, SD = `r round(mrot MeanAbility,2)‘,SD=‘rround(mrotSD_Ability, 2)`) groups. Relative RT slope also differed significantly across all pairwise comparisons (all *p*s < .001), with the Mental Rotation cluster showing the steepest slope (M = `r round(mrot$Mean_Slope, 2)`), consistent with analog rotation processes that scale with angular disparity.
 
-Inspection of the RT-by-angle functions (@fig-rt-by-disparity) provided further validation of the cluster solution and offered mechanistic insight into the nature of each strategy. Rather than slowing with increasing angle as would be expected under systematic rotation, the Ineffective Strategies group showed decreasing RTs, suggesting they were relying on a more holistic or perceptual strategy rather than engaging in analytic rotation, consistent with their steeply declining accuracy (@fig-accuracy-by-angle). In contrast, both effective strategy groups showed increasing RTs with angular disparity, consistent with effortful but accurate processing. Critically, however, the two effective groups diverged at high angular disparities: whereas the Mental Rotation group continued to slow monotonically, the Flipping/Matching group showed a decrease in RT at 160°, crossing below the Mental Rotation line. This pattern could suggest a flipping strategy — rather than rotating a stimulus through its full angular distance, participants may exploit the reflective symmetry of the task by flipping the stimulus and rotating through the shorter complementary angle (e.g., 180° − 160° = 20°). Under this account, flipping becomes increasingly advantageous at high angular disparities, producing the inverted-U RT function observed. The Flipping/Matching group also maintained the highest accuracy across all angles despite elevated overall RTs, consistent with a slower but highly reliable alternative strategy.
+Inspection of the RT–angle functions (@fig-rt-by-disparity) reveals qualitatively distinct profiles across the three groups. The Ineffective Strategies group (n = r ineff$N) is characterized by very low ability (M = r round(ineff$Mean_Ability, 2), SD = r round(ineff$SD_Ability, 2)), a flat or slightly negative RT–angle slope (M = r round(ineff$Mean_Slope, 2)), and high response instability (M = r round(ineff$Mean_Instab, 2)). Strikingly, this group's RT decreases with rotation angle — they respond more quickly to harder items, not more slowly. Combined with steeply declining accuracy (@fig-accuracy-by-angle), this pattern suggests these children are not engaging with the spatial structure of the items, and may be guessing or disengaging at higher angular disparities. This is a qualitatively different failure mode from simply being slow.
+
+The Other Effective Strategies (Flipping/Matching) group (n = r flip$N) is the largest cluster and shows the highest mean ability (M = r round(flip$Mean_Ability, 2), SD = r round(flip$SD_Ability, 2)). Their RT–angle function rises to a peak around 120° before declining at 160°, consistent with exploiting reflective symmetry at high angular disparities rather than performing full analog rotation — a pattern sometimes described as "flipping" in the mental rotation literature — as items approach 180°, mirror images become easier to distinguish perceptually without requiring full rotation. Their sustained accuracy across angles supports this interpretation: this is a genuinely effective strategy, not a speed-accuracy trade-off.
+
+The Mental Rotation group (n = r mrot$N) shows the classic monotonically increasing RT–angle function consistent with the Shepard-Metzler signature, with the steepest relative slope of the three groups (M = r round(mrot$Mean_Slope, 2), SD = r round(mrot$SD_Slope, 2)). Interestingly, this group has lower mean ability than the Flipping/Matching group (M = r round(mrot$Mean_Ability, 2), SD = r round(mrot$SD_Ability, 2)), despite appearing to use the strategy the task was designed to elicit. This may reflect the greater cognitive cost of analog rotation relative to feature-matching strategies, particularly for the 2D stimuli where rotational demands are lower.
+Taken together, these profiles offer a tentative explanation for the pattern observed in the angular disparity analysis: the flat RT–angle functions for 2D stimuli likely reflect the predominance of feature-matching strategies in the sample, with only a minority of children showing clear evidence of analog rotation.
+
+### Cross-Cultural Consistency of Strategy Clusters
+
+To assess whether the identified clusters are recoverable within each site independently — a basic test of their robustness — we re-ran the k-means procedure separately within each site and computed agreement between the local and global solutions using percent agreement and the Adjusted Rand Index (ARI; see Appendix). Moderate agreement was observed across all three sites (Canada: r fmt_pct(a_wes$pct_agree), ARI = r fmt_num(a_wes$ARI); Colombia: r fmt_pct(a_uni$pct_agree), ARI = r fmt_num(a_uni$ARI); Germany: r fmt_pct(a_mpi$pct_agree), ARI = r fmt_num(a_mpi$ARI)). The Ineffective Strategies and Flipping/Matching clusters were recovered consistently across sites, but the Mental Rotation cluster was not independently recoverable in Germany or Canada, where locally-clustered children predominantly mapped onto the Flipping/Matching group instead. This suggests the Mental Rotation cluster may partly emerge from pooling across sites rather than reflecting a robustly distinct behavioral profile within any single site. Colombia showed the most consistent local recovery across all three clusters.
+
+These findings reinforce the exploratory status of the strategy analysis. The broad distinction between ineffective and effective strategies appears stable, but the finer-grained distinction between analog rotation and feature-matching strategies should be treated with caution pending replication in larger, site-specific samples.
+
 \clearpage
 
 # References
@@ -1723,7 +1829,7 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
 
 ```{r}
 #| label: fig-rt-angle_raw
-#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI."
+#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI. CAT trials excluded."
 #| fig-width: 8
 #| fig-height: 8
   
