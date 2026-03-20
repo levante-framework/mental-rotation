@@ -253,7 +253,7 @@ site_pal_labelled <- setNames(
 
 ```{r}
 #| label: tbl-participants
-#| tbl-cap: "**Participant characteristics by site.** Age in years. Individual-level demographic data (gender, SES) were unavailable due to de-identification protocols; site-level sampling characteristics are described in the Methods."
+#| tbl-cap: "**Participant characteristics by site.** Age in years."
 #| echo: false
 
 mrot_df <- all_scores %>%
