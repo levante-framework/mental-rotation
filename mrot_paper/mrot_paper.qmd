@@ -3,41 +3,56 @@ title: "Measuring the development of mental rotation ages 5-12 across three popu
 shorttitle: "LEVANTE Mental Rotation"
 
 author: 
-  - name: "A"
-    orcid: 
+  - name: "Fionnuala O'Reilly"
+    orcid: 0000-0002-4355-9088
     affiliations:
       - ref: stanford
-  - name: "B"
-    orcid: 
+  - name: "Xingyao Xiao"
+    orcid: 0000-0001-8430-0438
     affiliations:
       - ref: stanford
-  - name: "C"
-    orcid: 
+  - name: "Rebecca Zhu"
+    orcid: 0000-0003-0957-5962
     affiliations:
       - ref: stanford
-  - name: "D"
-    orcid: 
+  - name: "Mika Braginsky"
+    orcid: 0000-0001-9039-3220
     affiliations:
       - ref: stanford
-  - name: "E"
-    orcid: 
+  - name: "George Kachergis"
+    orcid: 0000-0003-4153-4167
     affiliations:
       - ref: stanford
-  - name: "F"
-    orcid: 
+  - name: "Nilàm Ram"
+    orcid: 0000-0003-1671-5257
     affiliations:
       - ref: stanford
-  - name: "G"
-    orcid: 
+  - name: "Benjamin W. Domingue"
+    orcid: 0000-0002-3894-9049
+    affiliations:
+      - ref: stanford
+  - name: "Michael C. Frank"
+    orcid: 0000-0002-7551-4378
     affiliations:
       - ref: stanford
     corresponding: true
-    email: x@stanford.edu
-    # role:
-    #   - conceptualization
-    #   - writing
-    #   - editing
-    #   - supervision
+    email: mcfrank@stanford.edu
+
+   # roles:
+   #    - conceptualization
+   #    - data curation
+   #    - formal analysis
+   #    - funding acquisition
+   #    - investigation
+   #    - methodology
+   #    - project administration
+   #    - resources
+   #    - software
+   #    - supervision
+   #    - validation
+   #    - visualization
+   #    - writing – original draft
+   #    - writing – review & editing
 
 affiliations:
   - id: stanford
@@ -48,7 +63,7 @@ author-note:
     financial-support: "This work was supported by the Jacobs Foundation."
     # conflict-of-interest: The author has no conflict of interest to declare.
 
-abstract: To add.
+abstract: "Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive and developmental psychology, yet the cross-cultural generalizability of mental rotation tasks in children remains largely untested. The present study examines data from 568 children aged 5–12 across three culturally diverse sites (Canada, Germany, and Colombia) participating in the Learning Variability Network Exchange (LEVANTE), addressing three research questions that build a layered case for the task's cross-cultural validity. First, multi-group item response theory supported scalar measurement invariance across sites, indicating that the same item features drive difficulty regardless of cultural context. Second, the canonical angular disparity effect first reported by Shepard and Metzler (1971) replicated across all three sites for 3D stimuli, with a significant but attenuated effect for 2D stimuli. Third, an exploratory clustering analysis identified three profiles of task engagement ranging from disengagement to effective feature-matching and analog rotation, though the boundary between the latter two profiles was not robustly recoverable within sites. Taken together, these findings establish that the LEVANTE mental rotation task captures a consistent and spatially-driven construct across culturally diverse samples of children — a necessary precondition for using cross-cultural data to understand why children vary in spatial reasoning."
 
 keywords: ["Cognitive Development", "Mental Rotation", "Spatial Reasoning"]
 word-count: true
@@ -78,7 +93,6 @@ format:
     # fig-pos: H        
     # tbl-pos: H  
     
-
 knitr:
   opts_chunk:
     ft.arraystretch: 1.25
@@ -90,7 +104,6 @@ execute:
   error: true
   cache: true
 ---
-
 
 # Introduction
 
@@ -143,7 +156,7 @@ The LEVANTE mental rotation task is adapted from @frick2013development. On each 
 ```{r}
 #| label: fig-mrot-example-items
 #| fig-cap: "Example items for 2D and 3D rotation"
-#| out-width: "80%"
+#| out-width: "100%"
 #| fig-align: "center"
 
 knitr::include_graphics("mrot_item_examples.pdf")
@@ -423,6 +436,7 @@ all_coefs |>
 ```{r}
 #| label: fig-dev-trends
 #| fig-cap: "**Developmental trajectories of mental rotation ability across sites.** Points represent individual children's IRT-estimated ability (θ); curves are GAM-smoothed age trends with 95% confidence intervals. Vertical offsets between sites should not be interpreted as performance differences; LEVANTE sites differ in sampling and recruitment in ways that heavily confound absolute comparisons."
+#| fig-align: "center"
 #| fig-width: 8
 #| fig-height: 6
 
@@ -683,6 +697,7 @@ fmt_p <- function(p) {
 #| label: fig-rt-angle-per-run
 #| include: false
 #| fig-cap: "**Reaction Time by angle within age groups ±95% CI.**"
+#| fig-align: "center"
 #| fig-width: 8
 #| fig-height: 8
 
@@ -754,6 +769,7 @@ For 2D stimuli, we observed a significant but smaller positive angle effect (β 
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
 #| fig-cap: "**Reaction Time by angle within age groups ±95% CI.**"
+#| fig-align: "center"
 #| include: true
 #| fig-width: 7
 #| fig-height: 6.5
@@ -827,6 +843,7 @@ Having established that 3D stimuli elicit a clear angular disparity effect while
 ```{r}
 #| label: fig-within-person-trials
 #| fig-cap: "**Trial-level Reaction Time Dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Re-test and CAT data removed."
+#| fig-align: "center"
 #| fig-width: 6
 #| fig-height: 4
 
@@ -1185,6 +1202,7 @@ Taken together, these profiles offer one possible explanation for the attenuated
 #| label: fig-validation-boxplots
 #| fig-width: 9
 #| fig-height: 5
+#| fig-align: "center"
 #| fig-cap: "**Cluster profiles.** Left: ability (theta) by strategy group. Right: relative RT slope by strategy group. Significance bars show pairwise t-tests; non-significant comparisons hidden."
 
 my_comparisons <- list(
@@ -1220,6 +1238,7 @@ p_ability + p_slope
 #| label: fig-rt-by-disparity
 #| fig-width: 7
 #| fig-height: 4
+#| fig-align: "center"
 #| include: true
 #| fig-cap: "**Participant-weighted mean log RT by rotation angle and strategy cluster.** Shaded bands show 95% CIs."
 
@@ -1272,6 +1291,7 @@ ggplot(rt_disparity_summary, aes(x = angle, y = mean_rt,
 #| label: fig-accuracy-by-angle
 #| fig-width: 7
 #| fig-height: 4
+#| fig-align: "center"
 #| fig-cap: "**Participant-weighted Accuracy-angle functions by strategy cluster.** Shaded bands show 95% CIs."
 
 acc_by_strategy <- mrot_rich_data %>%
@@ -1399,6 +1419,7 @@ As a final component of our exploratory third research question, we examined whe
 
 ```{r}
 #| label: fig-strategy-by-age
+#| fig-align: "center"
 #| include: true
 #| fig-width: 7
 #| fig-height: 3.5
@@ -1670,6 +1691,7 @@ Three research questions motivated this study, each asking in a different way wh
 #| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI. CAT trials excluded."
 #| fig-width: 8
 #| fig-height: 8
+#| fig-align: "center"
   
   # Add raw data underneath
   p_mrot_rt_angle_age_2 <- ggplot() +
