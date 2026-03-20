@@ -355,16 +355,15 @@ mrot_2pl_scalar %>%
     `# params` = df
   ) %>%
   gt() %>%
-  # Ensures the gt title area is clear and doesn't overlap the Quarto caption
-  tab_header(title = md("")) %>% 
+  tab_header(title = md("")) %>% # ensures the gt title doesn't overlap caption
   fmt_number(columns = c(logLik, AIC, BIC), decimals = 2) %>%
   fmt_number(columns = `# params`, decimals = 0, use_seps = FALSE) %>%
   cols_align(align = "center", columns = c(Task, Factors, Model, Invariance, `# params`)) %>%
   cols_align(align = "right",  columns = c(logLik, AIC, BIC)) %>%
   tab_options(
-    #table.font.size = px(12), # Increased slightly for better legibility
-    table.width = pct(100),   # Ensures it fills the page width nicely
-    data_row.padding = px(3)   # Tighter row spacing often looks better for stats
+    #table.font.size = px(12), 
+    table.width = pct(100),   
+    data_row.padding = px(3)  
   )
 ```
 
@@ -491,7 +490,7 @@ baseline_runs <- mrot_rt_trial %>%
   ungroup() %>%
   select(site, user_id, run_id)
 
-# keep only trials from those baseline runs
+# keep only trials from baseline runs
 mrot_rt_trial_no_retest <- mrot_rt_trial %>%
   semi_join(baseline_runs, by = c("site", "user_id", "run_id"))
 
@@ -530,8 +529,8 @@ cat_data <- read_rds(here("..", "levante-pilots", "02_scoring_outputs", "scores"
 library(lme4)
 library(lmerTest) # p-values via Satterthwaite
 
-# prepare trial-level data for modelling
-# filter to non-CAT, add age, stimulus, angle, age-filter consistent with rest of paper
+# prepare trial-level data for modeling
+# filter to non-CAT, add age, stimulus, angle
 mrot_lme_data <- mrot_rt_trial_no_retest %>%
   left_join(cat_data, by = c("user_id", "run_id")) %>%
   filter(adaptive == FALSE) %>%
@@ -547,10 +546,10 @@ mrot_lme_data <- mrot_rt_trial_no_retest %>%
                      include.lowest = TRUE, right = TRUE),
     item_group = factor(item_group),   # 2D vs 3D
     site       = factor(site),
-    angle_sc   = as.numeric(scale(angle)),  # scale for model stability
+    angle_sc   = as.numeric(scale(angle)), 
     log_rt     = log(rt_s)
   ) %>%
-  filter(is.finite(log_rt), correct == 1)  # correct trials only, finite RTs
+  filter(is.finite(log_rt), correct == 1)  # correct trials only
 
 ```
 
@@ -558,17 +557,17 @@ mrot_lme_data <- mrot_rt_trial_no_retest %>%
 #| label: rt-angle-models
 #| include: false
 
-# --- 3D stimuli: main test of angular disparity effect ---
+# 3D stimuli: main test of angular disparity effect
 
 mrot_3d <- mrot_lme_data %>%
   filter(item_group == "3d") %>%
   filter(!is.na(site), !is.na(age_group), !is.na(angle_sc), !is.na(log_rt)) %>%
-  droplevels()  # important - drops empty factor levels that can cause issues
+  droplevels()  # drops empty factor levels 
 
 # check size
 nrow(mrot_3d)
 
-# now fit all models on the same object
+# fit all models on the same object
 m_3d_main <- lmer(
   log_rt ~ angle_sc + (1 + angle_sc | user_id),
   data = mrot_3d, REML = FALSE,
@@ -636,58 +635,58 @@ anova_combined <- anova(m_combined_main, m_combined_interaction)
 #| label: rt-angle-results
 #| include: false
 
-# --- site model numbers (for results text) ---
+# site model numbers (for results text)
 m_3d_site_coefs <- coef(summary(m_3d_site))
-beta_site_co    <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
-se_site_co      <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
-p_site_co       <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
-beta_site_ca    <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
-se_site_ca      <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
-p_site_ca       <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
+beta_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
+se_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
+p_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
+beta_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
+se_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
+p_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
 
 anova_site_chisq <- anova(m_3d_main, m_3d_site)$Chisq[2]
-anova_site_df    <- anova(m_3d_main, m_3d_site)$Df[2]
-anova_site_p     <- anova(m_3d_main, m_3d_site)[["Pr(>Chisq)"]][2]
+anova_site_df <- anova(m_3d_main, m_3d_site)$Df[2]
+anova_site_p <- anova(m_3d_main, m_3d_site)[["Pr(>Chisq)"]][2]
 
-anova_age_chisq  <- anova(m_3d_main, m_3d_age)$Chisq[2]
-anova_age_df     <- anova(m_3d_main, m_3d_age)$Df[2]
-anova_age_p      <- anova(m_3d_main, m_3d_age)[["Pr(>Chisq)"]][2]
+anova_age_chisq <- anova(m_3d_main, m_3d_age)$Chisq[2]
+anova_age_df <- anova(m_3d_main, m_3d_age)$Df[2]
+anova_age_p <- anova(m_3d_main, m_3d_age)[["Pr(>Chisq)"]][2]
 
-# --- 3D main model numbers ---
-fe_3d        <- fixef(m_3d_main)
+# 3D main model numbers
+fe_3d <- fixef(m_3d_main)
 beta_3d_main <- fe_3d["angle_sc"]
-se_3d_main   <- sqrt(diag(vcov(m_3d_main)))["angle_sc"]
-t_3d_main    <- coef(summary(m_3d_main))["angle_sc", "t value"]
-df_3d_main   <- coef(summary(m_3d_main))["angle_sc", "df"]
-p_3d_main    <- coef(summary(m_3d_main))["angle_sc", "Pr(>|t|)"]
+se_3d_main <- sqrt(diag(vcov(m_3d_main)))["angle_sc"]
+t_3d_main <- coef(summary(m_3d_main))["angle_sc", "t value"]
+df_3d_main <- coef(summary(m_3d_main))["angle_sc", "df"]
+p_3d_main <- coef(summary(m_3d_main))["angle_sc", "Pr(>|t|)"]
 
-# --- 2D main model numbers ---
-fe_2d        <- fixef(m_2d_main)
+# 2D main model numbers
+fe_2d <- fixef(m_2d_main)
 beta_2d_main <- fe_2d["angle_sc"]
-se_2d_main   <- sqrt(diag(vcov(m_2d_main)))["angle_sc"]
-t_2d_main    <- coef(summary(m_2d_main))["angle_sc", "t value"]
-df_2d_main   <- coef(summary(m_2d_main))["angle_sc", "df"]
-p_2d_main    <- coef(summary(m_2d_main))["angle_sc", "Pr(>|t|)"]
+se_2d_main <- sqrt(diag(vcov(m_2d_main)))["angle_sc"]
+t_2d_main <- coef(summary(m_2d_main))["angle_sc", "t value"]
+df_2d_main <- coef(summary(m_2d_main))["angle_sc", "df"]
+p_2d_main <- coef(summary(m_2d_main))["angle_sc", "Pr(>|t|)"]
 
-# --- combined model numbers ---
+# combined model numbers
 anova_combined_chisq <- anova_combined$Chisq[2]
-anova_combined_df    <- anova_combined$Df[2]
-anova_combined_p     <- anova_combined[["Pr(>Chisq)"]][2]
+anova_combined_df <- anova_combined$Df[2]
+anova_combined_p <- anova_combined[["Pr(>Chisq)"]][2]
 
-fe_comb      <- fixef(m_combined_interaction)
-se_comb      <- sqrt(diag(vcov(m_combined_interaction)))
+fe_comb <- fixef(m_combined_interaction)
+se_comb <- sqrt(diag(vcov(m_combined_interaction)))
 
 beta_3d_comb <- fe_comb["angle_sc"]
-se_3d_comb   <- se_comb["angle_sc"]
+se_3d_comb <- se_comb["angle_sc"]
 beta_2d_comb <- fe_comb["angle_sc"] + fe_comb["angle_sc:item_group2d"]
-beta_diff    <- fe_comb["angle_sc:item_group2d"]
-se_diff      <- se_comb["angle_sc:item_group2d"]
+beta_diff <- fe_comb["angle_sc:item_group2d"]
+se_diff <- se_comb["angle_sc:item_group2d"]
 
-comb_coefs   <- coef(summary(m_combined_interaction))
-t_diff       <- comb_coefs["angle_sc:item_group2d", "t value"]
-p_diff       <- comb_coefs["angle_sc:item_group2d", "Pr(>|t|)"]
+comb_coefs <- coef(summary(m_combined_interaction))
+t_diff <- comb_coefs["angle_sc:item_group2d", "t value"]
+p_diff <- comb_coefs["angle_sc:item_group2d", "Pr(>|t|)"]
 
-# --- p-value formatter ---
+# p-value formatter
 fmt_p <- function(p) {
   if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
 }
@@ -858,7 +857,7 @@ trial_resid_data <- mrot_rt_trial_no_retest %>%
   ) %>%
   filter(!is.na(angle), !is.na(stimulus), !is.na(item_group))
 
-# residualise log_rt on angle + stimulus + item_group
+# residualize log_rt on angle + stimulus + item_group
 resid_model <- lm(log_rt ~ angle + stimulus + item_group, 
                   data = trial_resid_data)
 
@@ -915,7 +914,7 @@ within_person_data <- trial_resid_data %>%
   ) %>%
   filter(!is.na(trial_number), !is.na(log_rt_resid))
 
-# Model 1: continuous trial slope only — no special status for transition
+# Model 1: continuous trial slope only 
 m_wp_continuous <- lmer(
   log_rt_resid ~ trial_c + (1 + trial_c | user_id),
   data    = within_person_data,
@@ -998,7 +997,7 @@ ability_user <- all_scores %>%
     .groups = "drop"
   )
 
-# Prepare trial-level data for the rich model
+# prep trial-level data for the rich model
 mrot_rich_data <- mrot_rt_trial_no_retest %>%
   mutate(
     stimulus = str_extract(item, "^[a-z]+"),
@@ -1071,7 +1070,7 @@ rich_features_final <- rich_features_raw %>%
   mutate(
     Site = str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
-  # Filter to ensure all needed features
+  # filter to ensure all needed features
   filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
 ```
 
@@ -1106,7 +1105,7 @@ cluster_stats <- analysis_data %>%
     .groups = "drop"
   )
 
-# FIX: as.character() on all pull() calls
+# as.character() on all pull() calls
 low_eff_id <- cluster_stats %>%
   arrange(mean_ability) %>% 
   slice(1) %>% 
@@ -1129,9 +1128,9 @@ holistic_id <- effective_clusters %>%
 
 analysis_data <- analysis_data %>%
   mutate(Strategy_Label = case_when(
-    as.character(Global_Cluster) == low_eff_id    ~ "Ineffective Strategies",
+    as.character(Global_Cluster) == low_eff_id ~ "Ineffective Strategies",
     as.character(Global_Cluster) == analytical_id ~ "Other Effective Strategies (Flipping/Matching)",
-    as.character(Global_Cluster) == holistic_id   ~ "Mental Rotation"
+    as.character(Global_Cluster) == holistic_id ~ "Mental Rotation"
   ),
   Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
 
@@ -1231,7 +1230,6 @@ p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = S
   theme(legend.position = "none", axis.text.x = element_text(angle = 32, hjust = 1))
 
 p_ability + p_slope
-
 ```
 
 ```{r}
@@ -1281,8 +1279,8 @@ ggplot(rt_disparity_summary, aes(x = angle, y = mean_rt,
   scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
   theme(legend.position = "bottom") +
   labs(
-    x      = "Rotation Angle (°)",
-    y      = "Mean log RT (participant-weighted)",
+    x = "Rotation Angle (°)",
+    y = "Mean log RT (participant-weighted)",
     colour = "Strategy", fill = "Strategy"
   )
 ```
@@ -1502,9 +1500,9 @@ get_local_strategy_labels <- function(df_site,
   tmp %>%
     mutate(
       Strategy_Local = dplyr::case_when(
-        as.character(Local_Cluster) == ineff_id     ~ "Ineffective Strategies",
+        as.character(Local_Cluster) == ineff_id ~ "Ineffective Strategies",
         as.character(Local_Cluster) == other_eff_id ~ "Other Effective Strategies (Flipping/Matching)",
-        as.character(Local_Cluster) == mrot_id      ~ "Mental Rotation"
+        as.character(Local_Cluster) == mrot_id ~ "Mental Rotation"
       ),
       Strategy_Local = factor(Strategy_Local, levels = levels(analysis_data$Strategy_Label))
     ) %>%
