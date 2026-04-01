@@ -613,6 +613,7 @@ all_coefs |>
 
 ```
 @fig-dev-trends plots participants' mental rotation ability estimates (θ) against age. Curves show GAM-smoothed age trends within each site, used here as a visualization aid to highlight the general shape of the developmental trajectory without imposing a linear form; formal statistical modelling of these developmental trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, indicating that the task captures developmental change consistently across cultural contexts. The dispersion of points within age bands underscores substantial individual variability among same-aged children. 
+\clearpage
 
 ```{r}
 #| label: fig-dev-trends
@@ -721,6 +722,12 @@ m_2d_main <- lmer(
   data = mrot_2d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
+
+m_2d_site <- lmer(
+  log_rt ~ angle_sc * site + (1 + angle_sc | user_id),
+  data = mrot_2d, REML = FALSE,
+  control = lmerControl(optimizer = "bobyqa")
+)
 ```
 
 ```{r}
@@ -782,6 +789,19 @@ se_2d_main <- sqrt(diag(vcov(m_2d_main)))["angle_sc"]
 t_2d_main <- coef(summary(m_2d_main))["angle_sc", "t value"]
 df_2d_main <- coef(summary(m_2d_main))["angle_sc", "df"]
 p_2d_main <- coef(summary(m_2d_main))["angle_sc", "Pr(>|t|)"]
+
+# 2D site model numbers
+m_2d_site_coefs <- coef(summary(m_2d_site))
+beta_2d_site_co <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
+se_2d_site_co   <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
+p_2d_site_co    <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
+beta_2d_site_ca <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
+se_2d_site_ca   <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
+p_2d_site_ca    <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
+
+anova_2d_site_chisq <- anova(m_2d_main, m_2d_site)$Chisq[2]
+anova_2d_site_df    <- anova(m_2d_main, m_2d_site)$Df[2]
+anova_2d_site_p     <- anova(m_2d_main, m_2d_site)[["Pr(>Chisq)"]][2]
 
 # children who completed 3D trial
 n_children_3d <- mrot_3d %>% distinct(user_id) %>% nrow()
@@ -882,7 +902,7 @@ p_mrot_rt_angle_age_1
 ## Angular Sensitivity
 Our second research question asked whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts — specifically, whether the canonical angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (*M* age = `r age_3d_mean`, *SD* = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope did not differ significantly between Germany and Colombia (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), but was significantly shallower in Canada than Germany (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping (5–7, 7–9, 9–12 years), did not independently moderate the angle slope (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
-For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). A combined model confirmed that the angle slope was significantly steeper for 3D than 2D stimuli (β difference = `r round(beta_diff, 2)`, SE = `r round(se_diff, 2)`, χ²(`r anova_combined_df`) = `r round(anova_combined_chisq, 2)`, p `r fmt_p(anova_combined_p)`), with the 3D slope (β = `r round(beta_3d_comb, 2)`) approximately `r round(beta_3d_comb / beta_2d_comb, 1)` times larger than the 2D slope (β = `r round(beta_2d_comb, 2)`).
+For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope was significantly shallower in Colombia than Germany (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`), but did not differ significantly between Canada and Germany (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`). This pattern is the reverse of that observed for 3D stimuli, where Colombia did not differ from Germany but Canada showed a shallower slope, suggesting that site differences in angular sensitivity may be stimulus-type dependent. A combined model confirmed that the angle slope was significantly steeper for 3D than 2D stimuli (β difference = `r round(beta_diff, 2)`, SE = `r round(se_diff, 2)`, χ²(`r anova_combined_df`) = `r round(anova_combined_chisq, 2)`, p `r fmt_p(anova_combined_p)`), with the 3D slope (β = `r round(beta_3d_comb, 2)`) approximately `r round(beta_3d_comb / beta_2d_comb, 1)` times larger than the 2D slope (β = `r round(beta_2d_comb, 2)`).
 
 @fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by age group (5–7, 7–9, and 9–12 years) and site, separately for 2D and 3D stimuli. Cell-level sample sizes underlying this figure are reported in @apx-rt-angle-sample-sizes. Raw per-run data underlying these trends are reported in @apx-irt-ability-age. Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in @apx-within-person-dynamics. 
 
@@ -1157,7 +1177,7 @@ mrot_strat <- analysis_data %>%
 ## Strategy Variation
 Our third research question asked, exploratorily, whether children's trial-level behavioral signatures reveal meaningful variation in how they engage with the task's spatial demands — and whether any such variation differs across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. 
 
-K=3 clusters showed clearly differentiated profiles on both defining dimensions (@fig-validation-boxplots). Ability differed across all pairwise comparisons (all *p*s < .0001), with the 'Ineffective Strategies' group showing markedly lower ability (M = `r round(ineff$Mean_Ability, 2)`, SD = `r round(ineff$SD_Ability, 2)`) than both the 'Other Effective Strategies (Flipping/Matching)' (M = `r round(flip$Mean_Ability, 2)`, SD = `r round(flip$SD_Ability, 2)`) and 'Mental Rotation' (M = `r round(mrot_strat$Mean_Ability, 2)`, SD = `r round(mrot_strat$SD_Ability, 2)`) groups. Relative RT slopes also differed significantly across all pairwise comparisons (all *p*s < .001), with the Mental Rotation cluster showing the steepest slope (M = `r round(mrot_strat$Mean_Slope, 2)`), consistent with analog rotation processes that scale with angular disparity. We note that flipping and feature matching are theoretically distinct processes [@mckee2025malleability; @hegarty2018ability], but are treated as a single cluster here on pragmatic grounds that both tend to produce a weaker or less systematic angular disparity effect than analog rotation. 
+K=3 clusters (see the [Robustness Checks](#sec-robustness-checks) section below for justification of K=3) showed clearly differentiated profiles on both defining dimensions (@fig-validation-boxplots). Ability differed across all pairwise comparisons (all *p*s < .0001), with the 'Ineffective Strategies' group showing markedly lower ability (M = `r round(ineff$Mean_Ability, 2)`, SD = `r round(ineff$SD_Ability, 2)`) than both the 'Other Effective Strategies (Flipping/Matching)' (M = `r round(flip$Mean_Ability, 2)`, SD = `r round(flip$SD_Ability, 2)`) and 'Mental Rotation' (M = `r round(mrot_strat$Mean_Ability, 2)`, SD = `r round(mrot_strat$SD_Ability, 2)`) groups. Relative RT slopes also differed significantly across all pairwise comparisons (all *p*s < .001), with the Mental Rotation cluster showing the steepest slope (M = `r round(mrot_strat$Mean_Slope, 2)`), consistent with analog rotation processes that scale with angular disparity. We note that flipping and feature matching are theoretically distinct processes [@mckee2025malleability; @hegarty2018ability], but are treated as a single cluster here on pragmatic grounds that both tend to produce a weaker or less systematic angular disparity effect than analog rotation. 
 
 Inspection of the RT–angle functions (@fig-rt-by-disparity) reveals qualitatively distinct profiles across the three groups. The Ineffective Strategies group (n = `r ineff$N`) is characterized by very low ability (M = `r round(ineff$Mean_Ability, 2)`, SD = `r round(ineff$SD_Ability, 2)`), a flat or slightly negative RT–angle slope (M = `r round(ineff$Mean_Slope, 2)`), and high response instability (M = `r round(ineff$Mean_Instab, 2)`). This group's RT decreases with rotation angle — they respond more quickly to harder items, not more slowly. Combined with steeply declining accuracy (@fig-accuracy-by-angle), this pattern suggests these children are not engaging with the spatial structure of the items, and may be disengaging at higher angular disparities. This is a qualitatively different failure mode from simply being slow.
 
@@ -1170,7 +1190,7 @@ The Mental Rotation group (n = `r mrot_strat$N`) shows the classic monotonically
 #| fig-width: 9
 #| fig-height: 5
 #| fig-align: "center"
-#| fig-cap: "**Cluster profiles.** Left: ability (θ) by strategy group. Right: relative RT slope by strategy group. Significance bars show pairwise t-tests."
+#| fig-cap: "**Cluster profiles.** A) Ability (θ) by strategy group. B) Relative RT slope by strategy group. Significance bars show pairwise t-tests."
 
 my_comparisons <- list(
   c("Ineffective Strategies", "Other Effective Strategies (Flipping/Matching)"),
@@ -1178,31 +1198,48 @@ my_comparisons <- list(
   c("Other Effective Strategies (Flipping/Matching)", "Mental Rotation")
 )
 
-library(ggsignif)
+# wrap x-axis labels to two lines
+wrapped_labels <- stringr::str_wrap(
+  c("Ineffective Strategies",
+    "Other Effective Strategies (Flipping/Matching)",
+    "Mental Rotation"),
+  width = 20
+)
+
 p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = my_colors) +
+  scale_x_discrete(labels = setNames(wrapped_labels, 
+                     c("Ineffective Strategies",
+                       "Other Effective Strategies (Flipping/Matching)",
+                       "Mental Rotation"))) +
   geom_signif(comparisons = my_comparisons,
               map_signif_level = TRUE,
               y_position = c(2.5, 3.0, 3.5),
               tip_length = 0.01,
               linewidth = 0.25) +
-  labs(title = "1. Ability by cluster", y = "Ability (Theta)", x = NULL) +
-  theme(legend.position = "none", axis.text.x = element_text(angle = 32, hjust = 1))
+  labs(title = "A) Ability by cluster", y = "Ability (Theta)", x = NULL) +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 0, hjust = 0.5))
 
 p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = my_colors) +
+  scale_x_discrete(labels = setNames(wrapped_labels,
+                     c("Ineffective Strategies",
+                       "Other Effective Strategies (Flipping/Matching)",
+                       "Mental Rotation"))) +
   geom_hline(yintercept = 0, linetype = "dashed", color = pal$grey) +
-  geom_signif(comparisons = my_comparisons, 
+  geom_signif(comparisons = my_comparisons,
               map_signif_level = TRUE,
               y_position = c(1.0, 1.5, 2.0),
               tip_length = 0.01,
               linewidth = 0.25) +
-  labs(title = "2. RT slope by cluster", y = "Relative Slope", x = NULL) +
-  theme(legend.position = "none", axis.text.x = element_text(angle = 32, hjust = 1)) +
+  labs(title = "B) RT slope by cluster", y = "Relative Slope", x = NULL) +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 0, hjust = 0.5)) +
   coord_cartesian(ylim = c(-2, 2.5))
 
 p_combined <- p_ability + p_slope
@@ -1257,10 +1294,11 @@ p_rt_disparity <- ggplot(rt_disparity_summary, aes(x = angle, y = mean_rt,
     labels = function(x) stringr::str_wrap(x, width = 25)
   ) +
   scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+      plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt")) +
   labs(
     x = "Rotation Angle (°)",
-    y = "Mean log RT (participant-weighted)",
+    y = "Mean log RT",
     colour = "Strategy", fill = "Strategy"
   )
 p_rt_disparity
@@ -1318,10 +1356,11 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
     labels = function(x) stringr::str_wrap(x, width = 25)
   ) +
   scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+      plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt")) +
   labs(
     x = "Rotation angle (degrees)",
-    y = "Mean Accuracy (participant-weighted)",
+    y = "Mean Accuracy",
     colour = "Strategy", fill = "Strategy"
   )
 ```
@@ -1373,7 +1412,7 @@ validation_table %>%
     data_row.padding = px(3)
   )
 ```
-### Robustness checks
+### Robustness checks {#sec-robustness-checks}
 Three robustness checks are reported in full in the appendices. First, comparison of k=2 and k=3 solutions confirmed that k=2 collapsed two qualitatively distinct RT–angle profiles, justifying the three-cluster solution (see @apx-cluster-summary-stats and @apx-cluster). Cluster membership by age group is reported in @apx-strategy-age-group. Second, dimensionality reduction via PCA, t-SNE, and UMAP consistently recovered the separation between the Ineffective Strategies group and the two effective engagement profiles, while the boundary between the Mental Rotation and Other Effective Strategies (Flipping/Matching) groups remained less clear — supporting the continuum interpretation (see @apx-dimreduc). Third, re-analysis using full 0–360° rotation angles replicated the main findings and provided direct support for shortest-path rotation, with both the the Mental Rotation and Other Effective Strategies (Flipping/Matching) groups showing near-symmetric inverted-U RT functions peaking around 200–240° (see @apx-360-angle).
 
 ```{r}
@@ -1622,7 +1661,14 @@ Three research questions motivated this study, each asking in a different way wh
 n_table <- mrot_items_rt_agebin_ci %>%
   filter(angle != 20) %>%
   select(site, age_group, stimulus, item_group, angle, n) %>%
-  mutate(cell = paste0(item_group, ".", stimulus)) %>%
+  mutate(
+    cell = paste0(item_group, ".", stimulus),
+    age_group = dplyr::recode(as.character(age_group),
+      "[5,7]"  = "5–7",
+      "(7,9]"  = "7–9",
+      "(9,12]" = "9–12"
+    )
+  ) %>%
   select(-stimulus, -item_group) %>%
   tidyr::pivot_wider(names_from = angle, values_from = n) %>%
   arrange(site, age_group, cell)
@@ -1639,7 +1685,6 @@ knitr::kable(
     position = "center",
     full_width = FALSE
   )
-
 ```
 
 # IRT Ability by Age {.appendix #apx-irt-ability-age}
