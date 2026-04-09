@@ -176,6 +176,7 @@ library(ggpubr)
 library(factoextra)
 library(gridExtra)
 library(umap)
+library(gt)
 ```
 
 ```{r}
@@ -206,22 +207,26 @@ site_map <- tibble::tibble(
 #                   "trog","vocab","tom")
 
 # Run data
-run_data <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data/run_data.rds"))
+run_data <- readr::read_rds(here::here("data/runs_mrot.rds"))
+# run_data <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data/run_data.rds"))
 # colnames(run_data)
 
 # RT data
-all_sum_scores <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data","task_data_nested.rds"))
+all_sum_scores <- readr::read_rds(here::here("data/task_data_nested.rds"))
+# all_sum_scores <- readr::read_rds(here::here("..", "levante-pilots", "01_fetched_data","task_data_nested.rds"))
 # colnames(all_sum_scores)
 # glimpse(all_sum_scores$data)
 
 # IRT data
-all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs","scores","scores_combined.rds"))
+all_scores <- readr::read_rds(here::here("models/mrot_scores.rds"))
+# all_scores <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs","scores","scores_combined.rds"))
 # colnames(all_scores)
 # table(all_scores$item_task)
 # table(all_scores$metric_type)
 
 # coefficients
-all_coefs <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs/all_coefs.rds"))
+all_coefs <- readr::read_rds(here::here("models/mrot_coef.rds"))
+# all_coefs <- readr::read_rds(here::here("..", "levante-pilots", "02_scoring_outputs/all_coefs.rds"))
 
 survey_gender <- readr::read_rds(
   here::here("survey", "survey_gender_conditions.rds")
@@ -275,7 +280,7 @@ Site-level sampling characteristics are described in @tbl-participants. Due to d
 #| include: false
 
 mrot_rt_trial <- all_sum_scores %>%
-  dplyr::filter(item_task == "mrot") %>%
+  # dplyr::filter(item_task == "mrot") %>%
   dplyr::select(site, data) %>%
   tidyr::unnest(data) %>%
   dplyr::mutate(
@@ -331,13 +336,16 @@ mrot_rt_trial %>%
 ```{r}
 #| label: define-cat-data
 #| include: false
-cat_data <- read_rds(here("..", "levante-pilots", "02_scoring_outputs", "scores", "scores_combined.rds")) %>%
-  group_by(user_id, item_task) %>%
-  arrange(time_started) %>%
+# cat_data <- read_rds(here("..", "levante-pilots", "02_scoring_outputs", "scores", "scores_combined.rds")) %>%
+cat_data <- all_scores  %>%
+  # group_by(user_id, item_task) %>%
+  group_by(user_id) %>%
+  # arrange(time_started) %>%
+  arrange(age) %>%
   mutate(run_number = row_number(),
          age_gap = age - age[1]) %>%
   ungroup() %>%
-  filter(item_task == "mrot") %>%
+  # filter(item_task == "mrot") %>%
   filter(run_number == 1 | (run_number == 2 & age_gap > 1/6)) %>%
   distinct(user_id, run_id, adaptive)
 
@@ -375,16 +383,16 @@ pct_trials_cat   <- round(100 * n_trials_cat / n_trials_total, 1)
 #| echo: false
 
 mrot_df <- all_scores %>%
-  filter(item_task == "mrot", metric_type == "ability") %>%
+  # filter(item_task == "mrot", metric_type == "ability") %>%
   mutate(
-    age = as.numeric(age),
-    metric_value = as.numeric(metric_value),
+    # age = as.numeric(age),
+    # metric_value = as.numeric(metric_value),
     site_label   = dplyr::recode(site, !!!setNames(names(site_labels), 
                                                     unname(site_labels)),
                                   .default = site)
   ) %>%
   filter(is.finite(age), is.finite(metric_value)) %>%
-  filter(age < 13)
+  filter(age >= 5, age < 13)
 
 trials_per_child <- mrot_rt_trial_no_retest %>%
   left_join(mrot_df %>% distinct(user_id, site_label), by = "user_id") %>%
@@ -477,34 +485,38 @@ To characterize individual differences in how children engaged with the task's s
 ```{r}
 #| label: irt-anova
 #| include: false
-github_dir <- file.path(path.expand("~"), "Documents", "GitHub")
-task_anova_path <- file.path(github_dir, "levante-pilots", "02_scoring_outputs", "task_anova.rds")
-stopifnot(file.exists(task_anova_path))
-task_anova <- readRDS(task_anova_path)
 
-mrot_models <- task_anova %>%
-  filter(task == "mrot") %>%
-  mutate(
-    # create ordering to match your model progression logic
-    model_order = case_when(
-      itemtype == "rasch" & invariance == "configural" ~ 1,
-      itemtype == "rasch" & invariance == "scalar"     ~ 2,
-      itemtype == "2pl"   & invariance == "configural" ~ 3,
-      itemtype == "2pl"   & invariance == "metric"     ~ 4,
-      itemtype == "2pl"   & invariance == "scalar"     ~ 5
-    )
-  ) %>%
-  arrange(model_order)
+# github_dir <- file.path(path.expand("~"), "Documents", "GitHub")
+# task_anova_path <- file.path(github_dir, "levante-pilots", "02_scoring_outputs", "task_anova.rds")
+# stopifnot(file.exists(task_anova_path))
+# task_anova <- readRDS(task_anova_path)
+# 
+# mrot_models <- task_anova %>%
+#   filter(task == "mrot") %>%
+#   mutate(
+#     # create ordering to match your model progression logic
+#     model_order = case_when(
+#       itemtype == "rasch" & invariance == "configural" ~ 1,
+#       itemtype == "rasch" & invariance == "scalar"     ~ 2,
+#       itemtype == "2pl"   & invariance == "configural" ~ 3,
+#       itemtype == "2pl"   & invariance == "metric"     ~ 4,
+#       itemtype == "2pl"   & invariance == "scalar"     ~ 5
+#     )
+#   ) %>%
+#   arrange(model_order)
+
+task_anova <- read_rds("models/mrot_anova.rds")
+mrot_models <- task_anova |> filter(model_set == "multigroup_site")
 ```
 
 ```{r}
 #| label: mrot-irt-values
 #| include: false
 
-mrot_2pl_scalar <- task_anova %>%
+mrot_2pl_scalar <- mrot_models %>%
   filter(task == "mrot", itemtype == "2pl", invariance == "scalar")
 
-mrot_rasch_scalar <- task_anova %>%
+mrot_rasch_scalar <- mrot_models %>%
   filter(task == "mrot", itemtype == "rasch", invariance == "scalar")
 
 delta_bic_rasch <- round(mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC, 1)
@@ -574,7 +586,8 @@ invar_table
 mrot_configural <- all_coefs |>
   dplyr::filter(task == "mrot",
                 itemtype == "2pl",
-                invariance == "configural") |>
+                invariance == "configural",
+                model_set == "multigroup_site") |>
   dplyr::mutate(group = dplyr::recode(group,
                   "pilot_western_ca"  = "Canada",
                   "pilot_mpieva_de"   = "Germany",
@@ -618,7 +631,7 @@ p3 <- plot_scatter(mrot_wide_d, "Germany", "Colombia", "Germany", "Colombia")
 # checks
 all_coefs |>
   dplyr::filter(task == "mrot", itemtype == "2pl", invariance == "configural") |>
-  dplyr::count(subset, group)
+  dplyr::count(model_set, subset, group)
 
 # only 12 items appearing: multigroup IRT model was fitted only on the overlap items by design. The non-overlap items were either fitted in separate by-site models, or weren't included in the multigroup analysis at all.
 
@@ -2285,7 +2298,7 @@ The flipping signature observed in the Other Effective Strategies (Flipping/Matc
 
 # Ability estimate - keep site + user
 ability_user <- all_scores %>% 
-  filter(item_task == "mrot", metric_type == "ability") %>% 
+  filter(task == "mrot", metric_type == "ability") %>% 
   mutate(
     metric_value = as.numeric(metric_value),
     age = as.numeric(age)

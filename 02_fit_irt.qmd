@@ -1,0 +1,145 @@
+```{r}
+library(glue)
+library(here)
+library(mirt)
+library(rlang)
+library(rlevante)
+library(tidyverse)
+
+# TODO: functions in these files should be put in a package
+source(here("../levante-pilots/02_score_data/02_fit_irt/irt_helpers.R"))
+source(here("../levante-pilots/02_score_data/02_fit_irt/irt_modular.R"), chdir = TRUE)
+source(here("../levante-pilots/02_score_data/02_fit_irt/registry_helper.R"))
+source(here("../levante-pilots/02_score_data/02_fit_irt/anova_mirt.R"))
+
+# directory in which to save model records
+regdir <- here("models")
+
+task_data_nested <- read_rds("data/task_data_nested.rds")
+runs_mrot <- read_rds("data/runs_mrot.rds")
+```
+
+```{r}
+# define set of multigroup models (Rasch/2PL x invariance)
+models_multigroup <- tribble(
+  ~nfact, ~itemtype, ~invariance,
+       1,   "Rasch", "configural",
+       1,   "Rasch", "scalar",
+       1,     "2PL", "configural",
+       1,     "2PL", "metric",
+       1,     "2PL", "scalar",
+)
+
+# define priors (list where names are parameter names and values are vectors with priorType, val1, val2)
+priors <- list(d = c("norm", 0, 3), a1 = c("norm", 1, 0.3))
+```
+
+```{r}
+# fit multigroup models (grouped by dataset)
+fit_task_models_multigroup(task_data = task_data_nested,
+                           models = models_multigroup,
+                           priors = priors,
+                           task = "mrot",
+                           group = dataset,
+                           registry_dir = regdir)
+
+# fit multigroup models (grouped by site)
+fit_task_models_multigroup(task_data = task_data_nested,
+                           models = models_multigroup,
+                           priors = priors,
+                           task = "mrot",
+                           group = site,
+                           registry_dir = regdir)
+```
+
+```{r}
+# read in all models in regdir
+mods <- list_models() |> load_models()
+
+# extract model specifications from filenames
+mods_coded <- mods |>
+  mutate(file = str_remove(filename, "\\.rds$")) |>
+  separate_wider_delim(file, names = c("task_dup", "itemtype", "nfact", "invariance"),
+                       delim = "_", cols_remove = FALSE, too_few = "align_start") |>
+  select(-task_dup) |>
+  mutate(invariance = invariance |> replace_na(""))
+```
+
+```{r}
+# extract each model's BIC
+mods_overlap <- mods_coded |>
+  filter(subset == "overlap_items") |>
+  mutate(BIC = map_dbl(mod_rec, \(rec) rec@fit$BIC))
+
+# best model on overlapping items
+mods_best_overlap <- mods_overlap |>
+  group_by(model_set) |>
+  filter(BIC == min(BIC))
+
+# all items model corresponding to best model above
+mods_best_multigroup <- mods_coded |>
+  filter(subset == "all_items") |>
+  semi_join(mods_best_overlap |> select(model_set, itemtype, nfact, invariance))
+```
+
+```{r}
+# extract scores
+mod_scores <- mods_best_multigroup |>
+  mutate(scores = map(mod_rec, scores)) |>
+  select(task, model_set, itemtype, invariance, scores) |>
+  unnest(scores) |>
+  left_join(runs_mrot) |>
+  rename(metric_value = ability, metric_se = se) |>
+  mutate(metric_type = "ability")
+
+write_rds(mod_scores, "models/mrot_scores.rds", compress = "gz")
+
+extract_coefs <- \(mod_rec) {
+  model_vals(mod_rec) |>
+    as_tibble() |>
+    filter(group != "GROUP", item != "GROUP") |>
+    select(group, item, name, value) |>
+    pivot_wider(names_from = name, values_from = value) |>
+    mutate(item = str_remove(item, glue("{item_sep}[0-9]+$"))) |>
+    distinct() |>
+    mutate(difficulty = -d / a1) |>
+    arrange(difficulty)
+}
+
+# extract item params
+mod_coef <- mods_coded |>
+  mutate(coefs = map(mod_rec, extract_coefs)) |>
+  select(task, model_set, subset, itemtype, invariance, coefs) |>
+  unnest(coefs)
+
+write_rds(mod_coef, "models/mrot_coef.rds", compress = "gz")
+```
+
+```{r}
+# reconstruct mirt objects out of model records
+mod_obj <- mods_overlap |>
+  mutate(mod = map(mod_rec, model_from_record))
+
+# map multigroup model tibble to coding in mods
+mod_map <- models_multigroup |>
+  mutate(itemtype = itemtype |> str_to_lower(),
+         nfact = paste0("f", nfact),
+         model_order = 1:n())
+
+# create anova of all multigroup models for each task
+task_anova <- mod_obj |>
+  # join in model list from fit_irt_modular.qmd for sequencing models
+  left_join(mod_map) |>
+  arrange(model_set, model_order) |>
+  select(task, model_set, mod, nfact, itemtype, invariance, model_order) |>
+  # mutate(logPrior = map_dbl(mod, \(m) m@Fit$logPrior)) |>
+  # run anova for each task
+  nest(mods = -c(task, model_set)) |>
+  mutate(anova = map(mods, \(tm) anova_mirt_wrapper(tm$mod))) |>
+  # remove model objects and flatten out anova results
+  mutate(mod_info = map(mods, \(tm) tm |> select(-mod))) |>
+  select(task, model_set, mod_info, anova) |>
+  unnest(c(mod_info, anova))
+
+write_rds(task_anova, here("models/mrot_anova.rds"), compress = "gz")
+```
