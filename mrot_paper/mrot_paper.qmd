@@ -184,8 +184,8 @@ library(gt)
 #| include: false
 #| cache: false
 
-source(here::here("..", "levante-pilots", "plot_settings.R"))
-source(here::here("..", "levante-pilots", "03_explore_tasks", "explore_helper.R"))
+source(here::here("helper", "plot_settings.R"))
+source(here::here("helper", "explore_helper.R"))
 ```
 
 ```{r}
@@ -260,6 +260,7 @@ site_pal_labelled <- setNames(
 # Methods
 
 ## Participants
+
 Data for the present study were drawn from three pilot sites participating in LEVANTE: the Universidad de los Andes in Bogotá, Colombia (uniandes-co); the Max Planck Institute for Evolutionary Anthropology in Leipzig, Germany (mpieva-de); and the University of Western Ontario in London, Canada (western-ca). Site codes rather than country names are used throughout to reflect that each site represents a single institution/region within a large, diverse country, and should not be taken as representative of national populations. Collectively, these sites supported task localization and technical implementation, iterative piloting, and deployment in varied testing contexts. The resulting pilot datasets enabled preliminary evaluation of construct validity, measurement invariance, test–retest reliability, and calibration for computer-adaptive administration, as well as descriptive assessment of age-related differences across the targeted constructs.
 
 ### uniandes-co
@@ -299,6 +300,7 @@ n_final <- mrot_df |>
   distinct(user_id) |>
   nrow()
 ```
+
 Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded` participants with ages above 12 years were excluded as they were outside the target age range (5–12 years), leaving a final sample of n = `r n_final`. Data for this study are openly available at https://researcher.levante-network.org/data. Analysis code is available at https://github.com/levante-framework/Mental-rotation.
 
 ```{r}
@@ -456,6 +458,7 @@ mrot_df |>
 ```
 
 ## Measure
+
 The LEVANTE mental rotation task [@frick2013development] is administered digitally on a tablet or computer as part of a battery of nine core tasks. It employs three stimulus categories of increasing difficulty: 2D animal figures (ducks and rabbits), and 3D block configurations from the @shepard1971mental set. A more recent version of the task additionally includes polygons, intended as stimuli of intermediate difficulty between the two original categories, however polygon trials are excluded from the present analyses due to insufficient data. On each trial, a target image is displayed alongside two alternatives from the same category; one alternative depicts the target at a different orientation, while the other is a non-matching foil that cannot be reconciled with the target through rotation alone. Children select whichever alternative they judge to correspond to the target by tapping or clicking on their device. The angular disparity between target and correct alternative varies systematically across trials (40°, 80°, 120°, 160°), enabling analysis of how increasing rotation demands affect both accuracy and response latency.
 
 ```{r}
@@ -470,7 +473,9 @@ knitr::include_graphics("mrot_item_examples.pdf")
 # pdf_convert("mrot_item_examples.pdf", format = "png", dpi = 300,
 #             filenames = "mrot_item_examples.png")
 ```
+
 \clearpage
+
 The nine core tasks in LEVANTE, including mental rotation, were initially designed in English and then subsequently adapted for Spanish and German following a set of internationalization procedures in collaboration with researchers at the uniandes-co and mpieva-de sites, respectively - see @Kachergis2025LEVANTEcoretasks for more detail.
 
 The LEVANTE team has implemented the mental rotation task in a computer-adaptive testing (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (θ) that is re-estimated after each response. The updated θ then guides selection of the next item so that it is appropriately challenging for each individual child. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. In the present sample, `r pct_cat`% of administrations (`r n_cat` of `r n_total`) used the CAT format. In the fixed format, testing stopped after either six consecutive incorrect responses or a maximum of 10 minutes, whichever came first. Refer to @Kachergis2025LEVANTEcoretasks for more information on the CAT versions of all LEVANTE tasks.
@@ -478,20 +483,25 @@ The LEVANTE team has implemented the mental rotation task in a computer-adaptive
 ## Analysis
 
 ### Item Screening
+
 Prior to fitting psychometric models, we examined item-level performance within each site to identify poorly functioning items. Items showing average accuracy near or below chance, low item–total correlations, high missingness, or other anomalous patterns were excluded from further analysis. For full details of the item screening procedure, see @Kachergis2025LEVANTEcoretasks. 
 
 ### Item Response Theory Models
+
 Item response theory (IRT) is a psychometric framework that models the relationship between a latent trait and performance on individual task items. Unlike classical test theory, which relies on total scores and treats all items as equivalent contributors to measurement, IRT estimates item-level parameters independently of the specific sample tested, providing more precise measurement across the ability range. All models assumed a single underlying factor, following standard practice in psychometric analyses of mental rotation tasks and consistent with the task's design as a measure of a single spatial ability.
 
 We compared two different IRT models. The Rasch model (1-parameter logistic; 1PL) estimates only item difficulty, holding discrimination constant across items — that is, it assumes all items are equally good at differentiating children of higher versus lower ability. The two-parameter logistic model (2PL) relaxes this constraint, additionally estimating each item's discrimination parameter. A better-fitting 2PL therefore indicates that items vary meaningfully in how well they distinguish between ability levels.
 
 ### Cross-Site Invariance
+
 To assess cross-site measurement invariance, we fitted both models with varying constraints across the three sites: configural invariance (all parameters free to vary), metric invariance (item discriminations constrained equal across sites), and scalar invariance (both discriminations and difficulties constrained equal). We compared models using BIC as the selection criterion [@putnick2016measurement]. Overlapping items across sites served as anchors to establish a common scale, with non-overlapping items freely estimated within the same multigroup model. We estimated all models in R using the mirt package [@chalmers2012mirt] via marginal maximum likelihood with 500 quadrature points. We specified Gaussian priors on item difficulty (M = 0, SD = 3) and discrimination (M = 1, SD = 0.3) in all models. We extracted ability scores (θ) using expected a posteriori (EAP) scoring.
 
 ### Angular Sensitivity
+
 To investigate whether performance was sensitive to rotation angle in the theoretically predicted direction, we fitted linear mixed-effects models predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Practice trials (a single 20° item) were excluded, leaving four rotation angles (40°, 80°, 120°, and 160°). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from all RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r n_trials_total` trials from baseline runs, `r n_trials_cat` (`r pct_trials_cat`%) were administered in CAT format and excluded, leaving `r n_trials_non_cat` trials for analysis.
 
 ### Strategy Variation
+
 To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here: the strategy analysis extracts relative person-level features (e.g., RT–angle slope relative to baseline speed, residual instability) rather than estimating the angle effect at the population level, and including all available trials yields more reliable individual-level estimates. From this model, we extracted four person-level features for each child: baseline response speed, absolute RT–angle slope, RT–angle slope relative to baseline speed, and trial-by-trial RT trend. Response instability was additionally computed as the standard deviation of model residuals. These five features were then submitted to k-means clustering. 
 
 # Results
@@ -539,6 +549,7 @@ bic_2pl_scalar  <- round(mrot_2pl_scalar$BIC, 2)
 aic_2pl_scalar  <- round(mrot_2pl_scalar$AIC, 2)
 npar_2pl_scalar <- mrot_2pl_scalar$df
 ```
+
 Our first research question asked whether the mental rotation task measures the same underlying construct across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`, *k* = `r npar_2pl_scalar`), outperforming the best-fitting Rasch model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt). The superiority of the 2PL model indicates that mental rotation items vary meaningfully in their discrimination. Scalar invariance — constraining both item discriminations and difficulties across sites — was supported over more flexible models, indicating not only that items are similarly ordered in difficulty across sites, but that the absolute spacing between items on the latent scale is also equivalent. 
 
 This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artefacts. Practically, the relative difficulty of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across all three sites. Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across sites, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in the following section.
@@ -656,6 +667,7 @@ all_coefs |>
 # note to check this with Doria. 
 
 ```
+
 @fig-dev-trends plots participants' mental rotation ability estimates (θ) against age. Curves show GAM-smoothed age trends within each site, used here as a visualization aid to highlight the general shape of the developmental trajectory without imposing a linear form; formal statistical modelling of these developmental trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, indicating that the task captures developmental change consistently across cultural contexts. The dispersion of points within age bands underscores substantial individual variability among same-aged children. 
 \clearpage
 
@@ -977,7 +989,9 @@ p_mrot_rt_angle_age_1 <- ggplot(
 
 p_mrot_rt_angle_age_1
 ```
+
 ## Angular Sensitivity
+
 Our second research question asked whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts — specifically, whether the canonical angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (*M* age = `r age_3d_mean`, *SD* = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. To aid interpretation, a 90-degree increase in rotation angle was associated with approximately `r pct_increase_90`% longer response times for 3D stimuli, consistent with the predicted linear increase in mental rotation time. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope did not differ significantly between Germany and Colombia (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), but was significantly shallower in Canada than Germany (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping (5–7, 7–9, 9–12 years), did not independently moderate the angle slope (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
 For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope was significantly shallower in Colombia than Germany (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`), but did not differ significantly between Canada and Germany (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`). This pattern is the reverse of that observed for 3D stimuli, where Colombia did not differ from Germany but Canada showed a shallower slope, suggesting that site differences in angular sensitivity may be stimulus-type dependent. A combined model confirmed that the angle slope was significantly steeper for 3D than 2D stimuli (β difference = `r round(beta_diff, 2)`, SE = `r round(se_diff, 2)`, χ²(`r anova_combined_df`) = `r round(anova_combined_chisq, 2)`, p `r fmt_p(anova_combined_p)`), with the 3D slope (β = `r round(beta_3d_comb, 2)`) approximately `r round(beta_3d_comb / beta_2d_comb, 1)` times larger than the 2D slope (β = `r round(beta_2d_comb, 2)`).
@@ -1695,7 +1709,9 @@ uni_other2mrot <- get_move(tab_uni, lab_mrot, lab_other)
 agreement_3class
 confusion_by_site
 ```
+
 ### Cross-Cultural Consistency of Strategy Clusters
+
 We next examined whether the continuum structure is recoverable within each site independently by re-running the k-means procedure separately within each site and computing agreement between the local and global solutions using percent agreement and the Adjusted Rand Index (ARI). The most fundamental distinction — between children who disengage from the spatial structure of the task and those who engage effectively — was recovered consistently across all three sites. The Ineffective Strategies and Other Effective Strategies (Flipping/Matching) clusters showed moderate-to-good local recovery across sites (Canada: `r fmt_pct(a_wes$pct_agree)`, ARI = `r fmt_num(a_wes$ARI)`; Colombia: `r fmt_pct(a_uni$pct_agree)`, ARI = `r fmt_num(a_uni$ARI)`; Germany: `r fmt_pct(a_mpi$pct_agree)`, ARI = `r fmt_num(a_mpi$ARI)`); Germany's lower percent agreement despite its larger sample may reflect greater RT variability introduced by its remote home-based testing format.
 
 The finer-grained boundary between the Mental Rotation and the Other Effective Strategies (Flipping/Matching) clusters was less stable: the Mental Rotation cluster was not independently recoverable in Germany or Canada, where locally-clustered children predominantly mapped onto the Other Effective Strategies (Flipping/Matching) group instead. Colombia showed the most consistent local recovery across all three regions of the continuum. These findings reinforce the interpretation that what is robustly recoverable across cultural contexts is the broad distinction between disengagement and effective spatial engagement — not the finer subdivision within the effective end of the continuum.
@@ -1705,12 +1721,15 @@ The finer-grained boundary between the Mental Rotation and the Other Effective S
 The central aim of this study was to establish whether the LEVANTE mental rotation task measures the same underlying construct across three culturally diverse sites. The answer, across three distinct levels of analysis, is largely yes. The task achieves scalar measurement invariance indicating that its psychometric structure is consistent across cultural contexts. The canonical angular disparity effect replicates across all three sites for 3D stimuli, providing process-level evidence that performance is driven by the spatial demands of the task in the way theory predicts [@shepard1971mental]. And at the level of individual behavioral profiles, the broad distinction between children who engage with the spatial structure of the task and those who do not is recoverable within each site independently. That these three forms of convergent evidence emerge across geographically and culturally diverse samples extends the cross-cultural generalizability of mental rotation research beyond solely WEIRD samples [@davis2021cultural; @henrich2010weirdest], and supports the interpretation that the task is capturing a genuinely spatial construct rather than one that is specific to the cultural or educational contexts in which it was developed.
 
 ## Cross-Site Invariance
+
 Turning to our first research question, the demonstration of scalar invariance under a 2PL model establishes that the mental rotation task functions comparably across pilot sites — that items are ordered by difficulty in the same way for children in Bogotá as for children in Leipzig or Ontario, and that ability estimates can be placed on a common latent scale [@putnick2016measurement]. This is a meaningful result: tasks developed in one context do not automatically achieve psychometric equivalence when administered elsewhere [@van2004bias], and the inclusion of a low-to-middle-income site from the Global South makes this a stronger test than studies conducted entirely within high-income North American and European samples. That said, scalar invariance establishes metric comparability rather than cultural equivalence in any deeper sense. With only one non-WEIRD site — though one spanning both urban and rural schools, representing a meaningfully different cultural and socioeconomic context from the German and Canadian samples — the present findings should be treated as an encouraging foundation rather than evidence of broad cross-cultural portability. Further validation across more culturally and socioeconomically diverse sites will be needed before stronger claims can be made. Finally, given that LEVANTE sites differ substantially in sampling, recruitment, and testing format, site-level performance differences are not interpreted here regardless of the invariance result.
 
 ## Angular Sensitivity
+
 Our second research question asked whether performance is driven by the spatial properties of the stimuli in the way theory predicts. The key benchmark here is the angular disparity effect first reported by @shepard1971mental: as the rotational distance between a 3D target and its match increases, so too does the time required to judge whether they correspond. This relationship, among the most replicated findings in cognitive psychology [@cooper1973chronometric; @peters2008applications], has been demonstrated extensively in WEIRD child and adult samples [@kaltner2016developmental; @jansen2015role], but its replication across culturally diverse samples of children had not previously been established. Its consistent emergence here, across all three sites, suggests that the underlying cognitive process it indexes — the spatially continuous transformation of object orientation — is not specific to the cultural or educational contexts in which it was originally documented. This matters because psychometric equivalence and process-level validity are distinct forms of evidence. It is one thing to show that a task achieves comparable difficulty ordering across sites; it is another to show that performance is sensitive to the spatial structure of the stimuli in the way that mental rotation theory predicts [@borsboom2004concept]. The angular disparity effect provides the latter, and its cross-cultural replication substantially strengthens the case that the task is engaging spatial cognition specifically, rather than some culturally-variable combination of task-general skills. The shallower slope for 2D stimuli likely reflects the greater familiarity of duck and rabbit silhouettes relative to the 3D geometric shapes: when stimuli are easy to tell apart, children can make same/different judgments by comparing surface features rather than rotating, producing a weaker RT–angle relationship [@folk1987effects; @bethell1988mental].
 
 ## Strategy Variation
+
 Our third research question asked whether meaningful variation in how children engage with the spatial demands of the task can be identified from trial-level behavioral signatures. Research with adults has established that solvers draw on a range of strategies when performing mental rotation tasks, spanning a holistic-analytic continuum [@gluck2003spatial], and that strategy selection varies across individuals and shifts with task demands [@nazareth2019strategy]. Crucially, such strategies can be identified from behavioral signatures in RT data even in the absence of direct observation [@geiser2006separating], providing the methodological basis for the present analysis.
 
 The clustering analysis suggested that children's behavioral profiles are better understood as distributed along a continuum than as falling into discrete strategy types; a framing we adopt partly because the data resist clean separation, and partly because, as discussed below, the Mental Rotation cluster proves difficult to recover within individual sites. At one end of this continuum, a subset of children — labeled 'Ineffective Strategies' — show clear disengagement from the spatial structure of the task: flat or declining RT–angle slopes, high response instability, and near-chance accuracy at high angular disparities. Notably, the 'Ineffective Strategies' group's near-zero relative slope superficially resembles that of the 'Other Effective Strategies (Flipping/Matching)' group, but for a different reason: disengagement rather than an alternative spatial solution. At the other end, children engage effectively with the task, though they vary in the form that engagement takes.
