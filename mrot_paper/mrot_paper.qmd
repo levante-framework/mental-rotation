@@ -1081,7 +1081,7 @@ ability_user <- all_scores %>%
     metric_value = as.numeric(metric_value),
     age = as.numeric(age)
   ) %>%
-  group_by(site, user_id) %>%
+  group_by(site, user_id, run_id) %>%
   summarise(
     ability = mean(metric_value, na.rm = TRUE),
     age     = first(age),
@@ -1104,15 +1104,15 @@ mrot_rich_data <- mrot_rt_trial_no_retest %>%
 contrasts(mrot_rich_data$stimulus) <- contr.sum(levels(mrot_rich_data$stimulus))
 m_rich <- lmer(
   log_rt ~ angle_s * stimulus + trial_s +
-    (1 + angle_s + trial_s | user_id) +
-    (1 | item),
+    (1 + angle_s + trial_s | run_id) +
+    (1 | item), # + (1 | user_id) ?
   data = mrot_rich_data,
   control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
 )
 
 # extract subject-level random effects
-ran_effs <- ranef(m_rich)$user_id %>%
-  tibble::rownames_to_column("user_id") %>%
+ran_effs <- ranef(m_rich)$run_id %>%
+  tibble::rownames_to_column("run_id") %>%
   rename(
     int_dev   = `(Intercept)`,
     slope_dev = angle_s,
@@ -1143,7 +1143,7 @@ rich_features_raw <- ran_effs %>%
 mrot_rich_data$resid <- residuals(m_rich)
 
 instability_data <- mrot_rich_data %>%
-  group_by(site, user_id) %>%
+  group_by(site, user_id, run_id) %>%
   summarise(
     # Instability = SD of residuals (pure internal noise)
     Instability = sd(resid, na.rm = TRUE), 
@@ -1151,13 +1151,13 @@ instability_data <- mrot_rich_data %>%
   )
 
 user_site_map <- mrot_rt_trial_no_retest %>%
-  distinct(site, user_id)
+  distinct(site, user_id, run_id)
 
 # join
 rich_features_final <- rich_features_raw %>%
-  left_join(user_site_map, by = "user_id") %>%
-  left_join(instability_data, by = c("site", "user_id")) %>% 
-  left_join(ability_user,  by = c("site", "user_id")) %>%
+  left_join(user_site_map, by = c("run_id")) %>%
+  left_join(instability_data, by = c("site", "user_id", "run_id")) %>% 
+  left_join(ability_user,  by = c("site", "user_id", "run_id")) %>%
   mutate(
     Site = str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
@@ -1174,6 +1174,10 @@ my_colors <- c(
   "Other Effective Strategies (Flipping/Matching)" = RColorBrewer::brewer.pal(3, "Set1")[2], # blue
   "Mental Rotation" = RColorBrewer::brewer.pal(3, "Set1")[3]  # green
 )
+
+rich_features_final <- rich_features_final |> 
+  left_join(mrot_rt_trial |> group_by(user_id, run_id) |> summarise(n = n())) |>
+  filter(n >= 10) # 1251 -> 1177
 
 analysis_data <- rich_features_final %>%
   filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, 
@@ -1200,7 +1204,7 @@ cluster_stats <- analysis_data_filt %>%
     .groups = "drop"
   )
 
-
+# partioning around medoids (k-medoids) - more robust to outliers
 library(fpc)
 pamk.best <- pamk(global_input)
 cat("number of clusters estimated by optimum average silhouette width:", pamk.best$nc, "\n")
@@ -1208,13 +1212,16 @@ plot(pam(global_input, pamk.best$nc)) # 2
 
 
 library(dbscan)
+cl <- hdbscan(global_input, minPts = 3)
+cl <- hdbscan(global_input, minPts = 5)
 cl <- hdbscan(global_input, minPts = 7)
+cl <- hdbscan(global_input, minPts = 10) 
 # very unstable with changing minPts..
 
 library(cluster)
 library(factoextra)
 
-factoextra::fviz_nbclust(global_input)
+# factoextra::fviz_nbclust(global_input) # broken package?
 
 pam.res <- pam(global_input, 3)
 print(pam.res)
@@ -2367,7 +2374,7 @@ ability_user <- all_scores %>%
     metric_value = as.numeric(metric_value),
     age = as.numeric(age)
   ) %>%
-  group_by(site, user_id) %>%
+  group_by(site, user_id, run_id) %>%
   summarise(
     ability = mean(metric_value, na.rm = TRUE),
     age     = first(age),
