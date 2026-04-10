@@ -119,50 +119,16 @@ sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
 
 summary(sex_mod)
 
+
+sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id),
+  data = filter(mrot_df_gender, site == "pilot_mpieva_de"))
+
+summary(sex_mod_de)
+
+
 library(brms)
 sex_mod_bayes <- brm(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
   data = mrot_df_gender)
 ```
 
 
-
-
-
-```{r}
-#| label: gender-ca
-#| include: false
-
-demographics_ca <- readxl::read_excel(here::here("demographics_data", "LEVANTE Demographics Western University (By Child).xlsx"))
-
-# check dimensions and first few column names
-dim(demographics_ca)
-colnames(demographics_ca)
-
-# look at the first few rows
-head(demographics_ca, 3)
-
-# check unique values across all Q columns
-demographics_ca |>
-  select(starts_with("Q")) |>
-  summarise(across(everything(), \(x) paste(unique(na.omit(x)), collapse = " | "))) |>
-  tidyr::pivot_longer(everything(), names_to = "column", values_to = "unique_values") |>
-  filter(str_detect(unique_values, regex("male|female|boy|girl|man|woman", ignore_case = TRUE)))
-
-# extract q3 and join
-demographics_ca_gender <- demographics_ca |>
-  select(child_id = `Child ID`, sex_birth_ca = `Q3...20`) |>
-  filter(!is.na(sex_birth_ca))
-
-# check distribution
-table(demographics_ca_gender$sex_birth_ca, useNA = "always")
-
-# check ID overlap with your main data
-sum(demographics_ca_gender$child_id %in% mrot_rt_trial_no_retest$user_id)
-
-demographics_ca_raw <- readxl::read_excel(
-  here::here("demographics_data", "LEVANTE Demographics Western University (By Child).xlsx"),
-  n_max = 2 
-)
-# glimpse(demographics_ca_raw) # no child data (only caregiver)
-
-```
