@@ -1,0 +1,134 @@
+```{r}
+#| label: survey-gender
+#| include: false
+
+
+survey_gender <- readr::read_rds(
+  here::here("survey", "survey_gender_conditions.rds")
+)
+# colnames(survey_gender)
+
+survey_gender_wide <- survey_gender |>
+  filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
+  select(child_id, variable, string_response) |>
+  group_by(child_id, variable) |>
+  # keep non-NA if available, otherwise NA
+  summarise(string_response = na.omit(string_response) |> unique() |> 
+              (\(x) if(length(x) == 1) x else NA_character_)(),
+            .groups = "drop") |>
+  tidyr::pivot_wider(names_from = variable, values_from = string_response) |>
+  rename(sex = ChildSexBirth, 
+         gender = ChildGenderCurrent)
+```
+
+
+```{r}
+# distributions
+table(survey_gender_wide$sex, useNA = "always")
+table(survey_gender_wide$gender, useNA = "always")
+```
+
+
+```{r}
+
+# do any child_ids from survey match user_ids in your main data?
+sum(survey_gender_wide$child_id %in% mrot_df$user_id)
+sum(survey_gender_wide$child_id %in% mrot_rt_trial_no_retest$user_id)
+```
+
+
+
+```{r}
+de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
+  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
+
+
+# number of DE users
+n_distinct(mrot_df$user_id[mrot_df$site == "pilot_mpieva_de"])
+
+# number overlapping with data
+length(intersect(de_sex$user_id, mrot_df$user_id))
+
+# number overlapping with surveys
+length(intersect(de_sex$user_id, survey_gender_wide$child_id))
+
+sex_data <- full_join(de_sex, 
+          rename(survey_gender_wide, sex_survey = sex), 
+          by = c("user_id" = "child_id"))
+
+sex_data |>
+  filter_out(is.na(sex_survey) | is.na(sex_demo)) |>
+  filter(sex_demo != sex_survey)
+
+
+sex_data_cleaned <- sex_data |>
+  filter_out(sex_demo != sex_survey) |>
+  transmute(user_id = user_id,
+    sex = ifelse(is.na(sex_survey), sex_demo, sex_survey))
+```
+
+
+
+
+
+
+
+
+
+```{r}
+mrot_rt_trial_no_retest |> 
+  distinct(user_id) |> 
+  nrow()
+
+mrot_rt_trial_no_retest |>
+  left_join(sex_data_cleaned) |>
+  distinct(user_id, site, sex) |>
+  group_by(site) |>
+  summarise(
+    n_total = n(),
+    n_with_sex = sum(!is.na(sex)),
+    pct = round(100 * n_with_sex / n_total, 1)
+  )
+```
+
+
+
+```{r}
+mrot_df_gender <- inner_join(mrot_df, survey_gender_wide, 
+                             by = c("user_id" = "child_id")) |>
+  filter_out(is.na(sex)) |>
+
+
+ggplot(mrot_df_gender, aes(x = age, y = metric_value, colour = sex)) +
+  geom_point(alpha = 0.35, size = 1.1) +
+  geom_line(aes(group = user_id), alpha = .3) + 
+  geom_smooth(method = "lm") +
+  # scale_colour_manual(values = site_pal_labelled) +
+  labs(
+    x      = "Age (years)",
+    y      = "Ability (θ)",
+    colour = "Sex"
+  ) +
+  facet_wrap(~site) + 
+  theme(legend.position = "bottom")
+```
+
+```{r}
+sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
+  data = mrot_df_gender)
+
+summary(sex_mod)
+
+
+sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id),
+  data = filter(mrot_df_gender, site == "pilot_mpieva_de"))
+
+summary(sex_mod_de)
+
+
+library(brms)
+sex_mod_bayes <- brm(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
+  data = mrot_df_gender)
+```
+
+

@@ -32,7 +32,7 @@ runs <- map(data_sources, get_scores)
 runs_mrot <- runs |>
   list_rbind() |>
   filter(task_code == "mrot") |>
-  select(site, dataset, run_id, user_id, age, language, adaptive,
+  select(site, dataset, run_id, user_id, age, language, adaptive, num_attempted,
          max_incorrect, max_time)
 
 write_rds(runs_mrot, "data/runs_mrot.rds", compress = "gz")
