@@ -1180,21 +1180,46 @@ analysis_data <- rich_features_final %>%
                   Instability, Learning_Rate), is.finite)) 
 
 global_input <- analysis_data %>%
+  filter(Rel_Slope < 4) |> # remove two extreme outliers
   select(Baseline_Speed, Rel_Slope, Abs_Slope, 
          Instability, Learning_Rate) %>%
   scale()
 
 set.seed(123)
 k_global <- kmeans(global_input, centers = 3, nstart = 25)
-analysis_data$Global_Cluster <- as.factor(k_global$cluster)
 
-cluster_stats <- analysis_data %>%
+analysis_data_filt <- analysis_data |>
+  filter(Rel_Slope < 4) |> 
+  mutate(Global_Cluster = as.factor(k_global$cluster))
+
+cluster_stats <- analysis_data_filt %>%
   group_by(Global_Cluster) %>%
   summarise(
     mean_ability = mean(ability),
     mean_slope   = mean(Rel_Slope), 
     .groups = "drop"
   )
+
+
+library(fpc)
+pamk.best <- pamk(global_input)
+cat("number of clusters estimated by optimum average silhouette width:", pamk.best$nc, "\n")
+plot(pam(global_input, pamk.best$nc)) # 2
+
+
+library(dbscan)
+cl <- hdbscan(global_input, minPts = 7)
+# very unstable with changing minPts..
+
+library(cluster)
+library(factoextra)
+
+factoextra::fviz_nbclust(global_input)
+
+pam.res <- pam(global_input, 3)
+print(pam.res)
+
+pam.res$medoids
 
 # as.character() on all pull() calls
 low_eff_id <- cluster_stats %>%
@@ -1217,7 +1242,7 @@ holistic_id <- effective_clusters %>%
   pull(Global_Cluster) %>%
   as.character()
 
-analysis_data <- analysis_data %>%
+analysis_data_filt <- analysis_data_filt %>%
   mutate(Strategy_Label = case_when(
     as.character(Global_Cluster) == low_eff_id ~ "Ineffective Strategies",
     as.character(Global_Cluster) == analytical_id ~ "Other Effective Strategies (Flipping/Matching)",
@@ -1225,7 +1250,7 @@ analysis_data <- analysis_data %>%
   ),
   Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
 
-ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
+ggplot(analysis_data_filt, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
   geom_point(alpha = 0.6) +
   scale_color_manual(values = my_colors) +
   labs(title = "Cluster Result: Ability vs. Relative Slope")
