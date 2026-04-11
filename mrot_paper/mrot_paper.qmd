@@ -1131,9 +1131,9 @@ rich_features_raw <- ran_effs %>%
     Baseline_Speed = fix_int + int_dev,
     # Absolute Slope: Time added per degree of rotation (Rotation Cost)
     Abs_Slope = fix_ang + slope_dev,
-    # Relative Slope (Per Mike's suggestion)
+    # Relative Slope produced some extreme outliers; can do the difference
     # "Is rotation expensive relative to their normal speed?"
-    Rel_Slope = Abs_Slope / Baseline_Speed,
+    #Diff_Slope = Abs_Slope - Baseline_Speed,
     # Learning Rate 
     Learning_Rate  = fix_tri + trial_dev
   )
@@ -1162,7 +1162,7 @@ rich_features_final <- rich_features_raw %>%
     Site = str_replace_all(site, c("pilot_" = "", "_" = "-"))
   ) %>%
   # filter to ensure all needed features
-  filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
+  filter(if_all(c(ability, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite)) # Diff_Slope, 
 ```
 
 ```{r}
@@ -1180,12 +1180,11 @@ rich_features_final <- rich_features_final |>
   filter(n >= 10) # 1251 -> 1177
 
 analysis_data <- rich_features_final %>%
-  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, 
+  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, # Diff_Slope, 
                   Instability, Learning_Rate), is.finite)) 
 
 global_input <- analysis_data %>%
-  filter(Rel_Slope < 4) |> # remove two extreme outliers
-  select(Baseline_Speed, Rel_Slope, Abs_Slope, 
+  select(Baseline_Speed, Abs_Slope, # Diff_Slope,
          Instability, Learning_Rate) %>%
   scale()
 
@@ -1193,14 +1192,13 @@ set.seed(123)
 k_global <- kmeans(global_input, centers = 3, nstart = 25)
 
 analysis_data_filt <- analysis_data |>
-  filter(Rel_Slope < 4) |> 
   mutate(Global_Cluster = as.factor(k_global$cluster))
 
 cluster_stats <- analysis_data_filt %>%
   group_by(Global_Cluster) %>%
   summarise(
     mean_ability = mean(ability),
-    mean_slope   = mean(Rel_Slope), 
+    mean_slope   = mean(Diff_Slope), 
     .groups = "drop"
   )
 
@@ -1210,13 +1208,35 @@ pamk.best <- pamk(global_input)
 cat("number of clusters estimated by optimum average silhouette width:", pamk.best$nc, "\n")
 plot(pam(global_input, pamk.best$nc)) # 2
 
+require(NbClust)
 
-library(dbscan)
-cl <- hdbscan(global_input, minPts = 3)
-cl <- hdbscan(global_input, minPts = 5)
-cl <- hdbscan(global_input, minPts = 7)
-cl <- hdbscan(global_input, minPts = 10) 
-# very unstable with changing minPts..
+nb <- NbClust(data = global_input, method = "ward.D", distance = "euclidean", min.nc = 2, max.nc = 15)
+# * Among all indices:                                                
+# * 9 proposed 2 as the best number of clusters - so 2 or 3 clusters
+# * 9 proposed 3 as the best number of clusters 
+# * 1 proposed 4 as the best number of clusters 
+# * 1 proposed 7 as the best number of clusters 
+# * 1 proposed 8 as the best number of clusters 
+# * 2 proposed 15 as the best number of clusters 
+
+cl <- pamkCBI(global_input, krange=2:10)
+cl$result$pamobject$medoids
+#      Baseline_Speed  Abs_Slope Instability Learning_Rate
+#      0.5772150  0.6037233  -0.4109606     0.6158046
+#     -0.4854804 -0.4104818   0.1854995    -0.6002205
+
+cl <- kmeansCBI(global_input, krange=2:10)
+cl$result$centers
+#   Baseline_Speed  Abs_Slope Instability Learning_Rate
+#     -0.9111669 -0.8852146   0.8475448    -0.9700636
+#      0.3358604  0.3262942  -0.3124090     0.3575699
+
+cl <- hclusttreeCBI(global_input, minlevel = 2, method = "ward.D2")
+
+hc <- hclustCBI(global_input, 3, cut="number", method = "ward.D2")
+#   1   2   3 
+# 751 272 154 
+plot(hc$result)
 
 library(cluster)
 library(factoextra)
@@ -1227,6 +1247,14 @@ pam.res <- pam(global_input, 3)
 print(pam.res)
 
 pam.res$medoids
+#      Baseline_Speed  Abs_Slope Instability Learning_Rate
+#     0.80524551  0.5887648   0.1188552     0.3097735
+#    -0.07009769  0.1843759  -0.8754119     0.4059122
+#    -0.78253660 -0.7663510   0.2504509    -0.7371020
+
+table(pam.res$clustering)
+#   1   2   3 
+# 429 397 351 
 
 # as.character() on all pull() calls
 low_eff_id <- cluster_stats %>%
@@ -1257,7 +1285,7 @@ analysis_data_filt <- analysis_data_filt %>%
   ),
   Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
 
-ggplot(analysis_data_filt, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
+ggplot(analysis_data_filt, aes(x = ability, y = Diff_Slope, color = Strategy_Label)) +
   geom_point(alpha = 0.6) +
   scale_color_manual(values = my_colors) +
   labs(title = "Cluster Result: Ability vs. Relative Slope")
@@ -1273,8 +1301,8 @@ ineff <- analysis_data %>%
     N            = n(),
     Mean_Ability = mean(ability, na.rm = TRUE),
     SD_Ability   = sd(ability, na.rm = TRUE),
-    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Slope   = mean(Diff_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Diff_Slope, na.rm = TRUE),
     Mean_Instab  = mean(Instability, na.rm = TRUE)
   )
 
@@ -1284,8 +1312,8 @@ flip <- analysis_data %>%
     N            = n(),
     Mean_Ability = mean(ability, na.rm = TRUE),
     SD_Ability   = sd(ability, na.rm = TRUE),
-    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Slope   = mean(Diff_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Diff_Slope, na.rm = TRUE),
     Mean_Instab  = mean(Instability, na.rm = TRUE)
   )
 
@@ -1295,8 +1323,8 @@ mrot_strat <- analysis_data %>%
     N            = n(),
     Mean_Ability = mean(ability, na.rm = TRUE),
     SD_Ability   = sd(ability, na.rm = TRUE),
-    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Slope   = mean(Diff_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Diff_Slope, na.rm = TRUE),
     Mean_Instab  = mean(Instability, na.rm = TRUE)
   )
 ```
@@ -1348,7 +1376,7 @@ p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = S
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 0, hjust = 0.5))
 
-p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
+p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Diff_Slope, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = my_colors) +
@@ -1502,8 +1530,8 @@ validation_table <- analysis_data %>%
     N            = n(),
     Mean_Ability = mean(ability, na.rm = TRUE),
     SD_Ability   = sd(ability, na.rm = TRUE),
-    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
+    Mean_Slope   = mean(Diff_Slope, na.rm = TRUE),
+    SD_Slope     = sd(Diff_Slope, na.rm = TRUE),
     Mean_Instab  = mean(Instability, na.rm = TRUE),
     .groups = "drop"
   )
@@ -1544,7 +1572,7 @@ Three robustness checks are reported in full in the appendices. First, compariso
 #| label: local-clustering-agreement
 #| include: false
 
-vars <- c("Baseline_Speed", "Rel_Slope", "Abs_Slope", "Instability", "Learning_Rate")
+vars <- c("Baseline_Speed", "Diff_Slope", "Abs_Slope", "Instability", "Learning_Rate")
 
 stopifnot(all(vars %in% names(analysis_data)))
 stopifnot(all(c("Site", "user_id", "Strategy_Label") %in% names(analysis_data)))
@@ -1591,7 +1619,7 @@ get_local_strategy_labels <- function(df_site,
     group_by(Local_Cluster) %>%
     summarise(
       mean_abil  = mean(ability,   na.rm = TRUE),
-      mean_slope = mean(Rel_Slope, na.rm = TRUE),
+      mean_slope = mean(Diff_Slope, na.rm = TRUE),
       .groups = "drop"
     ) %>%
     arrange(mean_abil)
@@ -2027,20 +2055,20 @@ analysis_data %>%
     n              = n(),
     mean_ability   = mean(ability, na.rm = TRUE),
     sd_ability     = sd(ability, na.rm = TRUE),
-    mean_rel_slope = mean(Rel_Slope, na.rm = TRUE),
-    sd_rel_slope   = sd(Rel_Slope, na.rm = TRUE),
+    mean_Diff_Slope = mean(Diff_Slope, na.rm = TRUE),
+    sd_Diff_Slope   = sd(Diff_Slope, na.rm = TRUE),
     mean_abs_slope = mean(Abs_Slope, na.rm = TRUE),
     sd_abs_slope   = sd(Abs_Slope, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  arrange(desc(mean_rel_slope)) %>%
+  arrange(desc(mean_Diff_Slope)) %>%
   transmute(
     Strategy       = Strategy_Label,
     N              = n,
     `Mean Ability` = mean_ability,
     `SD Ability`   = sd_ability,
-    `Mean Rel. Slope` = mean_rel_slope,
-    `SD Rel. Slope`   = sd_rel_slope,
+    `Mean Rel. Slope` = mean_Diff_Slope,
+    `SD Rel. Slope`   = sd_Diff_Slope,
     `Mean Abs. Slope` = mean_abs_slope,
     `SD Abs. Slope`   = sd_abs_slope
   ) %>%
@@ -2100,10 +2128,10 @@ grid.arrange(p_elbow, p_sil, nrow = 1)
 
 # --- 1. Set up Input (Same as before, removing Learning_Rate for clarity) ---
 analysis_data_k2 <- rich_features_final %>%
-  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, Instability, Learning_Rate), is.finite))
+  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Diff_Slope, Instability, Learning_Rate), is.finite))
 
 global_input_k2 <- analysis_data_k2 %>%
-  select(Baseline_Speed, Rel_Slope, Instability, Abs_Slope, Learning_Rate) %>%
+  select(Baseline_Speed, Diff_Slope, Instability, Abs_Slope, Learning_Rate) %>%
   scale()
 
 # --- 2. Run K-Means with K=2 ---
@@ -2240,7 +2268,7 @@ Inspection of the PCA loadings offered interpretive support for the feature set.
 library(Rtsne)
 
 tsne_input <- analysis_data %>%
-    select(user_id, Learning_Rate, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) %>%
+    select(user_id, Learning_Rate, Baseline_Speed, Diff_Slope, Abs_Slope, Instability) %>%
     distinct() %>% 
     na.omit()
 
@@ -2433,7 +2461,7 @@ rich_features_raw <- ran_effs %>%
     Abs_Slope      = fix_ang + slope_dev,
     # Relative Slope (Per Mike's suggestion)
     # "Is rotation expensive relative to their normal speed?"
-    Rel_Slope      = Abs_Slope / Baseline_Speed,
+    Diff_Slope      = Abs_Slope / Baseline_Speed,
     # Learning Rate 
     Learning_Rate  = fix_tri + trial_dev
   )
@@ -2463,7 +2491,7 @@ rich_features_final <- rich_features_raw %>%
   ) %>%
   # Filter to ensure all needed features are finite
   # UPDATED: Added Learning_Rate to the list
-  filter(if_all(c(ability, Abs_Slope, Rel_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
+  filter(if_all(c(ability, Abs_Slope, Diff_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
 
 # Check: ang_disparity should never exceed 180
 summary(mrot_rich_data$ang_disparity)
@@ -2487,10 +2515,10 @@ my_colors <- c(
 )
 
 analysis_data <- rich_features_final %>%
-  filter(if_all(c(ability, Baseline_Speed, Rel_Slope, Abs_Slope, 
+  filter(if_all(c(ability, Baseline_Speed, Diff_Slope, Abs_Slope, 
                   Instability, Learning_Rate), is.finite))
 global_input <- analysis_data %>%
-  select(Baseline_Speed, Rel_Slope, Abs_Slope, 
+  select(Baseline_Speed, Diff_Slope, Abs_Slope, 
          Instability, Learning_Rate) %>%
   scale()
 set.seed(123)
@@ -2500,7 +2528,7 @@ cluster_stats <- analysis_data %>%
   group_by(Global_Cluster) %>%
   summarise(
     mean_ability = mean(ability),
-    mean_slope   = mean(Rel_Slope), 
+    mean_slope   = mean(Diff_Slope), 
     .groups = "drop"
   )
 low_eff_id <- cluster_stats %>%
@@ -2516,7 +2544,7 @@ analysis_data <- analysis_data %>%
     Global_Cluster == analytical_id ~ "Other Effective Strategies (Flipping/Matching)",
     Global_Cluster == holistic_id   ~ "Mental Rotation"
   ))
-ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
+ggplot(analysis_data, aes(x = ability, y = Diff_Slope, color = Strategy_Label)) +
   geom_point(alpha = 0.6) +
   scale_color_manual(values = my_colors) +
   labs(
@@ -2746,7 +2774,7 @@ demographics_ca_raw <- readxl::read_excel(
 #| label: cluster-stability-bootstrap
 #| include: false
 
-vars   <- c("Baseline_Speed", "Rel_Slope", "Abs_Slope", "Instability", "Learning_Rate")
+vars   <- c("Baseline_Speed", "Diff_Slope", "Abs_Slope", "Instability", "Learning_Rate")
 k      <- 3
 B      <- 500
 nstart <- 25
@@ -2820,7 +2848,7 @@ best_perm_by_overlap <- function(cl_hat, y_ref, ref_levels, all_perms_3) {
 # reference k-means (reproduces clustering-execution exactly)
 # UPDATED: label assignment now mirrors the two-step logic in clustering-execution:
 #   step 1 — lowest mean ability  → "Ineffective Strategies"
-#   step 2 — of the remainder, flatter Rel_Slope → "Other Effective...", 
+#   step 2 — of the remainder, flatter Diff_Slope → "Other Effective...", 
 #             steeper → "Mental Rotation"
 # We use this to build ref_centers aligned to ref_levels.
 
@@ -2836,11 +2864,11 @@ cl_ref <- km_ref$cluster
 cluster_stats_ref <- tibble(
   cluster      = 1:k,
   mean_ability = tapply(ability_lookup$ability, cl_ref, mean, na.rm = TRUE),
-  mean_rel_slope = tapply(df_full$Rel_Slope,   cl_ref, mean, na.rm = TRUE)
+  mean_Diff_Slope = tapply(df_full$Diff_Slope,   cl_ref, mean, na.rm = TRUE)
 )
 
 low_eff_id_ref  <- cluster_stats_ref %>% arrange(mean_ability) %>% slice(1) %>% pull(cluster)
-effective_ref   <- cluster_stats_ref %>% filter(cluster != low_eff_id_ref) %>% arrange(mean_rel_slope)
+effective_ref   <- cluster_stats_ref %>% filter(cluster != low_eff_id_ref) %>% arrange(mean_Diff_Slope)
 analytical_id_ref <- effective_ref %>% slice(1) %>% pull(cluster)
 holistic_id_ref   <- effective_ref %>% slice(2) %>% pull(cluster)
 
@@ -2991,12 +3019,12 @@ analysis_data %>%
 
 analysis_data %>%
   group_by(Strategy_Label) %>%
-  summarise(across(all_of(c("Baseline_Speed", "Rel_Slope", "Abs_Slope", 
+  summarise(across(all_of(c("Baseline_Speed", "Diff_Slope", "Abs_Slope", 
                              "Instability", "Learning_Rate")), 
                    ~ round(mean(.x, na.rm = TRUE), 3)))
 
 analysis_data %>%
-  select(Strategy_Label, Baseline_Speed, Rel_Slope, Abs_Slope, 
+  select(Strategy_Label, Baseline_Speed, Diff_Slope, Abs_Slope, 
          Instability, Learning_Rate) %>%
   pivot_longer(-Strategy_Label, names_to = "variable", values_to = "value") %>%
   ggplot(aes(x = Strategy_Label, y = value, fill = Strategy_Label)) +
