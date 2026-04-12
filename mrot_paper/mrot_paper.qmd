@@ -137,13 +137,13 @@ From fitting puzzle pieces together at age three to navigating complex diagrams 
 
 Spatial reasoning encompasses abilities for representing, transforming, and reasoning about visuospatial information [@lohman1996spatial]. Rather than a single unified capacity, it is better understood as a family of related but distinguishable skills, including mental rotation, spatial visualization, perspective-taking, and navigation, that differ in the type of spatial information involved and the cognitive operations required [@uttal2013malleability; @newcombe2018three]. These skills can be organized along two dimensions: whether the spatial relations are intrinsic to an object or extrinsic between objects, and whether the task requires dynamic mental transformation or only static representation [@uttal2013malleability]. Mental rotation — the focus of the present study — falls in the intrinsic-dynamic quadrant of this framework, involving the mental transformation of a single object's orientation in space.
 
-Classic mental rotation tasks, first developed by @shepard1971mental, present participants with pairs of objects at varying angular disparities and asks them to judge whether the objects are identical or mirror-reversed, with response time and accuracy as the key dependent variables. It is one of the most studied spatial skills in cognitive and developmental psychology, in part because it yields one of the most robust and replicable findings in the field: response times increase approximately linearly with angular disparity (i.e., how far an object has been rotated from its original orientation). In 'pure' or analog rotation, the solver constructs a holistic mental image of the object and continuously rotates it until it aligns with the target — because the mental image must traverse each intermediate angle, larger rotations take proportionally longer [@shepard1971mental; @cooper1973chronometric]. This linear reaction time (RT)–disparity relationship is the signature of a spatially continuous process rather than a discrete rule-based one [@kail1986sources], and it serves as the key benchmark in the present study. This linearity is theoretically significant because it implies that the cognitive system preserves the metric properties of spatial information rather than abstracting them into symbolic or categorical representations. When the mind rotates an object, it appears to simulate the continuous transformation — traversing each intermediate orientation — rather than computing a discrete match. This is what makes the angular disparity effect a process-level signature rather than merely a performance measure: its presence indicates how the task is being solved, not just whether it is solved correctly.
+Classic mental rotation tasks, first developed by @shepard1971mental, present participants with pairs of objects at varying angular disparities and ask them to judge whether the objects are identical or mirror-reversed, with response time and accuracy as the key dependent variables. It is one of the most studied spatial skills in cognitive and developmental psychology. In 'pure' or analog rotation, the solver constructs a holistic mental image of the object and continuously rotates it until it aligns with the target — because the mental image must traverse each intermediate angle, larger rotations take proportionally longer [@shepard1971mental; @cooper1973chronometric]. The result is one of the most robust and replicable findings in the field: response times increase approximately linearly with angular disparity (i.e., how far an object has been rotated from its original orientation).
 
-However, this aggregate pattern may obscure meaningful individual variation in the processes underlying performance. While this paradigm has generated decades of consistent findings, performance on the task does not necessarily reflect mental rotation per se — participants may instead rely on alternative spatial strategies that produce similar accuracy and response time patterns. Research with adults suggests that solvers draw on a range of strategies, spanning a holistic-analytic continuum [@gluck2003spatial]. At the holistic end, solvers use 'pure' or analog rotation as described above. Feature-based strategies, by contrast, operate by identifying discrete local features — a particular arm, corner, or protrusion — and rotating or comparing these components piecemeal rather than rotating the whole object [@just1985cognitive; @khooshabeh2013individual]. A related approach, 'flipping', involves mentally reflecting one object along an axis to check for mirror symmetry, again engaging a different type of spatial transformation. Because these approaches decompose the problem into parts, they can produce correct responses even when the angular disparity effect is attenuated or absent — making them distinguishable from analog rotation at the level of RT patterns. Importantly, this distinction concerns process, not proficiency: feature-based strategies draw on genuine spatial ability, they simply engage it differently [@hegarty2018ability]. More recent work suggests that solvers do not consistently adopt a single strategy but instead shift flexibly between holistic and analytical/piecemeal approaches depending on the demands of a particular item [@nazareth2019strategy].
-
-Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5-12 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
+However, this aggregate pattern may obscure meaningful individual variation in the processes underlying performance. Performance on the task does not necessarily reflect mental rotation per se — participants may instead rely on alternative spatial strategies that produce similar accuracy and response time patterns. Research with adults suggests that solvers draw on a range of strategies, spanning a holistic-analytic continuum [@gluck2003spatial]. At the holistic end, solvers use 'pure' or analog rotation as described above. Feature-based strategies, by contrast, operate by identifying discrete local features — a particular arm, corner, or protrusion — and rotating or comparing these components piecemeal rather than rotating the whole object [@just1985cognitive; @khooshabeh2013individual]. A related approach, 'flipping', involves mentally reflecting one object along an axis to check for mirror symmetry, again engaging a different type of spatial transformation. Because these approaches decompose the problem into parts, they can produce correct responses even when the angular disparity effect is attenuated or absent — making them distinguishable from analog rotation at the level of RT patterns. Importantly, this distinction concerns process, not proficiency: feature-based strategies draw on genuine spatial ability, they simply engage it differently [@hegarty2018ability]. More recent work suggests that solvers do not consistently adopt a single strategy but instead shift flexibly between holistic and analytical/piecemeal approaches depending on the demands of a particular item [@nazareth2019strategy].
 
 Importantly, far less is known about which strategies children employ when solving mental rotation problems, and whether strategy use varies with age, ability, or cultural context. Recent work by @mckee2025malleability finds that children rely on non-rotation strategies — flipping and feature matching — more often than analog rotation, with strategy choice shaped by how the task is framed. This question motivates the exploratory component of the present study, which we describe below. These questions take on added significance given how narrow the populations studied to date have been.
+
+Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5-12 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
 
 The vast majority of developmental research on mental rotation has been conducted with children from WEIRD (Western, Educated, Industrialized, Rich, Democratic) populations [@henrich2010weirdest], raising questions about whether findings about its developmental trajectory, psychometric properties, and underlying cognitive processes generalize beyond the populations in which they were established.
 
@@ -263,15 +263,15 @@ Data for the present study were drawn from three pilot sites participating in LE
 
 ### uniandes-co
 
-The Universidad de los Andes site (uniandes-co) recruited 1,222 children aged 5–12 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá and Boyacá. Schools were selected based on existing university partnerships and primarily serve children from low- and lower-middle-income families. Data were collected in groups using tablets provided by the research team, with group size altered for the age of the children (smaller groups for younger children). Due to time constraints inherent to school-based administration, children typically completed a subset of tasks.
+The Universidad de los Andes site (uniandes-co) recruited 1,222 [note to udate] children aged 5–12 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá and Boyacá. Schools were selected based on existing university partnerships and primarily serve children from low- and lower-middle-income families. Data were collected in groups using tablets provided by the research team, with group size altered for the age of the children (smaller groups for younger children). Due to time constraints inherent to school-based administration, children typically completed a subset of tasks.
 
 ### mpieva-de
 
-The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from 292 children aged 5–12 years in Leipzig, Germany, a mid-sized urban centre of approximately 620,000 residents. Leipzig is characterized by relatively high educational attainment and cultural diversity, with approximately 17% of residents having a migration background. Families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. 
+The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from 292 [note to udate] children aged 5–12 years in Leipzig, Germany, a mid-sized urban centre of approximately 620,000 residents. Leipzig is characterized by relatively high educational attainment and cultural diversity, with approximately 17% of residents having a migration background. Families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. 
 
 ### western-ca
 
-The Western University site (western-ca) recruited 171 children aged 5–12 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a predominantly urban region; census data indicate a median household income of approximately $80,000 CAD and mean education levels in the post secondary range. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. 
+The Western University site (western-ca) recruited 171 [note to udate] children aged 5–12 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a predominantly urban region; census data indicate a median household income of approximately $80,000 CAD and mean education levels in the post secondary range. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. 
 
 ```{r}
 #| label: sample-counts
@@ -290,7 +290,6 @@ n_final <- mrot_df |>
 ```
 
 Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5–12 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants). Data and  analysis code for this paper are available at https://github.com/levante-framework/mental-rotation. For more information about LEVANTE public data releases, see https://researcher.levante-network.org/data.
->>>>>>> 4f53e51b8bbf25c36751fb05b063f6e588323b7c
 
 ```{r}
 #| label: trial-level-rts
@@ -322,7 +321,7 @@ cat_counts <- mrot_rt_trial |>
   pivot_longer(cols = c(trials, runs), names_to = "count") |>
   pivot_wider(names_from = adaptive, values_from = value) |>
   mutate(n_total = n_cat + n_non_cat,
-         pct_cat = n_cat / n_total) |>
+         pct_cat = round(n_cat / n_total * 100, 1)) |>
   nest(counts = -count) |>
   deframe()
 ```
@@ -362,9 +361,9 @@ mrot_df |>
     `Age: M (SD) [range]` = sprintf("%.1f (%.1f) [%.1f–%.1f]",
                                      Age_mean, Age_sd, Age_min, Age_max),
     `Testing format` = case_when(
-      site_label == "uniandes-co" ~ "In school; group, tablet (researcher-provided)",
+      site_label == "uniandes-co" ~ "In school; group; tablet (researcher-provided)",
       site_label == "mpieva-de"   ~ "Remote (home-based); individual, family device",
-      site_label == "western-ca"  ~ "On-campus; individual, researcher-provided tablet"
+      site_label == "western-ca"  ~ "On-campus; individual, table (researcher-provided)"
     )
   ) |>
   left_join(trials_per_run %>% 
@@ -374,9 +373,16 @@ mrot_df |>
   rename(Site = site_label,
          `N assessments` = N_run,
          `N participants` = N_user) |>
-  knitr::kable(align = c("l", "c", "c", "c", "l"), booktabs = TRUE) |>
-  kableExtra::kable_styling(latex_options = c("hold_position", "scale_down")) |>
-  kableExtra::column_spec(5, width = "4cm")
+  knitr::kable(align = c("l", "c", "c", "c", "c", "l"), booktabs = TRUE) |>
+  kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"),
+                            full_width = TRUE) |>
+  kableExtra::column_spec(1, width = "2cm") |>
+  kableExtra::column_spec(2, width = "1.8cm") |>
+  kableExtra::column_spec(3, width = "1.8cm") |>
+  kableExtra::column_spec(4, width = "3cm") |>
+  kableExtra::column_spec(5, width = "2cm") |>
+  kableExtra::column_spec(6, width = "3.5cm")
+
 ```
 
 ## Measure
@@ -420,7 +426,7 @@ To assess cross-site measurement invariance, we fitted both models with varying 
 
 ### Angular Sensitivity
 
-To investigate whether performance was sensitive to rotation angle in the theoretically predicted direction, we fitted linear mixed-effects models predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Practice trials (a single 20° item) were excluded, leaving four rotation angles (40°, 80°, 120°, and 160°). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from all RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for analysis.
+To investigate whether performance was sensitive to rotation angle in the theoretically predicted direction, we fitted linear mixed-effects models predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Practice trials (a single 20° item) were excluded, leaving four rotation angles (40°, 80°, 120°, and 160°). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from all RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for analysis. This proportion is lower than the `r cat_counts$runs$pct_cat`% of administrations using CAT, reflecting the fact that adaptive runs contain fewer trials by design.
 
 ### Strategy Variation
 
@@ -512,6 +518,7 @@ invar_table
 #| fig-cap: "**Item Difficulty Parameters Across Sites (Configural Model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across cultural contexts."
 #| fig-width: 12
 #| fig-height: 8
+#| eval: false
 
 # Load configural parameters
 mrot_configural <- mrot_coefs |>
@@ -576,7 +583,7 @@ coef_ns <- mrot_coefs |>
 #| fig-cap: "**Developmental trajectories of mental rotation ability across sites.** Points represent individual children's IRT-estimated ability (θ); curves are GAM-smoothed age trends with 95% confidence intervals."
 #| fig-align: "center"
 #| fig-width: 7
-#| fig-height: 5
+#| fig-height: 4.5
 
 ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
   geom_point(alpha = 0.35, size = 1.1, shape = 16) +
@@ -643,7 +650,7 @@ m_3d_age <- lmer(
 )
 
 m_3d_full <- lmer(
-  log_rt ~ angle_sc * site * age_group + (1 + angle_sc | user_id),
+  log_rt ~ angle_sc * site * age_group + (1 | user_id),
   data = mrot_3d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
@@ -668,6 +675,7 @@ m_2d_site <- lmer(
   data = mrot_2d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
+
 ```
 
 ```{r}
@@ -883,6 +891,7 @@ ability_run <- mrot_df %>%
 
 # prep trial-level data for the rich model
 mrot_rich_data <- mrot_rt_trial %>%
+  filter(!adaptive) %>% # note: added by Fionnuala, april 12
   mutate(
     stimulus = as.factor(stimulus),
     angle_s  = as.numeric(scale(angle)),
@@ -1010,10 +1019,30 @@ analysis_data <- analysis_data %>%
   ),
   Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
 
-ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
-  geom_point(alpha = 0.6) +
-  scale_color_manual(values = my_colors) +
-  labs(title = "Cluster Result: Ability vs. Relative Slope")
+# ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
+#   geom_point(alpha = 0.6) +
+#   scale_color_manual(values = my_colors) +
+#   labs(title = "Cluster Result: Ability vs. Relative Slope")
+```
+
+```{r}
+#| label: strategy-cat-no-cat
+
+# added by Fionnuala, april 12 to compare fixed form (no CAT) v complete (CAT included) version
+
+# key cluster stats (comparing CAT trials included v non-CAT trials included)
+analysis_data %>%
+  group_by(Strategy_Label) %>%
+  summarise(
+    n            = n(),
+    pct          = round(n() / nrow(analysis_data) * 100, 1),
+    mean_ability = round(mean(ability, na.rm = TRUE), 2),
+    sd_ability   = round(sd(ability, na.rm = TRUE), 2),
+    mean_slope   = round(mean(Rel_Slope, na.rm = TRUE), 2),
+    sd_slope     = round(sd(Rel_Slope, na.rm = TRUE), 2),
+    mean_instab  = round(mean(Instability, na.rm = TRUE), 2)
+  )
+
 ```
 
 ```{r}
@@ -1077,11 +1106,20 @@ my_comparisons <- list(
   c("Other Effective Strategies (Flipping/Matching)", "Mental Rotation")
 )
 # wrap x-axis labels to two lines, including n and %
-wrapped_labels <- c(
-  "Ineffective Strategies\n(n = 65, 11%)",
-  "Other Effective\nStrategies (Flipping/\nMatching) (n = 398, 69%)",
-  "Mental Rotation\n(n = 116, 20%)"
-)
+wrapped_labels <- analysis_data %>%
+  count(Strategy_Label) %>%
+  mutate(
+    pct = round(n / sum(n) * 100),
+    label = case_when(
+      Strategy_Label == "Ineffective Strategies" ~ 
+        glue::glue("Ineffective Strategies\n(n = {n}, {pct}%)"),
+      Strategy_Label == "Other Effective Strategies (Flipping/Matching)" ~ 
+        glue::glue("Other Effective\nStrategies (Flipping/\nMatching) (n = {n}, {pct}%)"),
+      Strategy_Label == "Mental Rotation" ~ 
+        glue::glue("Mental Rotation\n(n = {n}, {pct}%)")
+    )
+  ) %>%
+  pull(label, name = Strategy_Label)
 
 p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
@@ -2380,9 +2418,11 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
   )
 ```
 
+<!--
 ```{r}
 #| label: survey-gender
 #| include: false
+#| eval: false
 
 survey_gender_wide <- survey_gender |>
   filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
@@ -2445,6 +2485,7 @@ mrot_rt_trial_no_retest |>
 ```{r}
 #| label: gender-ca
 #| include: false
+#| eval: false
 
 demographics_ca <- readxl::read_excel(here::here("demographics_data", "LEVANTE Demographics Western University (By Child).xlsx"))
 
@@ -2480,7 +2521,6 @@ demographics_ca_raw <- readxl::read_excel(
 # glimpse(demographics_ca_raw) # no child data (only caregiver)
 
 ```
-<!--
 ####################### ROBUSTNESS CHECK - BOOTSTRAPPING ##########################
 ```{r}
 #| label: cluster-stability-bootstrap
