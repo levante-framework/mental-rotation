@@ -1043,6 +1043,23 @@ analysis_data %>%
     mean_instab  = round(mean(Instability, na.rm = TRUE), 2)
   )
 
+# Summary statistics
+summary(rich_features_final$Rel_Slope)
+
+# Check for extremes
+rich_features_final %>%
+  arrange(Rel_Slope) %>%
+  select(run_id, Rel_Slope, Abs_Slope, Baseline_Speed) %>%
+  slice(c(1:10, (n()-9):n()))  # top and bottom 10
+
+# Plot
+ggplot(rich_features_final, aes(x = Rel_Slope)) +
+  geom_histogram(bins = 50) +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed", color = "red") +
+  labs(title = "Distribution of Rel_Slope", 
+       x = "Relative Slope", 
+       y = "Count")
+
 ```
 
 ```{r}
