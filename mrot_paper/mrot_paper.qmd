@@ -1191,6 +1191,21 @@ global_input <- analysis_data %>%
 set.seed(123)
 k_global <- kmeans(global_input, centers = 3, nstart = 25)
 
+sil_2 <- silhouette(kmeans(global_input, 2)$cluster, dist(global_input))
+sil_3 <- silhouette(kmeans(global_input, 3)$cluster, dist(global_input))
+mean(sil_2[,3]) # Average silhouette width: 0.3384085
+mean(sil_3[,3]) # 0.2066072 - maybe artificial split..
+
+wss <- sapply(2:5, function(k) kmeans(global_input, k, nstart=25)$tot.withinss)
+plot(2:5, wss, type="b")
+
+k2 <- kmeans(global_input, 2, nstart=25)
+k3 <- kmeans(global_input, 3, nstart=25)
+
+# Compare cluster centers
+k2$centers
+k3$centers
+
 analysis_data_filt <- analysis_data |>
   mutate(Global_Cluster = as.factor(k_global$cluster))
 
@@ -1212,8 +1227,8 @@ require(NbClust)
 
 nb <- NbClust(data = global_input, method = "ward.D", distance = "euclidean", min.nc = 2, max.nc = 15)
 # * Among all indices:                                                
-# * 9 proposed 2 as the best number of clusters - so 2 or 3 clusters
-# * 9 proposed 3 as the best number of clusters 
+# * 9 proposed 2 as the best number of clusters <- 
+# * 9 proposed 3 as the best number of clusters <-
 # * 1 proposed 4 as the best number of clusters 
 # * 1 proposed 7 as the best number of clusters 
 # * 1 proposed 8 as the best number of clusters 
