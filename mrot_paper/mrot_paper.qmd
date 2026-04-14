@@ -299,13 +299,13 @@ mrot_rt_trial <- task_data |>
   unnest(data) |>
   inner_join(runs_filtered) |>
   select(site, site_label, user_id, run_id, adaptive, age, age_group, trial_id,
-         trial_number, item_uid, item_group, item, correct, rt_numeric) |>
+         trial_number, item_uid, item_group, item, item_original, correct, rt_numeric) |>
   mutate(
     correct    = as.integer(correct),
     rt_s       = as.numeric(rt_numeric) / 1000,
     log_rt     = log(rt_s),
     angle      = as.integer(stringr::str_extract(item, "(?<=_)\\d+")),
-    # angle_full = as.integer(stringr::str_extract(item_original, "(?<=_)\\d+")), # TODO: put in item_original
+    angle_full = as.integer(stringr::str_extract(item_original, "\\d{3}$")),
     stimulus   = str_extract(item, "^[a-z]+")
   ) |>
   filter(is.finite(rt_s), rt_s > 0)
@@ -2157,34 +2157,13 @@ The flipping signature observed in the Other Effective Strategies (Flipping/Matc
 ```{r}
 #| label: robustness-check-all-angles
 #| results: "hide"
-#| eval: false # TODO: don't run for now, need item_original
-
-# # Ability estimate - keep site + user
-# ability_user <- mrot_scores %>% 
-#   filter(task == "mrot", metric_type == "ability") %>% 
-#   mutate(
-#     metric_value = as.numeric(metric_value),
-#     age = as.numeric(age)
-#   ) %>%
-#   group_by(site, user_id) %>%
-#   summarise(
-#     ability = mean(metric_value, na.rm = TRUE),
-#     age     = first(age),
-#     .groups = "drop"
-#   )
 
 mrot_rich_data <- mrot_rt_trial %>%
+  rename(ang_disparity = angle,
+         angle = angle_full) %>%
   mutate(
-    stimulus = str_extract(item, "^[a-z]+"),
-    
-    # Extract full 0-360° angle directly from item_original
-    angle = as.integer(str_extract(item_original, "\\d{3}$")),
-    
-    # Calculate shortest distance to center (disparity) for the model
-    ang_disparity = pmin(angle, 360 - angle),
-    
     stimulus = as.factor(stimulus),
-    angle_s  = as.numeric(scale(ang_disparity)), 
+    angle_s  = as.numeric(scale(ang_disparity)),
     trial_s  = as.numeric(scale(trial_number))
   )
 
@@ -2196,15 +2175,15 @@ contrasts(mrot_rich_data$stimulus) <- contr.sum(levels(mrot_rich_data$stimulus))
 # Fit the rich mixed model
 m_rich <- lmer(
   log_rt ~ angle_s * stimulus + trial_s +
-    (1 + angle_s + trial_s | user_id) +
+    (1 + angle_s + trial_s | run_id) +
     (1 | item),
   data = mrot_rich_data,
   control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
 )
 
 # Extract subject-level random effects (deviations)
-ran_effs <- ranef(m_rich)$user_id %>%
-  tibble::rownames_to_column("user_id") %>%
+ran_effs <- ranef(m_rich)$run_id %>%
+  tibble::rownames_to_column("run_id") %>%
   rename(
     int_dev   = `(Intercept)`,
     slope_dev = angle_s,
@@ -2235,27 +2214,23 @@ rich_features_raw <- ran_effs %>%
 mrot_rich_data$resid <- residuals(m_rich)
 
 instability_data <- mrot_rich_data %>%
-  group_by(site, user_id) %>%
+  group_by(site, run_id) %>%
   summarise(
     # Instability = SD of residuals (pure internal noise)
     Instability = sd(resid, na.rm = TRUE), 
     .groups = "drop"
   )
 
-user_site_map <- mrot_rt_trial %>%
-  distinct(site, user_id)
+# run_site_map <- mrot_rt_trial %>%
+#   distinct(site, run_id)
 
 # 5. Join and Prepare for Clustering
 rich_features_final <- rich_features_raw %>%
-  left_join(user_site_map, by = "user_id") %>%
-  left_join(instability_data, by = c("site", "user_id")) %>% 
-  left_join(ability_user,  by = c("site", "user_id")) %>%
-  mutate(
-    Site = str_replace_all(site, c("pilot_" = "", "_" = "-"))
-  ) %>%
-  # Filter to ensure all needed features are finite
-  # UPDATED: Added Learning_Rate to the list
-  filter(if_all(c(ability, Abs_Slope, Rel_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
+  left_join(instability_data, by = c("run_id")) %>% 
+  left_join(ability_run,  by = c("run_id")) %>%
+  mutate(Site = site_label) %>%
+  # filter to ensure all needed features
+  filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
 
 # Check: ang_disparity should never exceed 180
 summary(mrot_rich_data$ang_disparity)
@@ -2271,7 +2246,6 @@ mrot_rich_data %>%
 ```{r}
 #| label: clustering-execution-360
 #| include: false
-#| eval: false # TODO: don't run for now, need item_original
 
 my_colors <- c(
   "Ineffective Strategies" = RColorBrewer::brewer.pal(3, "Set1")[1],
@@ -2323,24 +2297,23 @@ ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
 #| fig-width: 7
 #| fig-height: 5
 #| fig-cap: "Participant-weighted RT–angle functions by strategy cluster (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs) (Note: Re-test data removed)."
-#| eval: false # TODO: don't run for now, need item_original
 
 rt_by_strategy <- mrot_rich_data %>%
   left_join(
-    analysis_data %>% select(site, user_id, Strategy_Label),
-    by = c("site", "user_id")
+    analysis_data %>% select(site, run_id, Strategy_Label),
+    by = c("site", "run_id")
   ) %>%
   filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) %>%
   mutate(Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
 
 rt_user_angle <- rt_by_strategy %>%
-  group_by(Strategy_Label, user_id, angle) %>%
+  group_by(Strategy_Label, run_id, angle) %>%
   summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
 
 rt_angle_person_summary <- rt_user_angle %>%
   group_by(Strategy_Label, angle) %>%
   summarise(
-    n_users     = n_distinct(user_id),
+    n_users     = n_distinct(run_id),
     mean_log_rt = mean(user_mean_log_rt, na.rm = TRUE),
     se_log_rt   = sd(user_mean_log_rt, na.rm = TRUE) / sqrt(n_users),
     .groups = "drop"
@@ -2383,24 +2356,23 @@ ggplot(rt_angle_person_summary, aes(x = angle, y = mean_log_rt, colour = Strateg
 #| fig-width: 7
 #| fig-height: 5
 #| fig-cap: "Participant-weighted Accuracy-angle functions by strategy cluster."
-#| eval: false # TODO: don't run for now, need item_original
 
 acc_by_strategy <- mrot_rich_data %>%
   left_join(
-    analysis_data %>% select(site, user_id, Strategy_Label),
-    by = c("site", "user_id")
+    analysis_data %>% select(site, run_id, Strategy_Label),
+    by = c("site", "run_id")
   ) %>%
   filter(!is.na(Strategy_Label), is.finite(angle)) %>%
   mutate(Strategy_Label = factor(Strategy_Label, levels = names(my_colors)))
 
 acc_user_angle <- acc_by_strategy %>%
-  group_by(Strategy_Label, user_id, angle) %>%
+  group_by(Strategy_Label, run_id, angle) %>%
   summarise(user_mean_acc = mean(correct, na.rm = TRUE), .groups = "drop")
 
 acc_summary <- acc_user_angle %>%
   group_by(Strategy_Label, angle) %>%
   summarise(
-    n_users  = n_distinct(user_id),
+    n_users  = n_distinct(run_id),
     mean_acc = mean(user_mean_acc, na.rm = TRUE),
     se_acc   = sd(user_mean_acc, na.rm = TRUE) / sqrt(n_users),
     .groups  = "drop"
