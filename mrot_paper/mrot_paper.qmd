@@ -145,18 +145,18 @@ Importantly, far less is known about which strategies children employ when solvi
 
 Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5-12 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
 
-Gender differences in mental rotation are well documented in adults [@voyer1995magnitude; @zell2015evaluating], but in children the picture is considerably less clear. @lauer2019development synthesized data from over 30,000 children aged 3–17, finding no reliable sex difference in the preschool years, a small male advantage emerging around age 6 (g ≈ 0.20), and a moderate effect only by age 14 — with task and stimulus characteristics explaining substantial variability independently of age. This sensitivity to task format has been documented most systematically in German primary school children. @neuburger2011gender found the gap absent at age 8 but small and significant at age 10, concentrated in cube figure conditions where girls showed no improvement across grades; @jansen2013mental found cube figures too demanding for either grade but reliable male advantages in speed with more accessible stimuli. Going further, @ruthsatz2017gender and @ruthsatz2019girls showed that the direction of the difference depended on stimulus-gender congruence, reversing entirely under female-congruent conditions. Studies from other countries present a similarly inconsistent picture. A male advantage has been reported in Italian primary school children from as early as age 8 [@moe2018mental], and in Dutch children aged 7–9 using a simplified child-friendly task — though this difference disappeared in older children in the same sample [@van2019sex]. In French children, no sex difference was found at age 7–8 but one emerged by age 11–12 [@hoyek2011use]. In contrast, @hodgkiss2021developmental found no significant gender difference across the full primary school age range in a UK sample. Whether these discrepancies reflect genuine cultural variation, differences in task format, or both remains unclear.
+One prominent source of variation is gender. Gender differences in mental rotation are well documented in adults [@voyer1995magnitude; @zell2015evaluating], but in children the picture is considerably less clear. @lauer2019development synthesized data from over 30,000 children aged 3–17, finding no reliable sex difference in the preschool years, a small male advantage emerging around age 6 (g ≈ 0.20), and a moderate effect only by age 14 — with task and stimulus characteristics explaining substantial variability independently of age. This sensitivity to task format has been documented most systematically in German primary school children. @neuburger2011gender found the gap absent at age 8 but small and significant at age 10, concentrated in cube figure conditions where girls showed no improvement across grades; @jansen2013mental found cube figures too demanding for either grade but reliable male advantages in speed with more accessible stimuli. Going further, @ruthsatz2017gender and @ruthsatz2019girls showed that the direction of the difference depended on stimulus-gender congruence, reversing entirely under female-congruent conditions. Studies from other countries present a similarly inconsistent picture. A male advantage has been reported in Italian primary school children from as early as age 8 [@moe2018mental], and in Dutch children aged 7–9 using a simplified child-friendly task — though this difference disappeared in older children in the same sample [@van2019sex]. In French children, no sex difference was found at age 7–8 but one emerged by age 11–12 [@hoyek2011use]. In contrast, @hodgkiss2021developmental found no significant gender difference across the full primary school age range in a UK sample. Whether these discrepancies reflect genuine cultural variation, differences in task format, or both remains unclear.
 
 The vast majority of developmental research on mental rotation has been conducted with children from WEIRD (Western, Educated, Industrialized, Rich, Democratic) populations [@henrich2010weirdest], raising questions about whether findings about its developmental trajectory, psychometric properties, and underlying cognitive processes generalize beyond the populations in which they were established.
 
 The limited cross-cultural evidence that does exist spans different populations, developmental periods, and spatial tasks, making it difficult to draw firm conclusions about how cultural context shapes performance. Studies with non-WEIRD children — including Tsimané forager-horticulturalists in Bolivia [@davis2019spatial] and seminomadic pastoralist-forager children in northern Namibia [@davis2021cultural] — have focused primarily on broader spatial skills rather than mental rotation specifically. In one of the few studies to examine mental rotation cross-culturally in children, researchers compared children in the Ivory Coast and Switzerland and found that the overall shape of the RT–angle curve was similar across both groups, suggesting the basic mental rotation signature is present in both cultural contexts [@nunez1998mental]. However, age predicted performance in the Swiss group but not the Ivorian group, pointing to the possibility that the developmental trajectory of mental rotation differs across cultures even when its basic signature holds. Yet the study has important limitations — it was small (n = 151) and relied on a computerized task likely more familiar to Swiss children. Notably, the authors themselves attributed much of the observed RT difference to cultural differences in familiarity with technology and the value placed on speed, rather than to differences in spatial cognition per se. Taken together, the cross-cultural validity of the mental rotation paradigm with children remains largely unestablished.
 
-Taken together, this evidence highlights two distinct but related gaps. First, we have limited data on whether mental rotation tasks developed and validated in highly schooled, resource-rich contexts measure the same underlying construct when administered to children from different cultural and socioeconomic backgrounds. Second, even where cross-cultural comparisons have been made, they have rarely examined whether this core cognitive signature replicates across diverse populations of children. The linear relationship between reaction time and angular disparity — one of the most robust findings in cognitive psychology — has been demonstrated repeatedly in WEIRD adult and child samples [@kaltner2016developmental; @jansen2015role], but its replication in children across culturally diverse sites remains largely untested. Beyond these two gaps, relatively little is known about the cognitive strategies children employ when solving mental rotation problems, and whether these vary across cultural contexts — a question we explore tentatively here. We address these gaps with three sets of analyses, corresponding to three research questions, each building toward a broader understanding of how and why children's spatial reasoning varies across cultures.
+Taken together, this evidence highlights three distinct but related gaps. First, we have limited data on whether mental rotation tasks developed and validated in resource-rich contexts measure the same underlying construct when administered to children from different cultural and socioeconomic backgrounds. Second, even where cross-cultural comparisons have been made, they have rarely examined whether core cognitive signatures replicate across diverse sites. The linear relationship between reaction time and angular disparity has been demonstrated repeatedly in WEIRD adult and child samples [@kaltner2016developmental; @jansen2015role], but its replication in children across varied international sites remains largely untested. Third, whether and when a gender difference in mental rotation emerges in primary school children remains unclear, with findings varying substantially across studies and tasks — making it a natural question to examine in a cross-cultural dataset. Beyond these three gaps, relatively little is known about the cognitive strategies children employ when solving mental rotation problems, and whether these vary across cultural contexts — a question we explore tentatively here. We address these gaps with four sets of analyses, corresponding to four research questions, each building toward a broader understanding of how and why children's spatial reasoning varies across cultures.
 
 ## The Present Study
 The present study uses the pilot dataset from the Learning Variability Network Exchange (LEVANTE), an international research collaboration designed to capture how children's learning and development vary across ages and cultural contexts. LEVANTE's central aim is to build a large, openly shared dataset of children's cognitive development across diverse settings, with a particular focus on individual variability — what differs across children, and why. Data were collected from three geographically and culturally diverse pilot sites: the Universidad de los Andes in Bogotá, Colombia (uniandes-co); the Max Planck Institute for Evolutionary Anthropology in Leipzig, Germany (mpieva-de); and the University of Western Ontario in London, Canada (western-ca). Here we use data from a single task in the LEVANTE battery: a mental rotation task developed using item response theory, which allows directly comparable ability estimates to be derived across children who completed different subsets of items [@Kachergis2025LEVANTEcoretasks]. LEVANTE is not designed to support site-level performance comparisons — sites vary substantially in sampling, recruitment, and test administration in ways that heavily confound absolute comparisons. Because of this confounding, differences in overall scores across sites should not be interpreted as reflecting population differences. This interpretive caveat is an important limitation of LEVANTE data.
 
-Our first research question asks whether the LEVANTE mental rotation task achieves measurement invariance across culturally diverse sites — that is, whether it captures the same underlying construct regardless of where it is administered. Our second asks whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts, using the angular disparity effect as the key benchmark: as the angular difference between two objects increases, so too should the time required to judge whether they match. If children across three culturally diverse sites show this same systematic pattern, this constitutes good evidence that the task is engaging the spatial demands it was designed to capture. Alongside these two primary research questions, we tentatively explore a third: whether children draw on different cognitive strategies when solving mental rotation problems, and whether their strategies vary across contexts. These three questions move from psychometric structure (*Cross-Site Invariance*), to process-level validity (*Angular Sensitivity*), to profiles of engagement (*Strategy Variation*) — building a layered case for the task's cross-cultural validity.
+Our first research question asks whether the LEVANTE mental rotation task achieves measurement invariance across three international study sites — that is, whether it captures the same underlying construct regardless of where it is administered. Our second asks whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts [@shepard1971mental], using the angular disparity effect as the key benchmark: as the angular difference between two objects increases, so too should the time required to judge whether they match. If children across three culturally diverse sites show this same systematic pattern, this constitutes good evidence that the task is engaging the spatial demands it was designed to capture. Our third research question asks whether a gender difference in mental rotation is detectable in this sample, and whether it interacts with age. Alongside these three primary research questions, we tentatively explore a fourth: whether children draw on different cognitive strategies when solving mental rotation problems, and whether their strategies vary across contexts. These four questions move from psychometric structure (*Cross-Site Invariance*), to process-level validity (*Angular Sensitivity*), to individual variation (*Gender and Age*), to profiles of engagement (*Strategy Variation*) — building a layered case for the task's cross-cultural validity.
 
 ```{r}
 #| include: false
@@ -226,6 +226,11 @@ mrot_scores <- readr::read_rds(here::here("models/mrot_scores.rds")) |>
 
 # coefficients
 mrot_coefs <- readr::read_rds(here::here("models/mrot_coef.rds"))
+
+# survey data for gender analysis
+survey_gender <- readr::read_rds(
+  here::here("survey", "survey_gender_conditions.rds")
+)
 ```
 
 ```{r}
@@ -403,7 +408,6 @@ knitr::include_graphics("mrot_item_examples.pdf")
 # pdf_convert("mrot_item_examples.pdf", format = "png", dpi = 300,
 #             filenames = "mrot_item_examples.png")
 ```
-
 \clearpage
 
 The nine core tasks in LEVANTE, including mental rotation, were initially designed in English and then subsequently adapted for Spanish and German following a set of internationalization procedures in collaboration with researchers at the uniandes-co and mpieva-de sites, respectively - see @Kachergis2025LEVANTEcoretasks for more detail.
@@ -578,7 +582,6 @@ coef_ns <- mrot_coefs |>
 ```
 
 @fig-dev-trends plots participants' mental rotation ability estimates (θ) against age. Curves show GAM-smoothed age trends within each site, used here as a visualization aid to highlight the general shape of the developmental trajectory without imposing a linear form; formal statistical modelling of these developmental trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, indicating that the task captures developmental change across cultural contexts. The dispersion of points within age bands underscores substantial individual variability among same-aged children. 
-\clearpage
 
 ```{r}
 #| label: fig-dev-trends
@@ -816,9 +819,9 @@ pct_increase_90 <- round((rt_multiplier_90 - 1) * 100, 1) |> unname()
 
 ## Angular Sensitivity
 
-Our second research question asked whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts — specifically, whether the canonical angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (*M* age = `r age_3d_mean`, *SD* = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. To aid interpretation, a 90-degree increase in rotation angle was associated with approximately `r pct_increase_90`% longer response times for 3D stimuli, consistent with the predicted linear increase in mental rotation time. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope did not differ significantly between Germany and Colombia (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), but was significantly shallower in Canada than Germany (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping (5–7, 7–9, 9–12 years), did not independently moderate the angle slope (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
+Our second research question asked whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts — specifically, whether the canonical angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. To aid interpretation, a 90-degree increase in rotation angle was associated with approximately `r pct_increase_90`% longer response times for 3D stimuli, consistent with the predicted linear increase in mental rotation time. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between Germany and Colombia (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in Canada than Germany", "but did not differ significantly between Canada and Germany")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping (5–7, 7–9, 9–12 years), did not independently moderate the angle slope (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
-For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope was significantly shallower in Colombia than Germany (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`), but did not differ significantly between Canada and Germany (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`). This pattern is the reverse of that observed for 3D stimuli, where Colombia did not differ from Germany but Canada showed a shallower slope, suggesting that site differences in angular sensitivity may be stimulus-type dependent. A combined model confirmed that the angle slope was significantly steeper for 3D than 2D stimuli (β difference = `r round(beta_diff, 2)`, SE = `r round(se_diff, 2)`, χ²(`r anova_combined_df`) = `r round(anova_combined_chisq, 2)`, p `r fmt_p(anova_combined_p)`), with the 3D slope (β = `r round(beta_3d_comb, 2)`) approximately `r round(beta_3d_comb / beta_2d_comb, 1)` times larger than the 2D slope (β = `r round(beta_2d_comb, 2)`).
+For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope `r ifelse(p_2d_site_co < .05, "was significantly shallower", "did not differ significantly")` in Colombia than Germany (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`), and `r ifelse(p_2d_site_ca < .05, "differed significantly", "did not differ significantly")` between Canada and Germany (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`). `r ifelse(p_site_co >= .05 & p_2d_site_co < .05, "This pattern is the reverse of that observed for 3D stimuli, where Colombia did not differ from Germany but Canada showed a shallower slope, suggesting that site differences in angular sensitivity may be stimulus-type dependent.", "The pattern of site differences differed between 2D and 3D stimuli, suggesting that angular sensitivity may be stimulus-type dependent.")` A combined model confirmed that the angle slope was significantly steeper for 3D than 2D stimuli (β difference = `r round(beta_diff, 2)`, SE = `r round(se_diff, 2)`, χ²(`r anova_combined_df`) = `r round(anova_combined_chisq, 2)`, p `r fmt_p(anova_combined_p)`), with the 3D slope (β = `r round(beta_3d_comb, 2)`) approximately `r round(beta_3d_comb / beta_2d_comb, 1)` times larger than the 2D slope (β = `r round(beta_2d_comb, 2)`).
 
 @fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by age group (5–7, 7–9, and 9–12 years) and site, separately for 2D and 3D stimuli. Cell-level sample sizes underlying this figure are reported in @apx-rt-angle-sample-sizes. Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in @apx-360-angle in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect.
 
@@ -826,7 +829,7 @@ Raw per-run data underlying these trends are reported in @apx-irt-ability-age. W
 
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
-#| fig-cap: "**Reaction Time by angle within age groups ±95% CI.** Cells with fewer than 10 observations are excluded (11 cells excluded, 88 retained)."
+#| fig-cap: "Reaction Time by angle within age groups ±95% CI."
 #| fig-align: "center"
 #| include: true
 #| fig-width: 7
@@ -880,6 +883,152 @@ p_mrot_rt_angle_age_1
 \clearpage
 
 ```{r}
+#| label: gender-analysis-prep
+#| include: false
+
+# note: survey data loaded in 'load data' chunk above.
+
+survey_gender_wide <- survey_gender |>
+  filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
+  select(child_id, variable, string_response) |>
+  group_by(child_id, variable) |>
+  # keep non-NA if available, otherwise NA
+  summarise(string_response = na.omit(string_response) |> unique() |> 
+              (\(x) if(length(x) == 1) x else NA_character_)(),
+            .groups = "drop") |>
+  tidyr::pivot_wider(names_from = variable, values_from = string_response) |>
+  rename(sex = ChildSexBirth, 
+         gender = ChildGenderCurrent)
+
+# # distributions
+# table(survey_gender_wide$sex, useNA = "always")
+# table(survey_gender_wide$gender, useNA = "always")
+# 
+# # do any child_ids from survey match user_ids in your main data?
+# sum(survey_gender_wide$child_id %in% mrot_scores$user_id)
+# sum(survey_gender_wide$child_id %in% mrot_rt_trial$user_id)
+```
+
+```{r}
+#| label: german-data
+#| include: false
+
+de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
+  rename(user_id = uid, sex = Gender) |>
+  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
+
+# number of DE users
+n_distinct(mrot_df$user_id[mrot_df$site_label == "mpieva-de"])
+
+# number overlapping with data
+length(intersect(de_sex$user_id, mrot_df$user_id))
+
+# number overlapping with surveys
+length(intersect(de_sex$user_id, survey_gender_wide$child_id))
+
+sex_data <- full_join(de_sex, 
+          rename(survey_gender_wide, sex_survey = sex), 
+          by = c("user_id" = "child_id"))
+
+sex_data |>
+  filter_out(is.na(sex_survey) | is.na(sex_demo)) |>
+  filter(sex_demo != sex_survey)
+
+
+sex_data_cleaned <- sex_data |>
+  filter_out(sex_demo != sex_survey) |>
+  transmute(user_id = user_id,
+    sex = ifelse(is.na(sex_survey), sex_demo, sex_survey))
+```
+
+```{r}
+#| label: sex-data-coverage
+#| include: false
+
+mrot_rt_trial |> 
+  distinct(user_id) |> 
+  nrow()
+
+mrot_rt_trial |>
+  left_join(sex_data_cleaned) |>
+  distinct(user_id, site, sex) |>
+  group_by(site) |>
+  summarise(
+    n_total = n(),
+    n_with_sex = sum(!is.na(sex)),
+    pct = round(100 * n_with_sex / n_total, 1)
+  )
+
+```
+
+```{r}
+#| label: gender-models
+#| include: false
+
+mrot_df_gender <- inner_join(mrot_df, survey_gender_wide, 
+                             by = c("user_id" = "child_id")) |>
+  filter_out(is.na(sex))
+
+# Mike's model
+# sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
+#   data = mrot_df_gender)
+# 
+# summary(sex_mod)
+
+# more simple model (Fionnuala) to avoid singular fits
+sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (1 | site),
+                 data = mrot_df_gender)
+summary(sex_mod)
+# no evidence of sex differences in either overall performance or developmental trajectories
+
+# German model
+# sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id),
+#   data = filter(mrot_df_gender, site == "pilot_mpieva_de"))
+# 
+# summary(sex_mod_de)
+
+library(brms)
+# Mike's model
+# sex_mod_bayes <- brm(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
+#   data = mrot_df_gender)
+
+# updated model with priors (not reported)
+# sex_mod_bayes <- brm(
+#   metric_value ~ age * sex + (1 | user_id) + (1 | site),
+#   data = mrot_df_gender,
+#   prior = c(
+#     prior(normal(0, 1), class = "b"),
+#     prior(normal(0, 1), class = "Intercept"),
+#     prior(exponential(1), class = "sd")
+#   ),
+#   control = list(adapt_delta = 0.99, max_treedepth = 15)
+# )
+```
+## Gender and Age
+Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. Ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`).
+
+```{r}
+#| label: gender-plot
+#| fig-cap: "Mental rotation ability (θ) as a function of age and sex across three sites."
+#| include: true
+#| fig-align: "center"
+#| fig-width: 7
+#| fig-height: 5
+
+ggplot(mrot_df_gender, aes(x = age, y = metric_value, colour = sex)) +
+  geom_point(alpha = 0.35, size = 1.1) +
+  # geom_line(aes(group = user_id), alpha = .3) + 
+  geom_smooth(method = "lm") +
+  labs(
+    x = "Age (years)",
+    y = "Ability (θ)",
+    colour = "Sex"
+  ) +
+  facet_wrap(~site_label) + 
+  theme(legend.position = "bottom")
+```
+
+```{r}
 #| label: strategy-analysis-prep
 #| results: "hide"
 
@@ -893,7 +1042,7 @@ ability_run <- mrot_df %>%
 
 # prep trial-level data for the rich model
 mrot_rich_data <- mrot_rt_trial %>%
-  filter(!adaptive) %>% # note: added by Fionnuala, april 12
+  # filter(!adaptive) %>% # note: added by Fionnuala, april 12
   mutate(
     stimulus = as.factor(stimulus),
     angle_s  = as.numeric(scale(angle)),
@@ -1028,43 +1177,6 @@ analysis_data <- analysis_data %>%
 ```
 
 ```{r}
-#| label: strategy-cat-no-cat
-
-# added by Fionnuala, april 12 to compare fixed form (no CAT) v complete (CAT included) version
-
-# key cluster stats (comparing CAT trials included v non-CAT trials included)
-analysis_data %>%
-  group_by(Strategy_Label) %>%
-  summarise(
-    n            = n(),
-    pct          = round(n() / nrow(analysis_data) * 100, 1),
-    mean_ability = round(mean(ability, na.rm = TRUE), 2),
-    sd_ability   = round(sd(ability, na.rm = TRUE), 2),
-    mean_slope   = round(mean(Rel_Slope, na.rm = TRUE), 2),
-    sd_slope     = round(sd(Rel_Slope, na.rm = TRUE), 2),
-    mean_instab  = round(mean(Instability, na.rm = TRUE), 2)
-  )
-
-# Summary statistics
-summary(rich_features_final$Rel_Slope)
-
-# Check for extremes
-rich_features_final %>%
-  arrange(Rel_Slope) %>%
-  select(run_id, Rel_Slope, Abs_Slope, Baseline_Speed) %>%
-  slice(c(1:10, (n()-9):n()))  # top and bottom 10
-
-# Plot
-ggplot(rich_features_final, aes(x = Rel_Slope)) +
-  geom_histogram(bins = 50) +
-  geom_vline(xintercept = c(-2, 2), linetype = "dashed", color = "red") +
-  labs(title = "Distribution of Rel_Slope", 
-       x = "Relative Slope", 
-       y = "Count")
-
-```
-
-```{r}
 #| label: strategy-reporting-objects
 
 ineff <- analysis_data %>%
@@ -1114,7 +1226,7 @@ The Mental Rotation group (n = `r mrot_strat$N`) shows the classic monotonically
 
 ```{r}
 #| label: fig-validation-boxplots
-#| fig-width: 9
+#| fig-width: 10
 #| fig-height: 5
 #| fig-align: "center"
 #| fig-cap: "**Cluster profiles.** A) Ability (θ) by strategy group. B) Relative RT slope by strategy group. Significance bars show pairwise t-tests."
@@ -1298,7 +1410,6 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
     colour = "Strategy", fill = "Strategy"
   )
 ```
-
 \clearpage
 
 ```{r}
