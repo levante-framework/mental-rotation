@@ -143,9 +143,9 @@ However, this aggregate pattern may obscure meaningful individual variation in t
 
 Importantly, far less is known about which strategies children employ when solving mental rotation problems, and whether strategy use varies with age, ability, or cultural context. Recent work by @mckee2025malleability finds that children rely on non-rotation strategies — flipping and feature matching — more often than analog rotation, with strategy choice shaped by how the task is framed. This question motivates the exploratory component of the present study, which we describe below. These questions take on added significance given how narrow the populations studied to date have been.
 
-Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5-12 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
+Mental rotation ability develops across a protracted period beginning in infancy. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5--12 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
 
-One prominent source of variation is gender. Gender differences in mental rotation are well documented in adults [@voyer1995magnitude; @zell2015evaluating], but in children the picture is considerably less clear. @lauer2019development synthesized data from over 30,000 children aged 3–17, finding no reliable sex difference in the preschool years, a small male advantage emerging around age 6 (g ≈ 0.20), and a moderate effect only by age 14 — with task and stimulus characteristics explaining substantial variability independently of age. This sensitivity to task format has been documented most systematically in German primary school children. @neuburger2011gender found the gap absent at age 8 but small and significant at age 10, concentrated in cube figure conditions where girls showed no improvement across grades; @jansen2013mental found cube figures too demanding for either grade but reliable male advantages in speed with more accessible stimuli. Going further, @ruthsatz2017gender and @ruthsatz2019girls showed that the direction of the difference depended on stimulus-gender congruence, reversing entirely under female-congruent conditions. Studies from other countries present a similarly inconsistent picture. A male advantage has been reported in Italian primary school children from as early as age 8 [@moe2018mental], and in Dutch children aged 7–9 using a simplified child-friendly task — though this difference disappeared in older children in the same sample [@van2019sex]. In French children, no sex difference was found at age 7–8 but one emerged by age 11–12 [@hoyek2011use]. In contrast, @hodgkiss2021developmental found no significant gender difference across the full primary school age range in a UK sample. Whether these discrepancies reflect genuine cultural variation, differences in task format, or both remains unclear.
+One prominent source of variation is child sex.^[In the current paper, we refer to sex differences (in the sense of the biological variable), but some reported differences could be related to gender (e.g., driven by differences in socialization and experience). We are agnostic about this question here.] Sex differences in mental rotation are well documented in adults [@voyer1995magnitude; @zell2015evaluating], but in children the picture is considerably less clear. @lauer2019development synthesized data from over 30,000 children aged 3--17, finding no reliable sex difference in the preschool years, a small male advantage emerging around age 6 (g ≈ 0.20), and a moderate effect only by age 14, with task and stimulus characteristics explaining substantial variability independently of age. This sensitivity to task format has been documented most systematically in German primary school children. @neuburger2011gender found the gap absent at age 8 but small and significant at age 10, concentrated in cube figure conditions where girls showed no improvement across grades; @jansen2013mental found cube figures too demanding for either grade but reliable male advantages in speed with more accessible stimuli. Going further, @ruthsatz2017gender and @ruthsatz2019girls showed that the direction of the difference depended on stimulus-gender congruence, reversing entirely under female-congruent conditions. Studies from other countries present a similarly inconsistent picture. A male advantage has been reported in Italian primary school children from as early as age 8 [@moe2018mental], and in Dutch children aged 7–9 using a simplified child-friendly task, though this difference disappeared in older children in the same sample [@van2019sex]. In French children, no sex difference was found at age 7--8 but one emerged by age 11--12 [@hoyek2011use]. In contrast, @hodgkiss2021developmental found no significant gender difference across the full primary school age range in a UK sample. Whether these discrepancies reflect genuine cultural variation, differences in task format, or both remains unclear.
 
 The vast majority of developmental research on mental rotation has been conducted with children from WEIRD (Western, Educated, Industrialized, Rich, Democratic) populations [@henrich2010weirdest], raising questions about whether findings about its developmental trajectory, psychometric properties, and underlying cognitive processes generalize beyond the populations in which they were established.
 
@@ -978,11 +978,7 @@ summary(sex_mod)
 # 
 # summary(sex_mod_de)
 
-library(brms)
-# Mike's model
-# sex_mod_bayes <- brm(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
-#   data = mrot_df_gender)
-
+# Bayesian model -- left for completeness but not used
 # updated model with priors (not reported)
 # sex_mod_bayes <- brm(
 #   metric_value ~ age * sex + (1 | user_id) + (1 | site),
@@ -994,8 +990,17 @@ library(brms)
 #   ),
 #   control = list(adapt_delta = 0.99, max_treedepth = 15)
 # )
+# for compariosn
+# Regression Coefficients:
+#             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+# Intercept      -2.63      0.53    -3.64    -1.50 1.00     1534     1921
+# age             0.24      0.03     0.18     0.30 1.00     1252     1990
+# sexMale        -0.02      0.38    -0.78     0.70 1.00     1153     1946
+# age:sexMale     0.01      0.04    -0.06     0.09 1.00     1152     1976
 ```
-## Gender and Age
+
+## Sex Differences
+
 Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. Ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`).
 
 ```{r}
@@ -1676,9 +1681,9 @@ Our second research question asked whether performance is driven by the spatial 
 
 Children at mpieva-de showed both higher baseline response times and steeper absolute RT–angle slopes than the other two sites — a pattern consistent with a testing format explanation rather than a genuine cultural difference in angular sensitivity. Remote home-based testing on family devices, as used at mpieva-de, may introduce environmental variability that is likely to inflate both baseline RT and trial-to-trial noise; because absolute slopes scale with baseline speed, this would mechanically produce steeper slopes even without greater rotation sensitivity, a pattern visible in the wider raw RT distributions at mpieva-de (@apx-irt-ability-age). 
 
-## Gender and Age
+## Sex Differences
 
-The absence of a main effect of sex or an age-by-sex interaction replicates the pattern reported in several recent studies of primary school-aged children using child-friendly mental rotation tasks [@hodgkiss2021developmental; @lauer2019development], and is consistent with the meta-analytic picture: reliable gender differences in mental rotation are small and inconsistent in this age range, particularly for tasks using 2D stimuli and child-friendly formats of the kind used here [@lauer2019development]. The LEVANTE task's design — 2D animal silhouettes alongside 3D block figures places it squarely in the category of tasks where the meta-analytic expectation for a gender difference is modest at best. Notably, the null finding held across all three international study sites, extending prior null results beyond the WEIRD samples in which they have predominantly been documented [@hodgkiss2021developmental]. Taken together, the gender results are consistent with the broader argument of this paper: that the task captures a spatially-driven construct that is consistent across cultural contexts.
+The absence of a main effect of sex or an age-by-sex interaction replicates the pattern reported in several recent studies of primary school-aged children using child-friendly mental rotation tasks [@hodgkiss2021developmental; @lauer2019development], and is consistent with the meta-analytic picture: reliable sex differences in mental rotation are small and inconsistent in this age range, particularly for tasks using 2D stimuli and child-friendly formats of the kind used here [@lauer2019development]. The LEVANTE task's design -- 2D animal silhouettes alongside 3D block figures -- places it squarely in the category of tasks where the meta-analytic expectation for a gender difference is modest at best. Notably, the null finding held across all three international study sites, extending prior null results beyond the WEIRD samples in which they have predominantly been documented [@hodgkiss2021developmental]. Taken together, the sex difference results are consistent with the broader argument of this paper: that the task captures a spatially-driven construct that is consistent across cultural contexts.
 
 ## Strategy Variation
 
