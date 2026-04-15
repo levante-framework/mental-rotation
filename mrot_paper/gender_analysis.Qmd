@@ -2,6 +2,9 @@
 #| label: survey-gender
 #| include: false
 
+# # IRT data (replacing mrot_df)
+# mrot_scores <- readr::read_rds(here::here("models/mrot_scores.rds")) |>
+#   filter(model_set == "multigroup_site") # also contains "multigroup_dataset"
 
 survey_gender <- readr::read_rds(
   here::here("survey", "survey_gender_conditions.rds")
@@ -23,6 +26,8 @@ survey_gender_wide <- survey_gender |>
 
 
 ```{r}
+
+
 # distributions
 table(survey_gender_wide$sex, useNA = "always")
 table(survey_gender_wide$gender, useNA = "always")
@@ -32,8 +37,8 @@ table(survey_gender_wide$gender, useNA = "always")
 ```{r}
 
 # do any child_ids from survey match user_ids in your main data?
-sum(survey_gender_wide$child_id %in% mrot_df$user_id)
-sum(survey_gender_wide$child_id %in% mrot_rt_trial_no_retest$user_id)
+sum(survey_gender_wide$child_id %in% mrot_scores$user_id)
+sum(survey_gender_wide$child_id %in% mrot_rt_trial$user_id)
 ```
 
 
@@ -42,9 +47,13 @@ sum(survey_gender_wide$child_id %in% mrot_rt_trial_no_retest$user_id)
 de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
   mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
 
+de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
+  rename(user_id = uid, sex = Gender) |>
+  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
+
 
 # number of DE users
-n_distinct(mrot_df$user_id[mrot_df$site == "pilot_mpieva_de"])
+n_distinct(mrot_df$user_id[mrot_df$site_label == "mpieva-de"])
 
 # number overlapping with data
 length(intersect(de_sex$user_id, mrot_df$user_id))
@@ -67,20 +76,12 @@ sex_data_cleaned <- sex_data |>
     sex = ifelse(is.na(sex_survey), sex_demo, sex_survey))
 ```
 
-
-
-
-
-
-
-
-
 ```{r}
-mrot_rt_trial_no_retest |> 
+mrot_rt_trial |> 
   distinct(user_id) |> 
   nrow()
 
-mrot_rt_trial_no_retest |>
+mrot_rt_trial |>
   left_join(sex_data_cleaned) |>
   distinct(user_id, site, sex) |>
   group_by(site) |>
@@ -91,25 +92,21 @@ mrot_rt_trial_no_retest |>
   )
 ```
 
-
-
 ```{r}
 mrot_df_gender <- inner_join(mrot_df, survey_gender_wide, 
                              by = c("user_id" = "child_id")) |>
-  filter_out(is.na(sex)) |>
-
+  filter_out(is.na(sex))
 
 ggplot(mrot_df_gender, aes(x = age, y = metric_value, colour = sex)) +
   geom_point(alpha = 0.35, size = 1.1) +
   geom_line(aes(group = user_id), alpha = .3) + 
   geom_smooth(method = "lm") +
-  # scale_colour_manual(values = site_pal_labelled) +
   labs(
     x      = "Age (years)",
     y      = "Ability (θ)",
     colour = "Sex"
   ) +
-  facet_wrap(~site) + 
+  facet_wrap(~site_label) + 
   theme(legend.position = "bottom")
 ```
 
