@@ -294,9 +294,15 @@ n_excluded <- mrot_scores |>
 n_final <- mrot_df |>
   summarise(n_users = n_distinct(user_id),
             n_runs = n_distinct(run_id))
+
+n_repeat_users <- runs_filtered %>%
+  group_by(user_id) %>%
+  summarise(n_assessments = n_distinct(run_id)) %>%
+  filter(n_assessments > 1) %>%
+  nrow()
 ```
 
-Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5–12 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants). Data and  analysis code for this paper are available at https://github.com/levante-framework/mental-rotation. For more information about LEVANTE public data releases, see https://researcher.levante-network.org/data.
+Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5–12 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants). A total of `r n_repeat_users` children contributed two assessments each; each assessment was treated as a separate observation, with participant included as a random effect in all mixed-effects models to account for the non-independence of repeated assessments. Data and analysis code for this paper are available at https://github.com/levante-framework/mental-rotation. For more information about LEVANTE public data releases, see https://researcher.levante-network.org/data.
 
 ```{r}
 #| label: trial-level-rts
@@ -436,7 +442,7 @@ To investigate whether performance was sensitive to rotation angle in the theore
 
 ### Strategy Variation
 
-To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here: the strategy analysis extracts relative person-level features (e.g., RT–angle slope relative to baseline speed, residual instability) rather than estimating the angle effect at the population level, and including all available trials yields more reliable individual-level estimates. From this model, we extracted four person-level features for each child: baseline response speed, absolute RT–angle slope, RT–angle slope relative to baseline speed, and trial-by-trial RT trend. Response instability was additionally computed as the standard deviation of model residuals. These five features were then submitted to k-means clustering. 
+To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here: the strategy analysis extracts relative person-level features rather than estimating the angle effect at the population level, and including all available trials yields more reliable individual-level estimates. From this model, we extracted five person-level features for each child. Baseline response speed reflects general processing efficiency independent of rotation demands. The absolute RT–angle slope captures the raw magnitude of angular sensitivity, while the RT–angle slope relative to baseline speed captures the degree to which rotation demands slow a child down proportional to their typical pace, enabling comparison across children with different baseline speeds. The trial-by-trial RT trend indexes within-session learning or fatigue. Finally, response instability — the standard deviation of model residuals — captures trial-to-trial variability unexplained by angle or trial position; children who disengage from the task's spatial demands or shift inconsistently between approaches are expected to show greater residual variability than those applying a consistent strategy. These features were identified through iterative exploration and retained on the basis that each captures a distinct and interpretable aspect of how children engage with the task's spatial demands. These five features were then submitted to k-means clustering. 
 
 # Results
 
@@ -721,9 +727,19 @@ anova_site_chisq <- anova(m_3d_main, m_3d_site)$Chisq[2]
 anova_site_df <- anova(m_3d_main, m_3d_site)$Df[2]
 anova_site_p <- anova(m_3d_main, m_3d_site)[["Pr(>Chisq)"]][2]
 
-anova_age_chisq <- anova(m_3d_main, m_3d_age)$Chisq[2]
-anova_age_df <- anova(m_3d_main, m_3d_age)$Df[2]
-anova_age_p <- anova(m_3d_main, m_3d_age)[["Pr(>Chisq)"]][2]
+# age moderation - tested over and above site
+anova_age_chisq <- anova(m_3d_site, m_3d_full)$Chisq[2]
+anova_age_df    <- anova(m_3d_site, m_3d_full)$Df[2]
+anova_age_p     <- anova(m_3d_site, m_3d_full)[["Pr(>Chisq)"]][2]
+
+# age group contrasts from m_3d_age
+m_3d_age_coefs <- coef(summary(m_3d_age))
+beta_age_mid   <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Estimate"]
+se_age_mid     <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Std. Error"]
+p_age_mid      <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Pr(>|t|)"]
+beta_age_old   <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Estimate"]
+se_age_old     <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Std. Error"]
+p_age_old      <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Pr(>|t|)"]
 
 # 3D main model numbers
 fe_3d <- fixef(m_3d_main)
@@ -754,26 +770,26 @@ anova_2d_site_chisq <- anova(m_2d_main, m_2d_site)$Chisq[2]
 anova_2d_site_df    <- anova(m_2d_main, m_2d_site)$Df[2]
 anova_2d_site_p     <- anova(m_2d_main, m_2d_site)[["Pr(>Chisq)"]][2]
 
-# children who completed 3D trial
+# children who completed 3D trials
 n_children_3d <- mrot_3d %>% distinct(user_id) %>% nrow()
 age_3d_mean <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% mean(na.rm = TRUE) %>% round(1)
-age_3d_sd <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% sd(na.rm = TRUE) %>% round(1)
-age_3d_min <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% min(na.rm = TRUE) %>% round(1)
-age_3d_max <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% max(na.rm = TRUE) %>% round(1)
+age_3d_sd   <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% sd(na.rm = TRUE) %>% round(1)
+age_3d_min  <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% min(na.rm = TRUE) %>% round(1)
+age_3d_max  <- mrot_3d %>% distinct(user_id, .keep_all = TRUE) %>% pull(age) %>% max(na.rm = TRUE) %>% round(1)
 
 # combined model numbers
 anova_combined_chisq <- anova_combined$Chisq[2]
-anova_combined_df <- anova_combined$Df[2]
-anova_combined_p <- anova_combined[["Pr(>Chisq)"]][2]
+anova_combined_df    <- anova_combined$Df[2]
+anova_combined_p     <- anova_combined[["Pr(>Chisq)"]][2]
 
 fe_comb <- fixef(m_combined_interaction)
 se_comb <- sqrt(diag(vcov(m_combined_interaction)))
 
 beta_3d_comb <- fe_comb["angle_sc"]
-se_3d_comb <- se_comb["angle_sc"]
+se_3d_comb   <- se_comb["angle_sc"]
 beta_2d_comb <- fe_comb["angle_sc"] + fe_comb["angle_sc:item_group2d"]
-beta_diff <- fe_comb["angle_sc:item_group2d"]
-se_diff <- se_comb["angle_sc:item_group2d"]
+beta_diff    <- fe_comb["angle_sc:item_group2d"]
+se_diff      <- se_comb["angle_sc:item_group2d"]
 
 comb_coefs <- coef(summary(m_combined_interaction))
 t_diff <- comb_coefs["angle_sc:item_group2d", "t value"]
@@ -784,42 +800,17 @@ fmt_p <- function(p) {
   if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
 }
 
-# interpretation of numbers (added following Ben's feedback)
-sd_angle <- mrot_lme_data |> pull(angle) |> sd()
-beta_per_90 <- beta_3d_main * (90 / sd_angle)
+# 90-degree RT interpretation
+sd_angle       <- mrot_lme_data |> pull(angle) |> sd()
+beta_per_90    <- beta_3d_main * (90 / sd_angle)
 rt_multiplier_90 <- exp(beta_per_90)
-pct_increase_90 <- round((rt_multiplier_90 - 1) * 100, 1) |> unname()
+pct_increase_90  <- round((rt_multiplier_90 - 1) * 100, 1) |> unname()
 
-# # additional checks, april 2
-# mrot_rt_trial %>%
-#   mutate(angle = as.integer(stringr::str_extract(item, "(?<=_)\\d+"))) %>%
-#   filter(!is.na(angle)) %>%
-#   distinct(angle) %>%
-#   arrange(angle)
-# 
-# mrot_rt_trial %>%
-#   mutate(angle = as.integer(stringr::str_extract(item, "(?<=_)\\d+"))) %>%
-#   filter(!is.na(angle)) %>%
-#   count(angle) %>%
-#   arrange(angle)
-
-# mrot_rt_trial %>%
-#   left_join(cat_data, by = c("user_id", "run_id")) %>%
-#   mutate(angle = as.integer(stringr::str_extract(item, "(?<=_)\\d+"))) %>%
-#   filter(!is.na(angle)) %>%
-#   count(adaptive, angle) %>%
-#   arrange(adaptive, angle)
-# 
-# mrot_rt_trial %>%
-#   mutate(angle = as.integer(stringr::str_extract(item, "(?<=_)\\d+"))) %>%
-#   filter(angle == 20) %>%
-#   distinct(item) %>%
-#   arrange(item)
 ```
 
 ## Angular Sensitivity
 
-Our second research question asked whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts — specifically, whether the canonical angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. To aid interpretation, a 90-degree increase in rotation angle was associated with approximately `r pct_increase_90`% longer response times for 3D stimuli, consistent with the predicted linear increase in mental rotation time. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between Germany and Colombia (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in Canada than Germany", "but did not differ significantly between Canada and Germany")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping (5–7, 7–9, 9–12 years), did not independently moderate the angle slope (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
+Our second research question asked whether performance is sensitive to the spatial properties of the stimuli in the way theory predicts — specifically, whether the canonical angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. To aid interpretation, a 90-degree increase in rotation angle was associated with approximately `r pct_increase_90`% longer response times for 3D stimuli, consistent with the predicted linear increase in mental rotation time. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between Germany and Colombia (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in Canada than Germany", "but did not differ significantly between Canada and Germany")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
 For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope `r ifelse(p_2d_site_co < .05, "was significantly shallower", "did not differ significantly")` in Colombia than Germany (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`), and `r ifelse(p_2d_site_ca < .05, "differed significantly", "did not differ significantly")` between Canada and Germany (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`). `r ifelse(p_site_co >= .05 & p_2d_site_co < .05, "This pattern is the reverse of that observed for 3D stimuli, where Colombia did not differ from Germany but Canada showed a shallower slope, suggesting that site differences in angular sensitivity may be stimulus-type dependent.", "The pattern of site differences differed between 2D and 3D stimuli, suggesting that angular sensitivity may be stimulus-type dependent.")` A combined model confirmed that the angle slope was significantly steeper for 3D than 2D stimuli (β difference = `r round(beta_diff, 2)`, SE = `r round(se_diff, 2)`, χ²(`r anova_combined_df`) = `r round(anova_combined_chisq, 2)`, p `r fmt_p(anova_combined_p)`), with the 3D slope (β = `r round(beta_3d_comb, 2)`) approximately `r round(beta_3d_comb / beta_2d_comb, 1)` times larger than the 2D slope (β = `r round(beta_2d_comb, 2)`).
 
@@ -1214,7 +1205,7 @@ mrot_strat <- analysis_data %>%
 ```
 
 ## Strategy Variation
-Our third research question asked, exploratorily, whether children's trial-level behavioral signatures reveal meaningful variation in how they engage with the task's spatial demands — and whether any such variation differs across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. 
+Our third research question asked, exploratorily, whether children's trial-level behavioral signatures reveal meaningful variation in how they engage with the task's spatial demands — and whether any such variation differs across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. All analyses in this section are exploratory and descriptive; findings should be treated as hypothesis-generating rather than confirmatory.
 
 K=3 clusters (see the [Robustness Checks](#sec-robustness-checks) section below for justification of K=3) showed clearly differentiated profiles on both defining dimensions (@fig-validation-boxplots). Ability differed across all pairwise comparisons (all *p*s < .0001), with the 'Ineffective Strategies' group showing markedly lower ability (M = `r round(ineff$Mean_Ability, 2)`, SD = `r round(ineff$SD_Ability, 2)`) than both the 'Other Effective Strategies (Flipping/Matching)' (M = `r round(flip$Mean_Ability, 2)`, SD = `r round(flip$SD_Ability, 2)`) and 'Mental Rotation' (M = `r round(mrot_strat$Mean_Ability, 2)`, SD = `r round(mrot_strat$SD_Ability, 2)`) groups. Relative RT slopes also differed significantly across all pairwise comparisons (all *p*s < .001), with the Mental Rotation cluster showing the steepest slope (M = `r round(mrot_strat$Mean_Slope, 2)`), consistent with analog rotation processes that scale with angular disparity. We note that flipping and feature matching are theoretically distinct processes [@mckee2025malleability; @hegarty2018ability], but are treated as a single cluster here on pragmatic grounds that both tend to produce a weaker or less systematic angular disparity effect than analog rotation. 
 
@@ -1683,6 +1674,12 @@ Turning to our first research question, the demonstration of scalar invariance u
 
 Our second research question asked whether performance is driven by the spatial properties of the stimuli in the way theory predicts. The key benchmark here is the angular disparity effect first reported by @shepard1971mental: as the rotational distance between a 3D target and its match increases, so too does the time required to judge whether they correspond. This relationship, among the most replicated findings in cognitive psychology [@cooper1973chronometric; @peters2008applications], has been demonstrated extensively in WEIRD child and adult samples [@kaltner2016developmental; @jansen2015role], but its replication across culturally diverse samples of children had not previously been established. Its consistent emergence here, across all three sites, suggests that the underlying cognitive process it indexes — the spatially continuous transformation of object orientation — is not specific to the cultural or educational contexts in which it was originally documented. This matters because psychometric equivalence and process-level validity are distinct forms of evidence. It is one thing to show that a task achieves comparable difficulty ordering across sites; it is another to show that performance is sensitive to the spatial structure of the stimuli in the way that mental rotation theory predicts [@borsboom2004concept]. The angular disparity effect provides the latter, and its cross-cultural replication substantially strengthens the case that the task is engaging spatial cognition specifically, rather than some culturally-variable combination of task-general skills. The shallower slope for 2D stimuli likely reflects the greater familiarity of duck and rabbit silhouettes relative to the 3D geometric shapes: when stimuli are easy to tell apart, children can make same/different judgments by comparing surface features rather than rotating, producing a weaker RT–angle relationship [@folk1987effects; @bethell1988mental].
 
+Children at mpieva-de showed both higher baseline response times and steeper absolute RT–angle slopes than the other two sites — a pattern consistent with a testing format explanation rather than a genuine cultural difference in angular sensitivity. Remote home-based testing on family devices, as used at mpieva-de, may introduce environmental variability that is likely to inflate both baseline RT and trial-to-trial noise; because absolute slopes scale with baseline speed, this would mechanically produce steeper slopes even without greater rotation sensitivity, a pattern visible in the wider raw RT distributions at mpieva-de (@apx-irt-ability-age). 
+
+## Gender and Age
+
+The absence of a main effect of sex or an age-by-sex interaction replicates the pattern reported in several recent studies of primary school-aged children using child-friendly mental rotation tasks [@hodgkiss2021developmental; @lauer2019development], and is consistent with the meta-analytic picture: reliable gender differences in mental rotation are small and inconsistent in this age range, particularly for tasks using 2D stimuli and child-friendly formats of the kind used here [@lauer2019development]. The LEVANTE task's design — 2D animal silhouettes alongside 3D block figures places it squarely in the category of tasks where the meta-analytic expectation for a gender difference is modest at best. Notably, the null finding held across all three international study sites, extending prior null results beyond the WEIRD samples in which they have predominantly been documented [@hodgkiss2021developmental]. Taken together, the gender results are consistent with the broader argument of this paper: that the task captures a spatially-driven construct that is consistent across cultural contexts.
+
 ## Strategy Variation
 
 Our third research question asked whether meaningful variation in how children engage with the spatial demands of the task can be identified from trial-level behavioral signatures. Research with adults has established that solvers draw on a range of strategies when performing mental rotation tasks, spanning a holistic-analytic continuum [@gluck2003spatial], and that strategy selection varies across individuals and shifts with task demands [@nazareth2019strategy]. Crucially, such strategies can be identified from behavioral signatures in RT data even in the absence of direct observation [@geiser2006separating], providing the methodological basis for the present analysis.
@@ -2110,7 +2107,10 @@ get_prop <- function(age_grp, strategy) {
 ```
 
 # Strategy Use Across Age Groups {.appendix #apx-strategy-age-group}
-We examined whether the distribution of strategy clusters varied across age groups (@fig-strategy-by-age). This analysis is purely descriptive — cell sizes are too small for formal inferential testing, and the cluster solution itself carries the caveats described above. With those caveats in mind, a descriptive pattern is nonetheless visible. The proportion of children assigned to the Ineffective Strategies cluster declined substantially with age, from `r get_prop("[5,7]", "Ineffective Strategies") * 100`% in the youngest group (ages 5–7) to `r get_prop("(7,9]", "Ineffective Strategies") * 100`% (ages 7–9) and `r get_prop("(9,12]", "Ineffective Strategies") * 100`% (ages 9–12). This was accompanied by a corresponding increase in the Other Effective Strategies (Flipping/Matching) cluster, from `r get_prop("[5,7]", "Other Effective Strategies (Flipping/Matching)") * 100`% to `r get_prop("(7,9]", "Other Effective Strategies (Flipping/Matching)") * 100`% and `r get_prop("(9,12]", "Other Effective Strategies (Flipping/Matching)") * 100`%. By contrast, the proportion assigned to the Mental Rotation cluster remained stable across age groups (`r get_prop("[5,7]", "Mental Rotation") * 100`%, `r get_prop("(7,9]", "Mental Rotation") * 100`%, `r get_prop("(9,12]", "Mental Rotation") * 100`%). The primary developmental shift between ages 5 and 12 thus appears to be a move away from task disengagement toward effective feature-matching strategies, rather than an increase in full analog rotation. Whether this reflects a genuine developmental trajectory or an artifact of the clustering solution warrants investigation in larger samples.
+We examined whether the distribution of strategy clusters varied across age groups (@fig-strategy-by-age). This analysis is purely descriptive — cell sizes are too small for formal inferential testing, and the cluster solution itself carries the caveats described above. With those caveats in mind, a descriptive pattern is nonetheless visible. The proportion of children assigned to the Ineffective Strategies cluster declined substantially with age, from `r get_prop("[5,8.3]", "Ineffective Strategies") * 100`% in the youngest group (ages 5–8.3) to `r get_prop("(8.3,10.6]", "Ineffective Strategies") * 100`% (ages 8.3–10.6) and `r get_prop("(10.6,13.7]", "Ineffective Strategies") * 100`% 
+(ages 10.6–13.7). This was accompanied by a corresponding increase in the Other Effective Strategies (Flipping/Matching) cluster, from 
+`r get_prop("[5,8.3]", "Other Effective Strategies (Flipping/Matching)") * 100`% to `r get_prop("(8.3,10.6]", "Other Effective Strategies (Flipping/Matching)") * 100`% and `r get_prop("(10.6,13.7]", "Other Effective Strategies (Flipping/Matching)") * 100`%. By contrast, the proportion assigned to the Mental Rotation cluster remained stable across age groups (`r get_prop("[5,8.3]", "Mental Rotation") * 100`%, 
+`r get_prop("(8.3,10.6]", "Mental Rotation") * 100`%, `r get_prop("(10.6,13.7]", "Mental Rotation") * 100`%). The primary developmental shift thus appears to be a move away from task disengagement toward effective feature-matching strategies, with the proportion using analog rotation remaining comparatively stable across this age range.
 
 ```{r}
 #| label: fig-strategy-by-age
