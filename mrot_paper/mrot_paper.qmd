@@ -12,6 +12,7 @@ author:
       - formal analysis
       - investigation
       - methodology
+      - project administration
       - validation
       - visualization
       - writing – original draft
@@ -498,7 +499,7 @@ To investigate whether performance was sensitive to rotation angle as originally
 For analysis, rotation angles were recoded to their shortest-path equivalents, collapsing the full 0–360° range to angular disparities of 0–180° (e.g., a 320° rotation was treated as a 40° disparity), on the assumption that participants take the most efficient rotational path. This recoding was verified in a robustness check using full 0–360° angles reported in [Appendix D (360° Angle Functions)](#sec-apx-360-angle). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for analysis. 
 
 ### Sex Differences
-To examine whether IRT-based ability scores differed by sex, we fitted a linear mixed-effects model predicting ability scores from sex, age, and their interaction, with random intercepts for participant and site. Sex at birth was reported by caregivers as part of the LEVANTE background survey.
+To examine whether IRT-based ability scores differed by sex, we fitted a linear mixed-effects model predicting ability scores from sex, age, and their interaction, with fixed effects for site and random intercepts for participant. Fixed rather than random site effects were used given the small number of sites (k = 3). Sex at birth was reported by caregivers as part of the LEVANTE background survey.
 
 ### Strategy Variation
 To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here and both correct and incorrect trials were included: the strategy analysis extracts relative person-level features rather than estimating the angle effect at the population level, and including all available trials (correct and incorrect) yields more reliable individual-level estimates.
@@ -916,20 +917,16 @@ p_mrot_rt_angle_age_1
 # ggsave("fig3_rt_by_angle_age_site.png", plot = p_mrot_rt_angle_age_1,
 #        width = 8, height = 7, dpi = 300)
 ```
-
 \clearpage
 
 ```{r}
 #| label: sex-analysis-prep
 #| include: false
-
 # note: survey data loaded in 'load data' chunk above.
-
 survey_gender_wide <- survey_gender |>
   filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
   select(child_id, variable, string_response) |>
   group_by(child_id, variable) |>
-  # keep non-NA if available, otherwise NA
   summarise(string_response = na.omit(string_response) |> unique() |> 
               (\(x) if(length(x) == 1) x else NA_character_)(),
             .groups = "drop") |>
@@ -937,55 +934,43 @@ survey_gender_wide <- survey_gender |>
   rename(sex = ChildSexBirth, 
          gender = ChildGenderCurrent)
 
-# # distributions
-# table(survey_gender_wide$sex, useNA = "always")
-# table(survey_gender_wide$gender, useNA = "always")
-# 
-# # do any child_ids from survey match user_ids in your main data?
-# sum(survey_gender_wide$child_id %in% mrot_scores$user_id)
-# sum(survey_gender_wide$child_id %in% mrot_rt_trial$user_id)
+survey_sex_cleaned <- survey_gender_wide |>
+  filter(!is.na(sex)) |>
+  transmute(user_id = child_id, sex)
 ```
 
 ```{r}
-#| label: german-data
+#| label: sex-data-sources
 #| include: false
 
-de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
+# German demographic data
+de_sex <- readxl::read_excel(here::here("demographics_data", "all_Leipzig_participants_nonames.xlsx")) |>
   rename(user_id = uid, sex = Gender) |>
   mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
 
-# number of DE users
-n_distinct(mrot_df$user_id[mrot_df$site_label == "mpieva-de"])
+de_sex_cleaned <- de_sex |>
+  transmute(user_id, sex = sex_demo)
 
-# number overlapping with data
-length(intersect(de_sex$user_id, mrot_df$user_id))
+# Colombian demographic data
+co_sex <- readxl::read_excel(here::here("demographics_data", "infoUsuariosLevante_expanded.xlsx"))
 
-# number overlapping with surveys
-length(intersect(de_sex$user_id, survey_gender_wide$child_id))
+co_sex_cleaned <- co_sex |>
+  rename(user_id = `user_id 2025`) |>
+  distinct(user_id, Sex) |>
+  filter(!is.na(Sex)) |>
+  transmute(
+    user_id,
+    sex = recode_values(Sex, "F" ~ "Female", "M" ~ "Male")
+  )
 
-sex_data <- full_join(de_sex, 
-          rename(survey_gender_wide, sex_survey = sex), 
-          by = c("user_id" = "child_id"))
-
-sex_data |>
-  filter_out(is.na(sex_survey) | is.na(sex_demo)) |>
-  filter(sex_demo != sex_survey)
-
-
-sex_data_cleaned <- sex_data |>
-  filter_out(sex_demo != sex_survey) |>
-  transmute(user_id = user_id,
-    sex = ifelse(is.na(sex_survey), sex_demo, sex_survey))
+# Combine all sources: demographic files take priority, survey fills gaps (incl. CA)
+sex_data_cleaned <- bind_rows(de_sex_cleaned, co_sex_cleaned, survey_sex_cleaned) |>
+  distinct(user_id, .keep_all = TRUE)
 ```
 
 ```{r}
 #| label: sex-data-coverage
 #| include: false
-
-mrot_rt_trial |> 
-  distinct(user_id) |> 
-  nrow()
-
 mrot_rt_trial |>
   left_join(sex_data_cleaned) |>
   distinct(user_id, site, sex) |>
@@ -1002,25 +987,24 @@ mrot_rt_trial |>
 #| label: sex-models
 #| include: false
 
-mrot_df_gender <- inner_join(mrot_df, survey_gender_wide, 
-                             by = c("user_id" = "child_id")) |>
-  filter_out(is.na(sex))
+mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex))
+
+# more simple model (Fionnuala) to avoid singular fits
+sex_mod <- lmer(metric_value ~ age * sex + site + (1 | user_id), data = mrot_df_sex) # include site as fixed because there are only 3 sites
+summary(sex_mod)
 
 # Mike's model
 # sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
-#   data = mrot_df_gender)
+#   data = mrot_df_sex)
 # 
 # summary(sex_mod)
 
-# more simple model (Fionnuala) to avoid singular fits
-sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (1 | site),
-                 data = mrot_df_gender)
-summary(sex_mod)
 # no evidence of sex differences in either overall performance or developmental trajectories
 
 # German model
 # sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id),
-#   data = filter(mrot_df_gender, site == "pilot_mpieva_de"))
+#   data = filter(mrot_df_sex, site == "pilot_mpieva_de"))
 # 
 # summary(sex_mod_de)
 
@@ -1028,7 +1012,7 @@ summary(sex_mod)
 # updated model with priors (not reported)
 # sex_mod_bayes <- brm(
 #   metric_value ~ age * sex + (1 | user_id) + (1 | site),
-#   data = mrot_df_gender,
+#   data = mrot_df_sex,
 #   prior = c(
 #     prior(normal(0, 1), class = "b"),
 #     prior(normal(0, 1), class = "Intercept"),
@@ -1045,7 +1029,7 @@ summary(sex_mod)
 # age:sexMale     0.01      0.04    -0.06     0.09 1.00     1152     1976
 ```
 ## Sex Differences 
-Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences are illustrated across all three sites in [Appendix B (Sex Differences)](#sec-apx-sex-diff-plot).
+Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex Differences)](#sec-apx-sex-diff-plot).
 
 ```{r}
 #| label: strategy-analysis-prep
@@ -1769,16 +1753,22 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
 #| fig-width: 7
 #| fig-height: 5
 
-ggplot(mrot_df_gender, aes(x = age, y = metric_value, colour = sex)) +
+site_n_labels <- mrot_df_sex |>
+  distinct(user_id, site_label) |>
+  count(site_label) |>
+  mutate(label = paste0(site_label, "\n(n = ", n, ")"))
+
+mrot_df_sex |>
+  left_join(site_n_labels) |>
+  ggplot(aes(x = age, y = metric_value, colour = sex)) +
   geom_point(alpha = 0.35, size = 1.1) +
-  # geom_line(aes(group = user_id), alpha = .3) + 
   geom_smooth(method = "lm") +
   labs(
     x = "Age (years)",
     y = "Ability (θ)",
     colour = "Sex"
   ) +
-  facet_wrap(~site_label) + 
+  facet_wrap(~label) + 
   theme(legend.position = "bottom")
 ```
 
