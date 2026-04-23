@@ -237,7 +237,6 @@ library(tidyverse)
 library(glue)
 library(here)
 library(tidytext)
-
 library(ggeffects)
 library(patchwork)
 library(ggpubr)
@@ -246,7 +245,6 @@ library(gridExtra)
 library(umap)
 library(gt)
 library(kableExtra)
-
 library(brms)
 library(lme4)
 library(lmerTest) # p-values via satterthwaite
@@ -648,8 +646,177 @@ coef_ns <- mrot_coefs |>
 # only 12 items appearing: multigroup IRT model was fitted only on the overlap items by design. The non-overlap items were either fitted in separate by-site models, or weren't included in the multigroup analysis at all.
 
 ```
+
+```{r}
+#| label: co-theta-comparison
+#| include: false
+
+# Re-read without the model_set filter
+mrot_scores_all <- readr::read_rds(here::here("models/mrot_scores.rds"))
+
+co_labels <- c(
+  "pilot_uniandes_co_rural"  = "CO Rural",
+  "pilot_uniandes_co_bogota" = "CO Bogotá",
+  "pilot_uniandes_co"        = "CO (pooled)"
+)
+
+co_theta <- mrot_scores_all |>
+  filter(
+    invariance == "scalar",
+    dataset %in% names(co_labels)
+  ) |>
+  mutate(
+    dataset_label = co_labels[dataset],
+    model_label = case_when(
+      model_set == "multigroup_site"    ~ "By site (CO split)",
+      model_set == "multigroup_dataset" ~ "By dataset (CO pooled)"
+    )
+  )
+
+co_pal <- c("CO Bogotá" = pal$red, "CO Rural" = pal$blue)
+
+p_co_theta <- ggplot(co_theta, 
+                     aes(x = metric_value, fill = dataset_label, 
+                         colour = dataset_label)) +
+  geom_density(alpha = 0.3) +
+  facet_wrap(~model_label, ncol = 2) +
+  scale_fill_manual(values = co_pal) +
+  scale_colour_manual(values = co_pal) +
+  labs(
+    x = "Estimated θ",
+    y = "Density",
+    fill = "Site", colour = "Site"
+  ) +
+  theme(legend.position = "bottom")
+p_co_theta
+
+```
+
+```{r}
+#| label: co-item-difficulty-comparison
+#| include: false
+
+co_groups <- c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota", "pilot_uniandes_co")
+
+co_coefs <- mrot_coefs |>
+  filter(
+    invariance == "configural",
+    itemtype == "2pl",
+    group %in% co_groups
+  ) |>
+  mutate(
+    group_label = co_labels[group],
+    model_label = case_when(
+  model_set == "multigroup_dataset" ~ "By dataset (CO split)",  
+  model_set == "multigroup_site"    ~ "By site (CO pooled)"
+    )
+  )
+
+co_pal_3 <- c("CO Bogotá" = pal$red, 
+              "CO Rural"  = pal$blue, 
+              "CO (pooled)" = pal$grey)
+
+p_co_items <- ggplot(co_coefs, 
+                     aes(x = difficulty, y = reorder(item, difficulty),
+                         colour = group_label)) +
+  geom_point(size = 2.5, alpha = 0.8,
+             position = position_dodge(width = 0.4)) +
+  facet_wrap(~model_label, ncol = 2) +
+  scale_colour_manual(values = co_pal_3) +
+  coord_cartesian(xlim = c(-5, 4)) +
+  labs(
+    x = "Item difficulty",
+    y = "Item",
+    colour = "Group"
+  ) +
+  theme(axis.text.y = element_text(size = 7),
+        legend.position = "bottom")
+p_co_items
+```
+
+```{r}
+#| label: co-followup-data
+#| include: false
+
+# shared lookup: map user_id → rural/bogota 
+co_dataset_lookup <- mrot_scores_all |>
+  filter(dataset %in% c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota")) |>
+  distinct(user_id, dataset) |>
+  mutate(co_site = if_else(dataset == "pilot_uniandes_co_rural", "CO Rural", "CO Bogotá"))
+
+co_pal <- c("CO Bogotá" = pal$red, "CO Rural" = pal$blue)
+
+co_age <- runs_filtered |>
+  inner_join(co_dataset_lookup, by = "user_id")
+
+co_age_summary <- co_age |>
+  group_by(co_site) |>
+  summarise(
+    n        = n_distinct(user_id),
+    age_mean = mean(age, na.rm = TRUE),
+    age_sd   = sd(age, na.rm = TRUE),
+    age_min  = min(age, na.rm = TRUE),
+    age_max  = max(age, na.rm = TRUE),
+    .groups  = "drop"
+  )
+
+co_adaptive <- co_age |>
+  group_by(co_site, adaptive) |>
+  summarise(n = n_distinct(user_id), .groups = "drop") |>
+  group_by(co_site) |>
+  mutate(pct = round(100 * n / sum(n), 1))
+
+co_trials <- mrot_rt_trial |>
+  inner_join(co_dataset_lookup, by = "user_id") |>
+  group_by(co_site, item_group) |>
+  summarise(
+    n_trials = n(),
+    n_users  = n_distinct(user_id),
+    .groups  = "drop"
+  )
+
+task_anova_both <- read_rds(here("models/mrot_anova.rds")) |>
+  filter(task == "mrot", itemtype == "2pl")
+```
+
+```{r}
+#| label: co-rural-urban-values
+#| include: false
+
+# sample sizes and age
+co_bogota_n    <- co_age_summary |> filter(co_site == "CO Bogotá") |> pull(n)
+co_rural_n     <- co_age_summary |> filter(co_site == "CO Rural")  |> pull(n)
+co_bogota_age_mean <- co_age_summary |> filter(co_site == "CO Bogotá") |> pull(age_mean) |> round(1)
+co_bogota_age_sd   <- co_age_summary |> filter(co_site == "CO Bogotá") |> pull(age_sd)   |> round(1)
+co_rural_age_mean  <- co_age_summary |> filter(co_site == "CO Rural")  |> pull(age_mean) |> round(1)
+co_rural_age_sd    <- co_age_summary |> filter(co_site == "CO Rural")  |> pull(age_sd)   |> round(1)
+
+# best-fitting model BIC for by-dataset model
+co_dataset_best_bic <- task_anova_both |>
+  filter(model_set == "multigroup_dataset") |>
+  slice_min(BIC) |>
+  pull(BIC) |>
+  round(2)
+
+co_dataset_best_invariance <- task_anova_both |>
+  filter(model_set == "multigroup_dataset") |>
+  slice_min(BIC) |>
+  pull(invariance)
+
+# adaptive split
+co_bogota_pct_nonadaptive <- co_adaptive |> 
+  filter(co_site == "CO Bogotá", adaptive == FALSE) |> 
+  pull(pct)
+
+co_rural_pct_adaptive <- co_adaptive |>
+  filter(co_site == "CO Rural", adaptive == TRUE) |>
+  pull(pct)
+```
+The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (CO Bogotá, n = `r co_bogota_n`; CO Rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_best_bic`), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across Bogotá and rural schools for both 2D and 3D items, with the exception of one unstable estimate for one 3D item at the highest rotation angle at Bogotá that likely reflects estimation instability rather than a genuine difference 
+(see [Appendix B (Uniandes-co Rural and Urban Sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were comparable (Bogotá: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; Rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`), indicating that the invariance result is not driven by age composition differences. These results support treating uniandes-co as a single group in the main analysis.
+
 ### Age Sensitivity
-Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, [Appendix B (Developmental Trajectories)](#sec-apx-ability-age) plots participants' IRT-estimated ability (θ) against age, with GAM-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modelling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
+Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, [Appendix C (Developmental Trajectories)](#sec-apx-ability-age) plots participants' IRT-estimated ability (θ) against age, with GAM-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modelling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
 ```{r}
 #| label: rt-angle-lme
@@ -863,7 +1030,7 @@ Our second research question asked whether trial-level performance is sensitive 
 
 For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope `r ifelse(p_2d_site_co < .05, "was significantly shallower", "did not differ significantly")` between uniandes-co and mpieva-de (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`); did not differ significantly between western-ca and mpieva-de (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`); and `r ifelse(p_2d_site_co_wes < .05, "differed significantly", "did not differ significantly")` between uniandes-co and western-ca (β = `r round(beta_2d_site_co_wes, 2)`, SE = `r round(se_2d_site_co_wes, 2)`, p `r fmt_p(p_2d_site_co_wes)`). `r ifelse(all(c(p_2d_site_co, p_2d_site_ca, p_2d_site_co_wes) >= .05), "Although the omnibus test was significant, no individual pairwise comparison reached significance, suggesting the omnibus result reflects a joint pattern of site differences rather than any single site driving the effect.", "")`
 
-@fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by site and age group (binned for visualization; age was modeled continuously in all analyses), separately for 2D and 3D stimuli. Cell-level sample sizes underlying this figure are reported in [Appendix C (Sample Sizes)](#sec-apx-rt-angle-sample-sizes). Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix D (360° Angle Functions)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-Person Dynamics)](#sec-apx-within-person-dynamics).
+@fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by site and age group (binned for visualization; age was modeled continuously in all analyses), separately for 2D and 3D stimuli. Cell-level sample sizes underlying this figure are reported in [Appendix D (Sample Sizes)](#sec-apx-rt-angle-sample-sizes). Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (360° Angle Functions)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix D (Raw RT)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix D (Within-Person Dynamics)](#sec-apx-within-person-dynamics).
 
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
@@ -1029,7 +1196,7 @@ summary(sex_mod)
 # age:sexMale     0.01      0.04    -0.06     0.09 1.00     1152     1976
 ```
 ## Sex Differences 
-Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex Differences)](#sec-apx-sex-diff-plot).
+Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix C (Sex Differences)](#sec-apx-sex-diff-plot).
 
 ```{r}
 #| label: strategy-analysis-prep
@@ -1259,12 +1426,12 @@ ability_diff        <- round(flip$Mean_Ability - mrot_strat$Mean_Ability, 2)
 ## Strategy Variation
 Our fourth research question asked, exploratorily, whether individual differences in children's RT profiles capture meaningful variation in strategy use, and whether strategy groupings differ across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. All analyses in this section are exploratory and descriptive; findings should be treated as hypothesis-generating rather than confirmatory.
 
-To select the number of clusters, we evaluated solutions from k = 1–8 using the elbow method and average silhouette width; see [Appendix D (Cluster Validation)](#sec-apx-cluster) for full results. The statistically optimal solution was k = 2, but inspection of the resulting RT–angle functions revealed that this collapsed two theoretically distinguishable effective engagement profiles into a single region. We therefore adopted k = 3 on both empirical grounds (a moderate elbow inflection at k = 3) and theoretical grounds (the interpretability of the resulting RT profiles), treating the three profiles as descriptive anchors along a continuum rather than evidence for discrete strategy types.
+To select the number of clusters, we evaluated solutions from k = 1–8 using the elbow method and average silhouette width; see [Appendix E (Cluster Validation)](#sec-apx-cluster) for full results. The statistically optimal solution was k = 2, but inspection of the resulting RT–angle functions revealed that this collapsed two theoretically distinguishable effective engagement profiles into a single region. We therefore adopted k = 3 on both empirical grounds (a moderate elbow inflection at k = 3) and theoretical grounds (the interpretability of the resulting RT profiles), treating the three profiles as descriptive anchors along a continuum rather than evidence for discrete strategy types.
 
 The k = 3 solution identified three differentiable regions of the engagement continuum. Regions were labeled based on their trial-level RT patterns: children whose RT profiles showed no systematic angular sensitivity and high response instability were labeled *'Ineffective Strategies'*; those whose RT–angle functions peaked before declining at high disparities — consistent with exploiting reflective symmetry rather than full rotation — were labeled *'Other Effective Strategies (Feature matching/Flipping)'*; and those showing a monotonically increasing RT–angle function consistent with analog rotation were labeled *'Mental Rotation'*. Inspection of the RT–angle functions (@fig-rt-by-disparity) reveals meaningfully distinct patterns across the three groups.
 
 The Ineffective Strategies group (n = `r ineff_n`, `r ineff_pct`%) is characterized by low ability (M = `r ineff_mean_ability`, SD = `r ineff_sd_ability`), the lowest absolute RT–angle slope of the three profiles (M = `r ineff_mean_abs_slope`), and high response instability (M = `r ineff_mean_instab`). Although this group's relative slope (M = `r ineff_mean_slope`) appears elevated relative to the two effective profiles, this reflects their faster baseline processing speed (M = `r ineff_mean_baseline`) rather than genuine angular sensitivity — dividing a small absolute slope by a fast baseline inflates the ratio without implying any rotation cost. The absence of angular sensitivity, 
-combined with steeply declining accuracy (see [Appendix D (Accuracy-Angle Functions)](#sec-apx-accuracy-by-angle)),
+combined with steeply declining accuracy (see [Appendix E (Accuracy-Angle Functions)](#sec-apx-accuracy-by-angle)),
 represents a different pattern from simply being slow. The label 'Ineffective Strategies' captures a behaviorally heterogeneous group united by the absence of angular sensitivity rather than any shared approach to the task: children assigned here may include those who disengage entirely at higher angular disparities, those who rely on non-spatial heuristics such as position-based responding, and those who attempt rotation but abandon it before completion — the RT signature alone cannot distinguish between these possibilities.
 
 The Other Effective Strategies (Feature matching/Flipping) group (n = `r flip_n`, `r flip_pct`%) is the second largest profile and shows the highest mean ability (M = `r flip_mean_ability`, SD = `r flip_sd_ability`). Their RT–angle function rises to a peak around 120° before declining at 160°; as items approach 180°, mirror images become easier to distinguish perceptually without requiring full rotation.
@@ -1272,7 +1439,7 @@ The Other Effective Strategies (Feature matching/Flipping) group (n = `r flip_n`
 The Mental Rotation group (n = `r mrot_n`, `r mrot_pct`%) shows the classic monotonically increasing RT–angle function consistent with @shepard1971mental, with the steepest absolute slope (M = `r mrot_mean_abs_slope`, SD = `r mrot_sd_abs_slope`) and steepest relative slope (M = `r mrot_mean_slope`, SD = `r mrot_sd_slope`) among the two effective profiles. We note that flipping and feature matching are theoretically distinct processes [@mckee2025malleability; @hegarty2018ability], but are treated as a single profile here on pragmatic grounds that both tend to produce a weaker or less systematic angular disparity effect than analog rotation.
 
 To validate the cluster solution against variables not used in its construction, we examined whether profiles differed in IRT-derived ability estimates. Ability differed across all pairwise comparisons (all *p*s < .0001; @fig-ability-boxplot), 
-with the Ineffective Strategies group showing lower ability (M = `r ineff_mean_ability`, SD = `r ineff_sd_ability`) than both the Other Effective Strategies (Feature matching/Flipping) (M = `r flip_mean_ability`, SD = `r flip_sd_ability`) and Mental Rotation (M = `r mrot_mean_ability`, SD = `r mrot_sd_ability`) groups. Interestingly, despite being the most common profile globally, the Mental Rotation group has lower mean ability than the Other Effective Strategies (Feature matching/Flipping) group, even though it shows the RT signature the task was designed to elicit. This may reflect the greater cognitive cost of analog rotation relative to feature-matching strategies, particularly for the 2D stimuli where rotational demands are lower. Among the two effective profiles, relative RT slopes also differed significantly (p < .001; see [Appendix D (Relative RT Slope)](#sec-apx-slope-boxplot), with the Mental Rotation profile showing a steeper relative slope (M = `r mrot_mean_slope`) than the Other Effective Strategies (Feature matching/Flipping) profile (M = `r flip_mean_slope`), consistent with rotation cost scaling more strongly with angular disparity relative to baseline speed. Accuracy-angle functions by profile are reported in [Appendix D (Accuracy-Angle Functions)](#sec-apx-accuracy-by-angle) and corroborate the RT-based interpretation: the Ineffective Strategies group shows steeply declining accuracy with angle, while the two effective profiles maintain comparable accuracy throughout.
+with the Ineffective Strategies group showing lower ability (M = `r ineff_mean_ability`, SD = `r ineff_sd_ability`) than both the Other Effective Strategies (Feature matching/Flipping) (M = `r flip_mean_ability`, SD = `r flip_sd_ability`) and Mental Rotation (M = `r mrot_mean_ability`, SD = `r mrot_sd_ability`) groups. Interestingly, despite being the most common profile globally, the Mental Rotation group has lower mean ability than the Other Effective Strategies (Feature matching/Flipping) group, even though it shows the RT signature the task was designed to elicit. This may reflect the greater cognitive cost of analog rotation relative to feature-matching strategies, particularly for the 2D stimuli where rotational demands are lower. Among the two effective profiles, relative RT slopes also differed significantly (p < .001; see [Appendix E (Relative RT Slope)](#sec-apx-slope-boxplot), with the Mental Rotation profile showing a steeper relative slope (M = `r mrot_mean_slope`) than the Other Effective Strategies (Feature matching/Flipping) profile (M = `r flip_mean_slope`), consistent with rotation cost scaling more strongly with angular disparity relative to baseline speed. Accuracy-angle functions by profile are reported in [Appendix E (Accuracy-Angle Functions)](#sec-apx-accuracy-by-angle) and corroborate the RT-based interpretation: the Ineffective Strategies group shows steeply declining accuracy with angle, while the two effective profiles maintain comparable accuracy throughout.
 
 ```{r}
 #| label: fig-ability-boxplot
@@ -1431,7 +1598,7 @@ validation_table %>%
   )
 ```
 ### Robustness checks {#sec-robustness-checks}
-Three robustness checks are reported in full in the appendices. First, comparison of k=2 and k=3 solutions confirmed that k=2 collapsed two distinguishable RT–angle profiles into a single region, justifying the three-profile solution (see [Appendix D (Profile Summary Statistics)](#sec-apx-cluster-summary-stats) and [Appendix D (Cluster Validation)](#sec-apx-cluster)). Profile membership by age group is reported in [Appendix D (Strategy by Age)](#sec-apx-strategy-age-group). Second, dimensionality reduction via PCA, t-SNE, and UMAP consistently recovered the separation between the Ineffective Strategies group and the two effective engagement profiles, while the boundary between the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles remained less clear — supporting the continuum interpretation see [Appendix D (Dimensionality Reduction)](#sec-apx-dimreduc). Third, re-analysis using full 0–360° rotation angles replicated the main findings and provided direct support for shortest-path rotation, with both the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles showing near-symmetric inverted-U RT functions peaking around 200–240°, with the Mental Rotation profile showing the steeper rise consistent with the main analysis [Appendix D (360° Angle Functions)](#sec-apx-360-angle).
+Three robustness checks are reported in full in the appendices. First, comparison of k=2 and k=3 solutions confirmed that k=2 collapsed two distinguishable RT–angle profiles into a single region, justifying the three-profile solution (see [Appendix E (Profile Summary Statistics)](#sec-apx-cluster-summary-stats) and [Appendix E (Cluster Validation)](#sec-apx-cluster)). Profile membership by age group is reported in [Appendix E (Strategy by Age)](#sec-apx-strategy-age-group). Second, dimensionality reduction via PCA, t-SNE, and UMAP consistently recovered the separation between the Ineffective Strategies group and the two effective engagement profiles, while the boundary between the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles remained less clear — supporting the continuum interpretation see [Appendix E (Dimensionality Reduction)](#sec-apx-dimreduc). Third, re-analysis using full 0–360° rotation angles replicated the main findings and provided direct support for shortest-path rotation, with both the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles showing near-symmetric inverted-U RT functions peaking around 200–240°, with the Mental Rotation profile showing the steeper rise consistent with the main analysis [Appendix E (360° Angle Functions)](#sec-apx-360-angle).
 ```{r}
 #| label: local-clustering-agreement
 #| include: false
@@ -1651,7 +1818,6 @@ wes_flip_recall  <- round(d_wes_other$recall, 2)
 ```
 
 ### Cross-Cultural Consistency of Strategy Profiles
-
 We next examined whether the continuum structure is recoverable within each site independently by re-running the k-means procedure separately within each site and computing agreement between the local and global profile assignments for each participant, using percent agreement (the proportion of participants assigned to the same profile by both solutions) and the Adjusted Rand Index (ARI), alongside per-profile recall and purity.
 
 Uniandes-co showed the strongest overall recovery (percent agreement = `r uni_pct_agree`, ARI = `r uni_ari`), with high recall and purity across all three profiles — including the Mental Rotation profile (recall = `r uni_mrot_recall`, purity = `r uni_mrot_purity`). This suggests the full continuum structure is locally recoverable when sample sizes are adequate and testing conditions are consistent.
@@ -1679,7 +1845,7 @@ Our fourth research question asked, exploratorily, whether trial-level RT patter
 
 The clustering exercise identified three differentiable regions of this continuum, partly because the data resist clean separation and partly because, as discussed below, the continuum structure proves difficult to recover consistently within individual sites. At one end, a subset of children — labeled 'Ineffective Strategies' — show clear disengagement from the spatial structure of the task: the lowest absolute RT–angle slope of the three profiles, high response instability, and near-chance accuracy at high angular disparities. Although this group's relative slope appears elevated relative to the two effective profiles, this reflects their faster baseline processing speed inflating the ratio rather than genuine angular sensitivity — their absolute slope is the lowest of the three profiles, confirming the absence of rotation cost rather than its presence. 
 
-The two effective profiles — Other Effective Strategies (Feature matching/Flipping) and Mental Rotation — are distinguished primarily by the shape of their RT–angle functions, but not by accuracy, which was higher for the Other Effective Strategies (Feature matching/Flipping) group. Importantly, the two profile-defining dimensions do different separating work: ability distinguishes the Ineffective Strategies group from both effective profiles, while relative RT slope distinguishes the two effective profiles from each other — and it is this complementary structure that justifies retaining three profiles rather than two. An interesting finding is that the Mental Rotation profile is both the most common globally (n = `r mrot_n`, `r mrot_pct`%) and yet associated with lower mean ability than the Other Effective Strategies (Feature matching/Flipping) group — the reverse of what the broader literature might lead us to expect [@khooshabeh2013individual; @heil2008sex], though the effect is modest and the groups overlap considerably in ability. This could suggest that RT signatures consistent with full analog rotation carry a greater cognitive cost than feature-based engagement [@just1985cognitive; @khooshabeh2013individual], particularly for the 2D stimuli where rotational demands are lower. The overlap between these two profiles in the behavioral feature space — consistent across all three dimensionality reduction methods [Appendix D (Dimensionality Reduction)](#sec-apx-dimreduc) — reinforces this picture: the distinction between them is gradient rather than categorical. 
+The two effective profiles — Other Effective Strategies (Feature matching/Flipping) and Mental Rotation — are distinguished primarily by the shape of their RT–angle functions, but not by accuracy, which was higher for the Other Effective Strategies (Feature matching/Flipping) group. Importantly, the two profile-defining dimensions do different separating work: ability distinguishes the Ineffective Strategies group from both effective profiles, while relative RT slope distinguishes the two effective profiles from each other — and it is this complementary structure that justifies retaining three profiles rather than two. An interesting finding is that the Mental Rotation profile is both the most common globally (n = `r mrot_n`, `r mrot_pct`%) and yet associated with lower mean ability than the Other Effective Strategies (Feature matching/Flipping) group — the reverse of what the broader literature might lead us to expect [@khooshabeh2013individual; @heil2008sex], though the effect is modest and the groups overlap considerably in ability. This could suggest that RT signatures consistent with full analog rotation carry a greater cognitive cost than feature-based engagement [@just1985cognitive; @khooshabeh2013individual], particularly for the 2D stimuli where rotational demands are lower. The overlap between these two profiles in the behavioral feature space — consistent across all three dimensionality reduction methods [Appendix E (Dimensionality Reduction)](#sec-apx-dimreduc) — reinforces this picture: the distinction between them is gradient rather than categorical. 
 
 The recoverability of this continuum structure varies across sites in qualitatively different ways: uniandes-co recovered all three regions well, mpieva-de recovered the effective subdivision but showed poor recovery of the Ineffective Strategies profile — possibly reflecting the greater RT variability introduced by its remote, home-based testing format — and western-ca collapsed the full continuum into a single dominant region, likely reflecting its smaller sample size (n = \r wes_n`)` rather than a genuine absence of strategy variation. We retain the three-profile distinction in the global solution because collapsing to k=2 obscures a theoretically meaningful difference in RT–angle profile shape, but treat it as a convenient descriptive marker rather than evidence for discrete strategy types. Taken together, the exploratory clustering exercise reveals a meaningful continuum of engagement — from children who appear to disengage from the task's spatial elements entirely, to those who solve it effectively through different spatial processes — but larger, more methodologically consistent samples will be needed before firm conclusions about cross-cultural variation in strategy profiles can be drawn.
 
@@ -1713,8 +1879,34 @@ knitr::include_graphics("mrot_item_examples.pdf")
 # pdf_convert("mrot_item_examples.pdf", format = "png", dpi = 300,
 #             filenames = "mrot_item_examples.png")
 ```
+\clearpage
 
-# Developmental Trajectories {.appendix #sec-apx-b}
+# Uniandes-co Rural and Urban Sub-samples {.appendix #sec-apx-b}
+
+## Uniandes-co Rural and Urban Sub-samples {#sec-apx-co-rural-urban}
+```{r}
+#| label: fig-co-theta
+#| eval: true
+#| include: true
+#| fig-width: 10
+#| fig-height: 5
+#| fig-cap: "**θ distributions across uniandes-co sub-samples.** Uniandes-co Bogotá (red) and CO Rural (blue) ability estimates under scalar invariance, comparing models that treat the two sub-samples as separate groups (by dataset) versus pooled as a single site (by site). Near-identical distributions indicate that pooling does not meaningfully distort individual ability estimates."
+
+p_co_theta
+```
+
+```{r}
+#| label: fig-co-item-difficulty
+#| eval: true
+#| include: true
+#| fig-width: 8
+#| fig-height: 6
+#| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for uniandes-co Rural (blue) and CO Bogotá (red) separately (left panel) and pooled (right panel). Item difficulties are largely consistent across sub-samples, with the exception of one unstable estimate for `mrot_3d_shape_120` at Bogotá."
+
+p_co_items
+```
+
+# Developmental Trajectories {.appendix #sec-apx-c}
 
 ## Developmental trajectories of mental rotation ability {#sec-apx-ability-age}
 ```{r}
@@ -1772,7 +1964,7 @@ mrot_df_sex |>
   theme(legend.position = "bottom")
 ```
 
-# Angular Sensitivity {.appendix #sec-apx-c}
+# Angular Sensitivity {.appendix #sec-apx-d}
 
 ## Sample sizes per cell {#sec-apx-rt-angle-sample-sizes}
 ```{r}
@@ -1949,7 +2141,7 @@ m_wp_slope <- lmer(
 
 # model comparisons
 anova_wp_jump  <- anova(m_wp_continuous, m_wp_jump)   # is there a jump?
-anova_wp_slope <- anova(m_wp_jump, m_wp_slope)         # does slope also change?
+anova_wp_slope <- anova(m_wp_jump, m_wp_slope)  
 
 # extract key numbers
 wp_coefs       <- coef(summary(m_wp_slope))
@@ -1986,7 +2178,7 @@ First, a model including a block indicator (2D vs 3D) significantly improved fit
 
 Second, within each block, RTs decreased across trials, indicating a practice effect operating independently of angular disparity (β = `r round(beta_wp_trial, 4)`, SE = `r round(se_wp_trial, 4)`, p `r fmt_p(p_wp_trial)`). Adding a trial × block interaction `r ifelse(wp_slope_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r wp_slope_df`) = `r round(wp_slope_chisq, 2)`, p `r fmt_p(wp_slope_p)`) `r ifelse(wp_slope_p < .05, paste0(", with the within-block acceleration differing between the 2D and 3D blocks (β = ", round(beta_wp_int, 3), ", SE = ", round(se_wp_int, 3), ", p ", fmt_p(p_wp_int), ")"), "")`. Both patterns — the discontinuous block transition and the within-block acceleration — were qualitatively consistent across all three sites, further extending the cross-cultural consistency observed in the angular disparity analysis.
 
-# Strategy Variation {.appendix #sec-apx-d}
+# Strategy Variation {.appendix #sec-apx-e}
 
 ## Profile Summary Statistics {#sec-apx-cluster-summary-stats}
 ```{r}
@@ -2657,6 +2849,18 @@ ggplot(acc_summary_360, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
     y = "Mean Accuracy (participant-weighted)",
     colour = "Strategy", fill = "Strategy"
   )
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
 ```
 
 <!--
