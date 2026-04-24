@@ -1,5 +1,5 @@
 ---
-title: "Mental rotation in children aged 5–12: a cross-site comparison across three populations"
+title: "Mental rotation in children aged 5–13: a cross-site comparison across three populations"
 shorttitle: "LEVANTE Mental Rotation"
 
 author: 
@@ -158,7 +158,7 @@ author-note:
     financial-support: "This work was supported by the Jacobs Foundation."
     conflict-of-interest: "The author has no conflict of interest to declare."
 
-abstract: "Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada)  in 1,037 children aged 5–13 years. The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 216.4 vs. best Rasch model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Mental Rotation (monotonically increasing RT–angle function), Other Effective Strategies (feature matching/flipping), and Ineffective Strategies (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning."
+abstract: "Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada)  in 1,037 children aged 5--13 years. The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 216.4 vs. best Rasch model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Mental Rotation (monotonically increasing RT–angle function), Other Effective Strategies (feature matching/flipping), and Ineffective Strategies (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning."
 
 keywords: ["Cognitive Development", "Mental Rotation", "Spatial Reasoning"]
 word-count: true
@@ -214,7 +214,7 @@ Beyond stimulus type, the linear RT–angle relationship shown by @shepard1971me
 
 Importantly, far less is known about which strategies children employ when solving mental rotation problems, and whether strategy use varies with age, ability, or cultural context. Recent work by @mckee2025malleability finds that children rely on non-rotation strategies — flipping and feature matching — more often than analog rotation, with strategy choice shaped by how the task is framed. This question motivates the exploratory component of the present study, which we describe below. These questions take on added significance given how narrow the populations studied to date have been.
 
-Mental rotation ability develops across a prolonged period from infancy through adolescence. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3-12 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5--12 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
+Mental rotation ability develops across a prolonged period from infancy through adolescence. Precursors of successful rotation are detectable in the first year of life [@frick2014development; @moore2008mental], and performance on explicit rotation tasks improves substantially between ages 3--13 years [@frick2013development; @marmor1975development; @kail1980developmental], with continued refinement into adolescence. This extended developmental trajectory makes the primary school years, ages 5--13 years, a particularly informative window for studying how mental rotation skills are acquired and how they vary across children.
 
 One prominent source of variation is child sex.^[We refer to sex differences throughout (in the sense of the biological variable), though some observed differences may reflect gender-related factors such as socialization and experience. We remain agnostic about this question here.] Sex differences in mental rotation are well documented in adults [@voyer1995magnitude; @zell2015evaluating], but in children the picture is considerably less clear. @lauer2019development synthesized data from over 30,000 children aged 3--17, finding no reliable sex difference in the preschool years, a small male advantage emerging around age 6 (g ≈ 0.20), and a moderate effect only by age 14, with task and stimulus characteristics explaining substantial variability independently of age. This sensitivity to stimulus type and age has been documented most systematically in German primary school children. The gap is typically absent in younger children and emerges around age 10, concentrated in more demanding cube figure conditions — particularly for girls, who show less improvement across grades than boys [@neuburger2011gender; @jansen2013mental]. However, the direction of the difference can reverse entirely under female-congruent stimulus conditions [@ruthsatz2017gender; @ruthsatz2019girls]. Evidence from other countries is similarly inconsistent: male advantages have been reported in Italian children from age 8 [@moe2018mental], in Dutch children aged 7–9 though not in older children in the same sample [@van2019sex], and in French children at age 11–12 but not at 7–8 [@hoyek2011use]. In contrast, no significant sex difference was found across the full primary school age range in a UK sample [@hodgkiss2021developmental]. Whether these discrepancies reflect genuine cultural variation, differences in task format, or both remains unclear.
 
@@ -266,10 +266,7 @@ site_labels <- c("uniandes-co" = "pilot_uniandes_co",
                  "mpieva-de" = "pilot_mpieva_de",
                  "western-ca" = "pilot_western_ca")
 
-site_map <- tibble::tibble(
-  site       = names(site_labels),
-  site_label = unname(site_labels)
-)
+site_map <- site_labels |> enframe(name = "site_label", value = "site")
 
 # site_pal is keyed by pilot_* names
 # site_labels is keyed by readable names, values are pilot_* names
@@ -368,7 +365,7 @@ n_repeat_users <- runs_filtered %>%
 Data were drawn from three LEVANTE pilot sites: Universidad de los Andes, Bogotá and nearby rural areas, Colombia (uniandes-co); Max Planck Institute for Evolutionary Anthropology, Leipzig, Germany (mpieva-de); and the University of Western Ontario, London, Canada (western-ca). Site codes rather than country names are used throughout to reflect that each site represents a single institution/region within a large, diverse country, and should not be taken as representative of national populations.
 
 ### uniandes-co
-The Universidad de los Andes site (uniandes-co) recruited `r n_uniandes` children aged 5-–13 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá (i.e., in a municipality located northeast of Florencia) and Boyacá (i.e., in a municipality close to Chiquinquira).  Bogota is the largest and most populous city in Colombia, with a population of over seven million individuals residing within the urban area [@statsco], and substantial variation in socioeconomic status [@statsco]. Florencia and Chiquinquira are smaller municipalities with populations of over 150,000 individuals and 50,000 individuals respectively [@statsco]. Children were recruited from schools with existing partnerships with the Universidad de los Andes. Data were collected in groups using tablets provided by the research team, with group size altered for the age of the children (smaller groups for younger children). Due to time constraints inherent to school-based administration, children typically completed a subset of tasks.
+The Universidad de los Andes site (uniandes-co) recruited `r n_uniandes` children aged 5--13 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá (i.e., in a municipality located northeast of Florencia) and Boyacá (i.e., in a municipality close to Chiquinquira).  Bogota is the largest and most populous city in Colombia, with a population of over seven million individuals residing within the urban area [@statsco], and substantial variation in socioeconomic status [@statsco]. Florencia and Chiquinquira are smaller municipalities with populations of over 150,000 individuals and 50,000 individuals respectively [@statsco]. Children were recruited from schools with existing partnerships with the Universidad de los Andes. Data were collected in groups using tablets provided by the research team, with group size altered for the age of the children (smaller groups for younger children). Due to time constraints inherent to school-based administration, children typically completed a subset of tasks.
 
 ### mpieva-de
 The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from `r n_mpieva` children aged 5--13 years in Leipzig, Germany. Leipzig a mid-sized urban centre with a population of approximately 600,000 individuals [@statsde], and participants in the current study mainly came from middle- to upper-middle-income backgrounds. Children and their families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. 
@@ -376,7 +373,7 @@ The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collecte
 ### western-ca
 The Western University site (western-ca) recruited `r n_western` children aged 5--13 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a medium-sized urban and suburban area with a population of over 400,000 individuals [@statscan]. The Greater Toronto Area is a large urban and suburban area, comprising the city of Toronto and four surrounding regional municipalities, and is the most population metropolitan region in Canada with a population of over 6 million individuals [@statscan]. Canadian participants in the current study mainly came from middle- to upper-middle-income backgrounds. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. 
 
-Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5--13 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants). A total of `r n_repeat_users` children contributed two assessments each; each assessment was treated as a separate observation, with participant included as a random effect in all mixed-effects models to account for the non-independence of repeated assessments. Data and analysis code for this paper are available at https://github.com/levante-framework/mental-rotation. For more information about LEVANTE public data releases, see https://researcher.levante-network.org/data.
+Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5--13 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants). A total of `r n_repeat_users` children contributed two assessments each; each assessment was treated as a separate observation, with participant included as a random effect in all mixed-effects models to account for the non-independence of repeated assessments. Data and analysis code for this paper are available at <https://github.com/levante-framework/mental-rotation>. For more information about LEVANTE public data releases, see <https://researcher.levante-network.org/data>.
 
 ```{r}
 #| label: trial-level-rts
@@ -416,65 +413,63 @@ cat_counts <- mrot_rt_trial |>
 ```{r}
 #| label: tbl-participants
 #| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
-#| echo: false
 
 trials_per_run <- mrot_rt_trial %>%
-  # left_join(mrot_df %>% select(run_id, site_label), by = "run_id") %>%
   group_by(site_label, user_id, run_id) %>%
   summarise(n_trials = n(), .groups = "drop") %>%
   group_by(site_label) %>%
   summarise(
-    Trials_mean = mean(n_trials, na.rm = TRUE),
-    Trials_min  = min(n_trials, na.rm = TRUE),
-    Trials_max  = max(n_trials, na.rm = TRUE),
+    trials_mean = mean(n_trials, na.rm = TRUE),
+    trials_min  = min(n_trials, na.rm = TRUE),
+    trials_max  = max(n_trials, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  mutate(`Trials: M [range]` = sprintf("%.0f [%d–%d]",
-                                        Trials_mean, Trials_min, Trials_max))
+  mutate(trials_summary = sprintf("%.0f [%d–%d]", trials_mean, trials_min, trials_max)) |>
+  select(site_label, trials_summary)
 
-mrot_df |>
+site_info <- mrot_df |>
   # distinct(user_id, .keep_all = TRUE) |>
   group_by(site_label) |>
   summarise(
-    N_run    = n(),
-    N_user   = n_distinct(user_id),
-    Age_mean = mean(age, na.rm = TRUE),
-    Age_sd   = sd(age, na.rm = TRUE),
-    Age_min  = min(age, na.rm = TRUE),
-    Age_max  = max(age, na.rm = TRUE),
+    n_run    = n(),
+    n_user   = n_distinct(user_id),
+    age_mean = mean(age, na.rm = TRUE),
+    age_sd   = sd(age, na.rm = TRUE),
+    age_min  = min(age, na.rm = TRUE),
+    age_max  = max(age, na.rm = TRUE),
     .groups  = "drop"
   ) |>
   mutate(
-    `Age: M (SD) [range]` = sprintf("%.1f (%.1f) [%.1f–%.1f]",
-                                     Age_mean, Age_sd, Age_min, Age_max),
-    `Testing format` = case_when(
+    age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
+                          age_mean, age_sd, age_min, age_max),
+    testing_format =  case_when(
       site_label == "uniandes-co" ~ "In school; group; tablet (researcher-provided)",
-      site_label == "mpieva-de"   ~ "Remote (home-based); individual, family device",
-      site_label == "western-ca"  ~ "On-campus; individual, table (researcher-provided)"
+      site_label == "mpieva-de"   ~ "Remote (home-based); individual; family device",
+      site_label == "western-ca"  ~ "On-campus; individual; tablet (researcher-provided)"
     )
   ) |>
-  left_join(trials_per_run %>% 
-              select(site_label, `Trials: M [range]`), 
-            by = "site_label") |>
-  select(site_label, N_run, N_user, `Age: M (SD) [range]`, `Trials: M [range]`, `Testing format`) |>
-  rename(Site = site_label,
-         `N assessments` = N_run,
-         `N participants` = N_user) |>
+  left_join(trials_per_run) |>
+  select(Site = site_label,
+         `N assessments` = n_run,
+         `N participants` = n_user,
+         `Age: M (SD) [range]` = age_summary,
+         `Trials per assessment: M [range]` = trials_summary,
+         `Testing format` = testing_format)
+
+site_info |>
   knitr::kable(align = c("l", "c", "c", "c", "c", "l"), booktabs = TRUE) |>
-  kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"),
-                            full_width = TRUE) |>
-  kableExtra::column_spec(1, width = "2cm") |>
+  # kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"),
+  #                           full_width = TRUE) |>
+  kableExtra::column_spec(1, width = "2.1cm") |>
   kableExtra::column_spec(2, width = "1.8cm") |>
   kableExtra::column_spec(3, width = "1.8cm") |>
   kableExtra::column_spec(4, width = "3cm") |>
   kableExtra::column_spec(5, width = "2cm") |>
   kableExtra::column_spec(6, width = "3.5cm")
-
 ```
-\clearpage
 
 ## Measure
-The nine core tasks in LEVANTE, including mental rotation, were initially designed in English and then subsequently adapted for Spanish and German following a set of internationalization procedures in collaboration with researchers at the uniandes-co and mpieva-de sites, respectively. The LEVANTE mental rotation task [@frick2013development] is administered digitally on a tablet or computer as part of a battery of nine core tasks. It employs two stimulus categories of increasing difficulty: 2D animal figures (ducks and rabbits), and 3D block configurations from the @shepard1971mental set (see [Appendix A (Example Items)](#sec-apx-mrot-example-items). On each trial, a target image is displayed alongside two alternatives: one shows the same object rotated to a different angle, and the other is a mirror-reversed version that cannot be matched to the target by rotation alone. Children select whichever alternative they judge to correspond to the target by tapping or clicking on their device. The angular disparity between target and correct alternative varies systematically across trials (ranging from 20° to 360°), enabling examination of how increasing rotation demands affect both accuracy and response latency.
+The nine core tasks in the LEVANTE battery, including mental rotation, were initially designed in English and then subsequently adapted for Spanish and German following a set of internationalization procedures in collaboration with researchers at the uniandes-co and mpieva-de sites, respectively. The LEVANTE mental rotation task [@frick2013development] is administered digitally on a tablet or computer as part of a battery of nine core tasks. It employs two stimulus categories of increasing difficulty: 2D animal figures (ducks and rabbits), and 3D block configurations from the @shepard1971mental set (see [Appendix A (Example Items)](#sec-apx-mrot-example-items). On each trial, a target image is displayed alongside two alternatives: one shows the same object rotated to a different angle, and the other is a mirror-reversed version that cannot be matched to the target by rotation alone. Children select whichever alternative they judge to correspond to the target by tapping or clicking on their device. The angular disparity between target and correct alternative varies systematically across trials (ranging from 20° to 360°), enabling examination of how increasing rotation demands affect both accuracy and response latency.
 
 ### Computer-Adaptive Testing Format
 The LEVANTE team has implemented the mental rotation task in a computer-adaptive testing (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (θ) that is re-estimated after each response. The updated θ then guides selection of the next item so that it is appropriately challenging for each individual child. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. In the present sample, `r cat_counts$runs$pct_cat`% of administrations (`r cat_counts$runs$n_cat` of `r cat_counts$runs$n_total`) used the CAT format. In the fixed format, testing stopped after either six consecutive incorrect responses or a maximum of 10 minutes, whichever came first. Refer to @Kachergis2025LEVANTEcoretasks for more information on the internationalization procedures and CAT versions of all LEVANTE tasks.
@@ -482,19 +477,22 @@ The LEVANTE team has implemented the mental rotation task in a computer-adaptive
 ## Analysis
 
 ### Item Screening
-Prior to fitting psychometric models, we examined item-level performance within each site to identify poorly functioning items. Items showing average accuracy near or below chance, low item–total correlations, high missingness, or other anomalous patterns were excluded from further analysis. For full details of the item screening procedure, see @Kachergis2025LEVANTEcoretasks. 
+Prior to fitting psychometric models, we examined item-level performance within each site to identify poorly functioning items. Items were screened for having average accuracy near or below chance, low item–total correlations, high missingness, or other anomalous patterns – as a result no items were identified as warranting exclusion from further analysis for this task. For full details of the item screening procedure, see @Kachergis2025LEVANTEcoretasks.
 
 ### Item Response Theory Models
 Item response theory (IRT) is a psychometric framework that models the relationship between a latent trait and performance on individual task items. Unlike classical test theory, which relies on total scores and treats all items as equivalent contributors to measurement, IRT estimates item-level parameters independently of the specific sample tested, providing more precise measurement across the ability range. All models assumed a single underlying factor, following standard practice in psychometric analyses of mental rotation tasks and consistent with the task's design as a measure of a single spatial ability.
 
-We compared two different IRT models. The Rasch model (1-parameter logistic; 1PL) estimates only item difficulty, holding discrimination constant across items — that is, it assumes all items are equally good at differentiating children of higher versus lower ability. The two-parameter logistic model (2PL) relaxes this constraint, additionally estimating each item's discrimination parameter. A better-fitting 2PL therefore indicates that items vary meaningfully in how well they distinguish between ability levels.
+We compared two types of IRT models. The Rasch model (1-parameter logistic; 1PL) estimates only item difficulty, holding discrimination constant across items — that is, it assumes all items are equally good at differentiating children of higher versus lower ability. The two-parameter logistic model (2PL) relaxes this constraint, additionally estimating each item's discrimination parameter. A better-fitting 2PL therefore indicates that items vary meaningfully in how well they distinguish between ability levels.
 
 ### Cross-Site Invariance
-To assess cross-site measurement invariance, we fitted both models with varying constraints across the three sites: configural invariance (all parameters free to vary), metric invariance (item discriminations are constrained to be equal), and scalar invariance (both discriminations and difficulties are constrained to be equal). We compared models using BIC as the selection criterion [@putnick2016measurement]. Overlapping items across sites served as anchors to establish a common scale, with non-overlapping items freely estimated within the same multigroup model. We estimated all models in R using the mirt package [@chalmers2012mirt] via marginal maximum likelihood with 500 quadrature points. We specified Gaussian priors on item difficulty (M = 0, SD = 3) and discrimination (M = 1, SD = 0.3) in all models. We extracted ability scores (θ) using expected a posteriori (EAP) scoring.
+To assess cross-site measurement invariance, we fitted both types of models with varying constraints across the three sites: configural invariance (all parameters free to vary), metric invariance (item discriminations are constrained to be equal), and scalar invariance (both discriminations and difficulties are constrained to be equal). We compared models using BIC (Bayesian information criterion) as the selection criterion [@putnick2016measurement].
+<!-- Overlapping items across sites served as anchors to establish a common scale, with non-overlapping items freely estimated within the same multigroup model. -->
+<!-- MB: removed above sentence because all items overlap in this task -->
+We estimated all models in R using the mirt package [@chalmers2012mirt] via marginal maximum likelihood with 500 quadrature points. We specified Gaussian priors on item difficulty ($\mathcal{N}(0,3)$) and discrimination ($\mathcal{N}(1,0.3)$) in all models. We extracted ability scores (θ) using expected a posteriori (EAP) scoring.
 
 ### Angular Sensitivity
 To investigate whether performance was sensitive to rotation angle as originally demonstrated by @shepard1971mental, we fitted linear mixed-effects models predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Practice trials (20°) were excluded, leaving rotation angles ranging from 40° to 360°.
-For analysis, rotation angles were recoded to their shortest-path equivalents, collapsing the full 0–360° range to angular disparities of 0–180° (e.g., a 320° rotation was treated as a 40° disparity), on the assumption that participants take the most efficient rotational path. This recoding was verified in a robustness check using full 0–360° angles reported in [Appendix D (360° Angle Functions)](#sec-apx-360-angle). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for analysis. 
+For analysis, rotation angles were recoded to their shortest-path equivalents, collapsing the full 0–360° range to angular disparities of 0–180° (e.g., a 320° rotation was treated as a 40° disparity), on the assumption that participants take the most efficient rotational path. This recoding was verified in a robustness check using full 0–360° angles reported in [Appendix D (360° Angle Functions)](#sec-apx-360-angle). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for this analysis. 
 
 ### Sex Differences
 To examine whether IRT-based ability scores differed by sex, we fitted a linear mixed-effects model predicting ability scores from sex, age, and their interaction, with fixed effects for site and random intercepts for participant. Fixed rather than random site effects were used given the small number of sites (k = 3). Sex at birth was reported by caregivers as part of the LEVANTE background survey.
@@ -515,47 +513,70 @@ mrot_models <- task_anova |> filter(model_set == "multigroup_site")
 ```
 
 ```{r}
+#| label: irt-rxx
+
+task_rxx <- read_rds(here("models/mrot_rxx.rds"))
+site_rxx <- task_rxx |>
+  filter(model_set == "multigroup_site") |>
+  rename(site = group) |>
+  left_join(site_map) |>
+  select(itemtype, site_label, rxx)
+
+rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
+  nest(data = -itemtype) |> deframe() |> map(deframe) |>
+  map(\(vals) imap(vals, paste) |> paste(collapse = ", "))
+```
+
+```{r}
 #| label: mrot-irt-values
 
 mrot_2pl_scalar <- mrot_models %>%
   filter(task == "mrot", itemtype == "2pl", invariance == "scalar")
 
+mrot_2pl_configural <- mrot_models %>%
+  filter(task == "mrot", itemtype == "2pl", invariance == "configural")
+
 mrot_rasch_scalar <- mrot_models %>%
   filter(task == "mrot", itemtype == "rasch", invariance == "scalar")
 
 delta_bic_rasch <- round(mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC, 1)
+delta_bic_configural <- round(mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC, 1)
 bic_2pl_scalar  <- round(mrot_2pl_scalar$BIC, 2)
 aic_2pl_scalar  <- round(mrot_2pl_scalar$AIC, 2)
 npar_2pl_scalar <- mrot_2pl_scalar$df
 ```
-Our first research question asked whether the task measured the mental rotation construct in the same way across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`, *k* = `r npar_2pl_scalar`), outperforming the best-fitting Rasch model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt). The better fit of the 2PL model indicates that mental rotation items vary in their discrimination. Scalar invariance was supported over more flexible alternatives, meaning that both item discriminations and difficulties were equivalent across sites — items are not only ordered similarly in difficulty across sites, but the absolute spacing between them on the latent scale is also preserved. 
 
-This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artefacts. Practically, the relative difficulty and discrimination of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across study sites, and ability estimates can be placed on a common latent scale [@putnick2016measurement]. Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in the following section.
-\clearpage
+Our first research question asked whether the task measured the mental rotation construct in the same way across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`, *k* = `r npar_2pl_scalar`), outperforming the 2PL configural invariance model by `r delta_bic_configural` BIC points and the Rasch scalar invariance model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt).
+
+The better fit of the 2PL model compared to the Rasch model indicates that mental rotation items vary in their discrimination — specifically, items with higher angular disparity provide more information at higher abilities. In addition to the 2PL model being favored over the Rasch model in terms of model fit, it also provides substantially higher marginal reliabilities (2PL: `r rxx[["2pl"]]`; Rasch: `r rxx$rasch`), providing further support for its suitability.
+
+Crucially, scalar invariance was supported over more flexible alternatives, meaning that both item discriminations and difficulties were equivalent across sites — items are not only ordered similarly in difficulty across sites, but the absolute spacing between them on the latent scale is also preserved. This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artifacts. Practically, the relative difficulty and discrimination of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across study sites, and ability estimates can be placed on a common latent scale [@putnick2016measurement].
+
+Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in the following section.
 
 ```{r}
 #| label: tbl-mrot-irt
-#| tbl-cap: "**Model fit indices for IRT models fit to overlapping items.** Note: 2PL = 2-parameter logistic model; Rasch model constrains all item discriminations to be equal. Configural invariance allows all parameters to vary across groups; metric constrains loadings; scalar constrains loadings and intercepts. The selected model (bold) had the lowest BIC."
+#| tbl-cap: "**Model fit indices for IRT models fit to overlapping items.** Note: 2PL = 2-parameter logistic model; Rasch model constrains all item discriminations to be equal. Configural invariance allows all parameters to vary across groups; metric constrains discriminations across groups; scalar constrains discriminations and difficulties. The selected model (bold) had the lowest BIC."
 
 best_row <- which.min(mrot_models$BIC)
 
 invar_table <- mrot_models %>%
   transmute(
-    Model       = itemtype,
+    Model       = itemtype %>% fct_recode("Rasch" = "rasch", "2PL" = "2pl"),
     Invariance  = invariance,
-    logLik      = logLik,
+    `Log-likelihood` = logLik,
     AIC         = AIC,
     BIC         = BIC,
-    `Parameters` = df,
+    Parameters  = df,
     model_order = model_order
   ) %>%
   gt() %>%
   tab_header(title = md("")) %>%
   cols_hide(columns = model_order) %>%
-  fmt_number(columns = c(logLik, AIC, BIC), decimals = 2) %>%
+  fmt_number(columns = c(`Log-likelihood`, AIC, BIC), decimals = 2) %>%
   fmt_number(columns = Parameters, decimals = 0, use_seps = FALSE) %>%
   cols_align(align = "center", columns = c(Model, Invariance, Parameters)) %>%
-  cols_align(align = "right",  columns = c(logLik, AIC, BIC)) %>%
+  cols_align(align = "right",  columns = c(`Log-likelihood`, AIC, BIC)) %>%
   tab_style(
     style = list(
       cell_text(weight = "bold"),
@@ -566,10 +587,10 @@ invar_table <- mrot_models %>%
   tab_footnote(
     footnote = "Degrees of freedom not computed for the baseline configural model.",
     locations = cells_body(columns = Parameters, 
-                           rows = Model == "rasch" & Invariance == "configural")
+                           rows = Model == "Rasch" & Invariance == "configural")
   ) %>%
   tab_footnote(
-    footnote = "Number of parameters estimated relative to the previous model in the sequence.",
+    footnote = "Number of parameters computed relative to the previous model in the sequence.",
     locations = cells_column_labels(columns = Parameters)
   ) %>%
   tab_row_group(label = "2PL",   rows = model_order %in% 3:5) %>%
@@ -607,11 +628,15 @@ mrot_configural <- mrot_coefs |>
 mrot_wide_d <- mrot_configural |>
   select(item, group, d) |>
   pivot_wider(names_from = group, values_from = d) |>
-  mutate(item_label = item |>
-                  stringr::str_remove("mrot_2d_") |>
-                  stringr::str_remove("mrot_3d_") |>
-                  stringr::str_replace("_", " ") |>
-                  stringr::str_replace("(\\d+)$", "\\1°"))
+  separate_wider_delim(item, delim = "_",
+                       names = c("task", "group", "stimulus", "angle")) |>
+  mutate(angle = as.integer(angle),
+         item_label = glue("{stimulus} {angle}°"))
+  # mutate(item_label = item |>
+  #                 stringr::str_remove("mrot_2d_") |>
+  #                 stringr::str_remove("mrot_3d_") |>
+  #                 stringr::str_replace("_", " ") |>
+  #                 stringr::str_replace("(\\d+)$", "\\1°"))
 
 plot_scatter <- function(data, x_var, y_var, x_lab, y_lab) {
   ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]],
@@ -619,12 +644,13 @@ plot_scatter <- function(data, x_var, y_var, x_lab, y_lab) {
     geom_abline(intercept = 0, slope = 1,
                 linetype = "dashed", colour = pal$grey) +
     geom_point(size = 2.5, na.rm = TRUE) +
-    ggrepel::geom_text_repel(size = 2.8,
+    ggrepel::geom_text_repel(size = 2.8, family = .font,
                     max.overlaps = Inf,
                     box.padding = 0.5,
                     point.padding = 0.3,
                     na.rm = TRUE) +
-    coord_equal(xlim = c(-2.5, 4), ylim = c(-2.5, 4)) +
+    # coord_equal(xlim = c(-2.5, 4), ylim = c(-2.5, 4)) +
+    coord_equal() +
     labs(x = x_lab, y = y_lab)
 }
 
@@ -668,28 +694,42 @@ co_theta <- mrot_scores_all |>
   mutate(
     dataset_label = co_labels[dataset],
     model_label = case_when(
-      model_set == "multigroup_site"    ~ "By site (CO split)",
-      model_set == "multigroup_dataset" ~ "By dataset (CO pooled)"
+      model_set == "multigroup_site"    ~ "By site (CO pooled)",
+      model_set == "multigroup_dataset" ~ "By dataset (CO split)"
     )
   )
 
 co_pal <- c("CO Bogotá" = pal$red, "CO Rural" = pal$blue)
 
-p_co_theta <- ggplot(co_theta, 
-                     aes(x = metric_value, fill = dataset_label, 
-                         colour = dataset_label)) +
-  geom_density(alpha = 0.3) +
-  facet_wrap(~model_label, ncol = 2) +
-  scale_fill_manual(values = co_pal) +
+# p_co_theta <- ggplot(co_theta, 
+#                      aes(x = metric_value, fill = dataset_label, 
+#                          colour = dataset_label)) +
+#   geom_density(alpha = 0.3) +
+#   facet_wrap(~model_label, ncol = 2) +
+#   scale_fill_manual(values = co_pal) +
+#   scale_colour_manual(values = co_pal) +
+#   labs(
+#     x = "Estimated θ",
+#     y = "Density",
+#     fill = "Site", colour = "Site"
+#   ) +
+#   theme(legend.position = "bottom")
+# p_co_theta
+
+co_theta_wide <- co_theta |>
+  select(run_id, dataset, dataset_label, model_set, metric_value) |>
+  pivot_wider(names_from = model_set, values_from = metric_value)
+
+p_co_theta <- ggplot(co_theta_wide, aes(y = multigroup_dataset, x = multigroup_site)) +
+  # coord_fixed() +
+  geom_abline(color = "lightgrey", linetype = "dotted") +
+  geom_point(aes(colour = dataset_label), size = 0.8, alpha = 0.5) +
   scale_colour_manual(values = co_pal) +
-  labs(
-    x = "Estimated θ",
-    y = "Density",
-    fill = "Site", colour = "Site"
-  ) +
+  labs(y = "Estimated θ from by dataset model (CO split)",
+       x = "Estimated θ from by site model (CO pooled)",
+       colour = "Site") +
   theme(legend.position = "bottom")
 p_co_theta
-
 ```
 
 ```{r}
@@ -707,8 +747,8 @@ co_coefs <- mrot_coefs |>
   mutate(
     group_label = co_labels[group],
     model_label = case_when(
-  model_set == "multigroup_dataset" ~ "By dataset (CO split)",  
-  model_set == "multigroup_site"    ~ "By site (CO pooled)"
+      model_set == "multigroup_dataset" ~ "By dataset (CO split)",  
+      model_set == "multigroup_site"    ~ "By site (CO pooled)"
     )
   )
 
@@ -716,14 +756,16 @@ co_pal_3 <- c("CO Bogotá" = pal$red,
               "CO Rural"  = pal$blue, 
               "CO (pooled)" = pal$grey)
 
-p_co_items <- ggplot(co_coefs, 
-                     aes(x = difficulty, y = reorder(item, difficulty),
+p_co_items <- ggplot(co_coefs,
+                     aes(x = difficulty, y = reorder(item, -difficulty),
                          colour = group_label)) +
-  geom_point(size = 2.5, alpha = 0.8,
-             position = position_dodge(width = 0.4)) +
-  facet_wrap(~model_label, ncol = 2) +
+  geom_crossbar(aes(xmin = difficulty, xmax = difficulty),
+                width = 0.5, middle.linewidth = 0.2) +
+  # geom_point(size = 2.5, alpha = 0.8,
+  #            position = position_dodge(width = 0.4)) +
+  # facet_wrap(~model_label, ncol = 2) +
   scale_colour_manual(values = co_pal_3) +
-  coord_cartesian(xlim = c(-5, 4)) +
+  # coord_cartesian(xlim = c(-5, 4)) +
   labs(
     x = "Item difficulty",
     y = "Item",
@@ -732,6 +774,43 @@ p_co_items <- ggplot(co_coefs,
   theme(axis.text.y = element_text(size = 7),
         legend.position = "bottom")
 p_co_items
+
+ggplot(co_coefs,
+                     aes(x = a1, y = reorder(item, -difficulty),
+                         colour = group_label)) +
+  geom_crossbar(aes(xmin = a1, xmax = a1),
+                width = 0.5, middle.linewidth = 0.2) +
+  # geom_point(size = 2.5, alpha = 0.8,
+  #            position = position_dodge(width = 0.4)) +
+  # facet_wrap(~model_label, ncol = 2) +
+  scale_colour_manual(values = co_pal_3) +
+  # coord_cartesian(xlim = c(-5, 4)) +
+  labs(
+    x = "Item difficulty",
+    y = "Item",
+    colour = "Group"
+  ) +
+  theme(axis.text.y = element_text(size = 7),
+        legend.position = "bottom")
+
+# co_coefs |>
+#   select(item, model_set, group, difficulty, discrimination = a1) |>
+#   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
+#   mutate(model_set = model_set |> str_remove("multigroup_"),
+#          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
+#   filter(item == "mrot_2d_rabbit_020")
+# 
+# co_coefs_wide <- co_coefs |>
+#   select(item, model_set, group, difficulty, discrimination = a1) |>
+#   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
+#   mutate(model_set = model_set |> str_remove("multigroup_"),
+#          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
+#   unite("set", model_set, group) |>
+#   pivot_wider(names_from = set, values_from = value)
+
+# co_coefs_wide |> filter(parameter == "difficulty") |>
+#   select(where(is.double)) |>
+#   GGally::ggpairs()
 ```
 
 ```{r}
@@ -798,6 +877,11 @@ co_dataset_best_bic <- task_anova_both |>
   pull(BIC) |>
   round(2)
 
+co_dataset_bic <- task_anova_both |>
+  filter(model_set == "multigroup_dataset") |>
+  select(invariance, BIC) |>
+  deframe()
+
 co_dataset_best_invariance <- task_anova_both |>
   filter(model_set == "multigroup_dataset") |>
   slice_min(BIC) |>
@@ -812,11 +896,16 @@ co_rural_pct_adaptive <- co_adaptive |>
   filter(co_site == "CO Rural", adaptive == TRUE) |>
   pull(pct)
 ```
-The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (CO Bogotá, n = `r co_bogota_n`; CO Rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_best_bic`), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across Bogotá and rural schools for both 2D and 3D items, with the exception of one unstable estimate for one 3D item at the highest rotation angle at Bogotá that likely reflects estimation instability rather than a genuine difference 
-(see [Appendix B (Uniandes-co Rural and Urban Sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were comparable (Bogotá: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; Rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`), indicating that the invariance result is not driven by age composition differences. These results support treating uniandes-co as a single group in the main analysis.
+
+
+### Within-site grouping
+The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (CO Bogotá, n = `r co_bogota_n`; CO Rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across Bogotá and rural schools for both 2D and 3D items, with the exception of one unstable estimate for one 3D item at the highest rotation angle at Bogotá that likely reflects estimation instability rather than a genuine difference 
+(see [Appendix B (Uniandes-co Rural and Urban Sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (Bogotá: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; Rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
+<!-- indicating that the invariance result is not driven by age composition differences. -->
+These results support treating uniandes-co as a single group in the main analysis.
 
 ### Age Sensitivity
-Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, [Appendix C (Developmental Trajectories)](#sec-apx-ability-age) plots participants' IRT-estimated ability (θ) against age, with GAM-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modelling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
+Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modelling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
 ```{r}
 #| label: rt-angle-lme
@@ -1026,7 +1115,7 @@ p_2d_site_co_wes    <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "Pr
 
 ```
 ## Angular Sensitivity
-Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. To aid interpretation, a 90-degree increase in rotation angle was associated with approximately `r pct_increase_90`% longer response times for 3D stimuli. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between mpieva-de and uniandes-co (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in western-ca than in mpieva-de", "but did not differ significantly between western-ca and mpieva-de")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
+Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. This effect corresponds to a 90-degree increase in rotation angle being associated with approximately `r pct_increase_90`% longer response times for 3D stimuli. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between mpieva-de and uniandes-co (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in western-ca than in mpieva-de", "but did not differ significantly between western-ca and mpieva-de")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
 For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope `r ifelse(p_2d_site_co < .05, "was significantly shallower", "did not differ significantly")` between uniandes-co and mpieva-de (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`); did not differ significantly between western-ca and mpieva-de (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`); and `r ifelse(p_2d_site_co_wes < .05, "differed significantly", "did not differ significantly")` between uniandes-co and western-ca (β = `r round(beta_2d_site_co_wes, 2)`, SE = `r round(se_2d_site_co_wes, 2)`, p `r fmt_p(p_2d_site_co_wes)`). `r ifelse(all(c(p_2d_site_co, p_2d_site_ca, p_2d_site_co_wes) >= .05), "Although the omnibus test was significant, no individual pairwise comparison reached significance, suggesting the omnibus result reflects a joint pattern of site differences rather than any single site driving the effect.", "")`
 
@@ -1063,6 +1152,8 @@ mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
 
 min_n <- 10
 
+.scale_colour_stimulus <- \(...) scale_colour_brewer(palette = "Set2", ...)
+
 p_mrot_rt_angle_age_1 <- ggplot(
   mrot_items_rt_agebin_ci %>% filter(n >= min_n),
   aes(x = angle, y = y,
@@ -1074,10 +1165,11 @@ p_mrot_rt_angle_age_1 <- ggplot(
   geom_point(size = 1) +
   geom_line(alpha = 0.85) +
   facet_grid(site_label ~ age_group) +
-  labs(x = "Rotation angle (°)", y = "RT (s)",
-       colour = "Stimulus", linetype = "Item Type") +
+  labs(x = "Rotation angle (°)", y = "Reaction time (s)",
+       colour = "Stimulus", linetype = "Item type") +
   scale_x_continuous(breaks = c(40, 80, 120, 160)) +
-  # .scale_colour_stimulus() +
+  
+  .scale_colour_stimulus() +
   theme(legend.position = "bottom")
 p_mrot_rt_angle_age_1
 
@@ -1462,7 +1554,7 @@ wrapped_labels <- analysis_data %>%
       Strategy_Label == "Ineffective Strategies" ~ 
         glue::glue("Ineffective Strategies\n(n = {n}, {pct}%)"),
       Strategy_Label == "Other Effective Strategies (Feature matching/Flipping)" ~ 
-        glue::glue("Other Effective\nStrategies (Feature\nmatching/Flipping) (n = {n}, {pct}%)"),
+        glue::glue("Other Effective\nStrategies (Feature\nmatching/Flipping)\n(n = {n}, {pct}%)"),
       Strategy_Label == "Mental Rotation" ~ 
         glue::glue("Mental Rotation\n(n = {n}, {pct}%)")
     )
@@ -1471,7 +1563,8 @@ wrapped_labels <- analysis_data %>%
 
 p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
+  ggforce::geom_sina(alpha = 0.3, size = 1) +
+  # geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = my_colors) +
   scale_x_discrete(labels = setNames(wrapped_labels, 
                      c("Ineffective Strategies",
@@ -1481,7 +1574,7 @@ p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = S
               map_signif_level = TRUE,
               y_position = c(2.5, 3.0, 3.5),
               tip_length = 0.01,
-              linewidth = 0.25) +
+              size = 0.25) +
   labs(y = "Ability (θ)", x = NULL) +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 0, hjust = 0.5))
@@ -1494,8 +1587,8 @@ p_ability
 
 ```{r}
 #| label: fig-rt-by-disparity
-#| fig-width: 7
-#| fig-height: 4
+#| fig-width: 6
+#| fig-height: 5
 #| fig-align: "center"
 #| include: true
 #| fig-cap: "**Participant-weighted mean log RT by rotation angle and strategy profile.** Shaded bands show 95% CIs. Note that raw means for the Ineffective Strategies group appear to decline slightly with angle; however, this reflects confounds with stimulus type, item difficulty, and trial position that are controlled in the mixed model. The model-adjusted relative slope for this group is near-zero positive, indicating absent rather than negative angular sensitivity."
@@ -1537,13 +1630,14 @@ p_rt_disparity <- ggplot(rt_disparity_summary, aes(x = angle, y = mean_rt,
     labels = function(x) stringr::str_wrap(x, width = 25)
   ) +
   scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
-  theme(legend.position = "bottom",
-      plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt")) +
   labs(
-    x = "Rotation Angle (°)",
-    y = "Mean log RT",
+    x = "Rotation angle (°)",
+    y = "Mean log reaction time",
     colour = "Strategy", fill = "Strategy"
-  )
+  ) +
+  guides(color = guide_legend(override.aes = list(fill = NA))) +
+  theme(legend.position = "bottom",
+        plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt"))
 p_rt_disparity
 
 # ggsave("fig5_rt_by_angle_strategy.png", plot = p_rt_disparity,
@@ -1888,9 +1982,9 @@ knitr::include_graphics("mrot_item_examples.pdf")
 #| label: fig-co-theta
 #| eval: true
 #| include: true
-#| fig-width: 10
-#| fig-height: 5
-#| fig-cap: "**θ distributions across uniandes-co sub-samples.** Uniandes-co Bogotá (red) and CO Rural (blue) ability estimates under scalar invariance, comparing models that treat the two sub-samples as separate groups (by dataset) versus pooled as a single site (by site). Near-identical distributions indicate that pooling does not meaningfully distort individual ability estimates."
+#| fig-width: 6
+#| fig-height: 6
+#| fig-cap: "**θ distributions across uniandes-co sub-samples.** Ability estimates for CO Bogotá (red) and uniandes-co Rural (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single site (x axis). Near-identical distributions indicate that pooling does not meaningfully distort individual ability estimates."
 
 p_co_theta
 ```
@@ -1899,9 +1993,9 @@ p_co_theta
 #| label: fig-co-item-difficulty
 #| eval: true
 #| include: true
-#| fig-width: 8
-#| fig-height: 6
-#| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for uniandes-co Rural (blue) and CO Bogotá (red) separately (left panel) and pooled (right panel). Item difficulties are largely consistent across sub-samples, with the exception of one unstable estimate for `mrot_3d_shape_120` at Bogotá."
+#| fig-width: 6
+#| fig-height: 4
+#| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for CO Rural (blue) and CO Bogotá (red) separated and pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one unstable estimate for `mrot_3d_shape_120` in CO Bogotá."
 
 p_co_items
 ```
@@ -1911,10 +2005,10 @@ p_co_items
 ## Developmental trajectories of mental rotation ability {#sec-apx-ability-age}
 ```{r}
 #| label: fig-ability-age
-#| fig-cap: "**Developmental trajectories of mental rotation ability across sites.** Points represent individual children's IRT-estimated ability (θ); curves are GAM-smoothed age trends with 95% confidence intervals. Scores are highest in the German site, and significantly lower in the Canadian and Colombian sites; however, site-level differences are heavily confounded with multiple variables (e.g., language, SES), especially differences in administration (e.g., computer vs. tablet; home vs. school; experimenter working with one child or multiple simultaneously), and thus are not interpretable."
+#| fig-cap: "**Developmental trajectories of mental rotation ability across sites.** Points represent IRT-estimated ability (θ) from individual assessments, with line segments connecting assessments for a given child; curves are GAM-smoothed age trends with 95% confidence intervals. Scores are highest in the German site, and significantly lower in the Canadian and Colombian sites; however, site-level differences are heavily confounded with multiple variables (e.g., language, SES), especially differences in administration (e.g., computer vs. tablet; home vs. school; experimenter working with one child or multiple simultaneously), and thus are not interpretable."
 #| fig-align: "center"
-#| fig-width: 7
-#| fig-height: 4.5
+#| fig-width: 6.5
+#| fig-height: 5.5
 
 ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
   geom_point(alpha = 0.35, size = 1.1, shape = 16) +
@@ -1928,6 +2022,7 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
     y      = "Ability (θ)",
     colour = "Site"
   ) +
+  guides(color = guide_legend(override.aes = list(fill = NA))) +
   theme(legend.position = "bottom")
 
 # ggsave("mrot_age.png", width = 7, height = 5, dpi = 300)
@@ -1939,11 +2034,11 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
 ## Sex differences {#sec-apx-sex-diff-plot}
 ```{r}
 #| label: fig-sex-plot
-#| fig-cap: "Mental rotation ability (θ) as a function of age and sex across three sites."
+#| fig-cap: "Mental rotation ability (θ) as a function of age and sex assigned at birth across three sites."
 #| include: true
 #| fig-align: "center"
 #| fig-width: 7
-#| fig-height: 5
+#| fig-height: 4.5
 
 site_n_labels <- mrot_df_sex |>
   distinct(user_id, site_label) |>
@@ -1953,6 +2048,7 @@ site_n_labels <- mrot_df_sex |>
 mrot_df_sex |>
   left_join(site_n_labels) |>
   ggplot(aes(x = age, y = metric_value, colour = sex)) +
+  facet_wrap(~label) +
   geom_point(alpha = 0.35, size = 1.1) +
   geom_smooth(method = "lm") +
   labs(
@@ -1960,9 +2056,11 @@ mrot_df_sex |>
     y = "Ability (θ)",
     colour = "Sex"
   ) +
-  facet_wrap(~label) + 
+  scale_colour_brewer(palette = "Set1") +
+  guides(color = guide_legend(override.aes = list(fill = NA))) +
   theme(legend.position = "bottom")
 ```
+
 
 # Angular Sensitivity {.appendix #sec-apx-d}
 
@@ -1974,7 +2072,7 @@ n_table <- mrot_items_rt_agebin_ci %>%
   filter(angle != 20) %>%
   select(site_label, age_group, stimulus, item_group, angle, n) %>%
   mutate(
-    cell = paste0(item_group, ".", stimulus),
+    cell = paste(str_to_upper(item_group), stimulus),
     age_group = recode(as.character(age_group),
       "[5,7]"  = "5–7",
       "(7,9]"  = "7–9",
@@ -1985,10 +2083,12 @@ n_table <- mrot_items_rt_agebin_ci %>%
   pivot_wider(names_from = angle, values_from = n) %>%
   arrange(site_label, desc(age_group), cell)
 
+options(knitr.kable.NA = "–")
 knitr::kable(
   n_table,
-  col.names = c("Site", "Age Group", "Cell", "40", "80", "120", "160"),
-  caption = "Sample sizes (n) per cell."
+  col.names = c("Site", "Age group", "Stimulus", "40°", "80°", "120°", "160°"),
+  caption = "Sample sizes (n) per cell.",
+  linesep = "",
 ) %>%
   kable_styling(
     latex_options = c("hold_position", "scale_down"),
@@ -2029,7 +2129,7 @@ p_mrot_rt_angle_age_2 <- ggplot() +
   geom_point(
     data = mrot_items_rt_agebin_ci,
     aes(x = angle, y = y,
-        colour = stimulus, linetype = item_group,
+        colour = stimulus,
         group = interaction(item_group, stimulus)),
     size = 1
   ) +
@@ -2041,12 +2141,13 @@ p_mrot_rt_angle_age_2 <- ggplot() +
     alpha = 0.85
   ) +
   facet_grid(site_label ~ age_group) +
+  .scale_colour_stimulus() +
   labs(
     #title = "Mental Rotation: RT by angle within age groups ±95% CI",
     x = "Rotation angle (°)",
-    y = "RT (s)",
+    y = "Reaction time (s)",
     colour = "Stimulus",
-    #linetype = "Item Type"
+    linetype = "Item type"
   ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
   theme(legend.position = "bottom")
 
@@ -2057,10 +2158,10 @@ p_mrot_rt_angle_age_2
 Having established that 3D stimuli elicit a clear angular disparity effect while 2D stimuli do to a lesser extent, we next asked a complementary question: whether children show sensitivity to task demands as they unfold in real time — specifically, whether reaction times shift systematically at the transition from 2D to 3D stimuli, and whether practice effects are detectable within blocks. To isolate time-on-task effects from item-driven RT changes, we residualized log-RTs on angle, stimulus, and item type prior to analysis.
 ```{r}
 #| label: fig-within-person-trials
-#| fig-cap: "**Trial-level Reaction Time Dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Re-test and CAT data removed."
+#| fig-cap: "**Trial-level reaction time dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Re-test and CAT data removed."
 #| fig-align: "center"
-#| fig-width: 6
-#| fig-height: 4
+#| fig-width: 7
+#| fig-height: 5
 
 # prep: remove CAT data
 trial_resid_data <- mrot_rt_trial %>%
@@ -2086,14 +2187,14 @@ ggplot(trial_resid_data,
   stat_summary(fun = mean, geom = "point", size = 1.2, alpha = 0.5) +
   geom_smooth(aes(group = interaction(site_label, block)),
               method = "loess", span = 0.75, se = TRUE, alpha = 0.2) +
-  geom_vline(xintercept = transition_trial - 0.5, linetype = "dashed",
-             color = pal$grey, linewidth = 0.7) +
-  annotate("text", x = transition_trial, y = Inf,
+  geom_vline(xintercept = transition_trial - 0.5, linetype = "dotted",
+             color = "lightgrey", linewidth = 0.7) +
+  annotate("text", x = transition_trial + 1, y = Inf,
            label = "Start of 3D block", hjust = 0, vjust = 1.5, size = 3.5) +
   scale_colour_manual(values = site_pal_labelled) +
   scale_fill_manual(values = site_pal_labelled) +
   labs(
-    x     = "Trial Number",
+    x     = "Trial number",
     y     = "Residual reaction time",
     color = "Site",
     fill  = "Site"
@@ -2229,6 +2330,7 @@ analysis_data %>%
   tab_spanner(label = "Ability",         columns = c(`Mean Ability`, `SD Ability`)) %>%
   tab_spanner(label = "Relative Slope",  columns = c(`Mean Rel. Slope`, `SD Rel. Slope`)) %>%
   tab_spanner(label = "Absolute Slope",  columns = c(`Mean Abs. Slope`, `SD Abs. Slope`)) %>%
+  cols_label_with(fn = \(x) str_extract(x, "^[A-z]+")) %>%
   tab_options(
     table.width = pct(100),
     data_row.padding = px(3)
