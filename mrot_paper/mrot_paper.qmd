@@ -484,27 +484,27 @@ Item response theory (IRT) is a psychometric framework that models the relations
 
 We compared two types of IRT models. The Rasch model (1-parameter logistic; 1PL) estimates only item difficulty, holding discrimination constant across items — that is, it assumes all items are equally good at differentiating children of higher versus lower ability. The two-parameter logistic model (2PL) relaxes this constraint, additionally estimating each item's discrimination parameter. A better-fitting 2PL therefore indicates that items vary meaningfully in how well they distinguish between ability levels.
 
-### Cross-Site Invariance
+### Analysis 1: Cross-Site Invariance
 To assess cross-site measurement invariance, we fitted both types of models with varying constraints across the three sites: configural invariance (all parameters free to vary), metric invariance (item discriminations are constrained to be equal), and scalar invariance (both discriminations and difficulties are constrained to be equal). We compared models using BIC (Bayesian information criterion) as the selection criterion [@putnick2016measurement].
 <!-- Overlapping items across sites served as anchors to establish a common scale, with non-overlapping items freely estimated within the same multigroup model. -->
 <!-- MB: removed above sentence because all items overlap in this task -->
 We estimated all models in R using the mirt package [@chalmers2012mirt] via marginal maximum likelihood with 500 quadrature points. We specified Gaussian priors on item difficulty ($\mathcal{N}(0,3)$) and discrimination ($\mathcal{N}(1,0.3)$) in all models. We extracted ability scores (θ) using expected a posteriori (EAP) scoring.
 
-### Angular Sensitivity
-To investigate whether performance was sensitive to rotation angle as originally demonstrated by @shepard1971mental, we fitted linear mixed-effects models predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Practice trials (20°) were excluded, leaving rotation angles ranging from 40° to 360°.
+### Analysis 2: Angular Sensitivity
+To investigate whether performance was sensitive to rotation angle as originally demonstrated by @shepard1971mental, we fitted linear mixed-effects models predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Warm-up trials (20°) were excluded, leaving rotation angles ranging from 40° to 360°.
 For analysis, rotation angles were recoded to their shortest-path equivalents, collapsing the full 0–360° range to angular disparities of 0–180° (e.g., a 320° rotation was treated as a 40° disparity), on the assumption that participants take the most efficient rotational path. This recoding was verified in a robustness check using full 0–360° angles reported in [Appendix D (360° Angle Functions)](#sec-apx-360-angle). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for this analysis. 
 
-### Sex Differences
+### Analysis 3: Sex Differences
 To examine whether IRT-based ability scores differed by sex, we fitted a linear mixed-effects model predicting ability scores from sex, age, and their interaction, with fixed effects for site and random intercepts for participant. Fixed rather than random site effects were used given the small number of sites (k = 3). Sex at birth was reported by caregivers as part of the LEVANTE background survey.
 
-### Strategy Variation
+### Analysis 4: Strategy Variation
 To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here and both correct and incorrect trials were included: the strategy analysis extracts relative person-level features rather than estimating the angle effect at the population level, and including all available trials (correct and incorrect) yields more reliable individual-level estimates.
 
 From this model, we extracted five person-level features for each child. Baseline response speed reflects general processing efficiency independent of rotation demands. Angular sensitivity was captured two ways: as the absolute RT–angle slope (the time added per degree of rotation), and as that slope expressed relative to each child's baseline speed, capturing the degree to which rotation demands slow a child down proportional to their typical pace — a relative measure better suited to a developmental sample where baseline processing speed varies substantially with age. The trial-by-trial RT trend indexes within-session learning or fatigue. Finally, response instability captures trial-to-trial variability that cannot be attributed to angle or trial position — children who disengage from the task's spatial demands or shift inconsistently between approaches are expected to show greater residual variability than those applying a consistent strategy; this was operationalized as the standard deviation of model residuals. Each feature was retained on the basis that it captures a distinct and interpretable aspect of how children engage with the task's spatial demands. These five features were submitted to k-means clustering as a descriptive tool to identify broad patterns of engagement.
 
 # Results
 
-## Cross-Site Invariance
+## Analysis 1: Cross-Site Invariance
 ```{r}
 #| label: irt-anova
 
@@ -552,7 +552,7 @@ The better fit of the 2PL model compared to the Rasch model indicates that menta
 
 Crucially, scalar invariance was supported over more flexible alternatives, meaning that both item discriminations and difficulties were equivalent across sites — items are not only ordered similarly in difficulty across sites, but the absolute spacing between them on the latent scale is also preserved. This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artifacts. Practically, the relative difficulty and discrimination of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across study sites, and ability estimates can be placed on a common latent scale [@putnick2016measurement].
 
-Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in the following section.
+Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in @sec-angular-sensitivity.
 
 ```{r}
 #| label: tbl-mrot-irt
@@ -561,22 +561,30 @@ Scalar invariance is a psychometric property of the instrument: it establishes t
 best_row <- which.min(mrot_models$BIC)
 
 invar_table <- mrot_models %>%
-  transmute(
-    Model       = itemtype %>% fct_recode("Rasch" = "rasch", "2PL" = "2pl"),
-    Invariance  = invariance,
-    `Log-likelihood` = logLik,
-    AIC         = AIC,
-    BIC         = BIC,
-    Parameters  = df,
-    model_order = model_order
-  ) %>%
+  # transmute(
+  #   Model       = itemtype %>% fct_recode("Rasch" = "rasch", "2PL" = "2pl"),
+  #   Invariance  = invariance,
+  #   `Log-likelihood` = logLik,
+  #   AIC         = AIC,
+  #   BIC         = BIC,
+  #   Parameters  = df,
+  #   model_order = model_order
+  # ) %>%
+  mutate(itemtype = itemtype %>% fct_recode("Rasch" = "rasch", "2PL" = "2pl")) %>%
+  mutate(dBIC = BIC - lag(BIC)) %>%
+  select(itemtype, invariance, logLik, AIC, BIC, dBIC, df, model_order) %>%
   gt() %>%
   tab_header(title = md("")) %>%
   cols_hide(columns = model_order) %>%
-  fmt_number(columns = c(`Log-likelihood`, AIC, BIC), decimals = 2) %>%
-  fmt_number(columns = Parameters, decimals = 0, use_seps = FALSE) %>%
-  cols_align(align = "center", columns = c(Model, Invariance, Parameters)) %>%
-  cols_align(align = "right",  columns = c(`Log-likelihood`, AIC, BIC)) %>%
+  cols_label(itemtype = "Model",
+             invariance = "Invariance",
+             logLik = "Log-likelihood",
+             dBIC = "ΔBIC",
+             df = "ΔParameters") %>%
+  fmt_number(columns = c(logLik, AIC, BIC, dBIC), decimals = 2) %>%
+  fmt_number(columns = df, decimals = 0, use_seps = FALSE) %>%
+  cols_align(align = "center", columns = c(itemtype, invariance, df)) %>%
+  cols_align(align = "right",  columns = c(logLik, AIC, BIC)) %>%
   tab_style(
     style = list(
       cell_text(weight = "bold"),
@@ -584,14 +592,14 @@ invar_table <- mrot_models %>%
     ),
     locations = cells_body(rows = best_row)
   ) %>%
+  # tab_footnote(
+  #   footnote = "Degrees of freedom not computed for the baseline configural model.",
+  #   locations = cells_body(columns = df, 
+  #                          rows = itemtype == "Rasch" & itemtype == "configural")
+  # ) %>%
   tab_footnote(
-    footnote = "Degrees of freedom not computed for the baseline configural model.",
-    locations = cells_body(columns = Parameters, 
-                           rows = Model == "Rasch" & Invariance == "configural")
-  ) %>%
-  tab_footnote(
-    footnote = "Number of parameters computed relative to the previous model in the sequence.",
-    locations = cells_column_labels(columns = Parameters)
+    footnote = "Computed relative to the previous model in the sequence.",
+    locations = cells_column_labels(columns = c(dBIC, df))
   ) %>%
   tab_row_group(label = "2PL",   rows = model_order %in% 3:5) %>%
   tab_row_group(label = "Rasch", rows = model_order %in% 1:2) %>%
@@ -601,14 +609,11 @@ invar_table <- mrot_models %>%
     row_group.font.weight = "bold"
   )
 invar_table
-
-# gtsave(invar_table, "table2_model_fit.png")
-
 ```
 
 ```{r}
 #| label: fig-mrot-info
-#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by angular disparity. Higher angular disparity items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
+#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by rotation angle. Higher rotation angle items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
 #| fig-width: 8
 #| fig-height: 3.5
 
@@ -766,54 +771,45 @@ co_coefs <- mrot_coefs |>
     itemtype == "2pl",
     group %in% co_groups
   ) |>
+  select(model_set, group, item, difficulty, discrimination = a1) |>
   mutate(
     group_label = co_labels[group],
     model_label = case_when(
       model_set == "multigroup_dataset" ~ "By dataset (CO split)",  
       model_set == "multigroup_site"    ~ "By site (CO pooled)"
     )
-  )
+  ) |>
+  separate_wider_delim(item, delim = "_", cols_remove = FALSE,
+                       names = c("task", "item_group", "stimulus", "angle")) |>
+  mutate(item_group = item_group |> str_to_upper(),
+         angle = angle |> as.integer(),
+         item_label = glue("{item_group} {stimulus} ({angle}°)")) |>
+  arrange(item_group, angle, stimulus) |>
+  mutate(item_label = item_label |> fct_inorder() |> fct_rev())
 
 co_pal_3 <- c("CO Bogotá" = pal$red, 
               "CO Rural"  = pal$blue, 
               "CO (pooled)" = pal$grey)
 
-p_co_items <- ggplot(co_coefs,
-                     aes(x = difficulty, y = reorder(item, -difficulty),
-                         colour = group_label)) +
+p_co_items_d <- ggplot(co_coefs,
+                     aes(x = difficulty, y = item_label, colour = group_label)) +
   geom_crossbar(aes(xmin = difficulty, xmax = difficulty),
                 width = 0.5, middle.linewidth = 0.2) +
-  # geom_point(size = 2.5, alpha = 0.8,
-  #            position = position_dodge(width = 0.4)) +
-  # facet_wrap(~model_label, ncol = 2) +
   scale_colour_manual(values = co_pal_3) +
-  # coord_cartesian(xlim = c(-5, 4)) +
-  labs(
-    x = "Item difficulty",
-    y = "Item",
-    colour = "Group"
-  ) +
+  labs(x = "Item difficulty", y = "Item", colour = "Group") +
   theme(axis.text.y = element_text(size = 7),
         legend.position = "bottom")
-p_co_items
+p_co_items_d
 
-ggplot(co_coefs,
-                     aes(x = a1, y = reorder(item, -difficulty),
-                         colour = group_label)) +
-  geom_crossbar(aes(xmin = a1, xmax = a1),
+p_co_items_a1 <- ggplot(co_coefs,
+                     aes(x = discrimination, y = item_label, colour = group_label)) +
+  geom_crossbar(aes(xmin = discrimination, xmax = discrimination),
                 width = 0.5, middle.linewidth = 0.2) +
-  # geom_point(size = 2.5, alpha = 0.8,
-  #            position = position_dodge(width = 0.4)) +
-  # facet_wrap(~model_label, ncol = 2) +
   scale_colour_manual(values = co_pal_3) +
-  # coord_cartesian(xlim = c(-5, 4)) +
-  labs(
-    x = "Item difficulty",
-    y = "Item",
-    colour = "Group"
-  ) +
+  labs(x = "Item discrimination", y = "Item", colour = "Group") +
   theme(axis.text.y = element_text(size = 7),
         legend.position = "bottom")
+p_co_items_a1
 
 # co_coefs |>
 #   select(item, model_set, group, difficulty, discrimination = a1) |>
@@ -822,13 +818,18 @@ ggplot(co_coefs,
 #          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
 #   filter(item == "mrot_2d_rabbit_020")
 # 
-# co_coefs_wide <- co_coefs |>
-#   select(item, model_set, group, difficulty, discrimination = a1) |>
-#   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
-#   mutate(model_set = model_set |> str_remove("multigroup_"),
-#          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
-#   unite("set", model_set, group) |>
-#   pivot_wider(names_from = set, values_from = value)
+co_coefs_wide <- co_coefs |>
+  select(item, model_set, group, difficulty, discrimination) |>
+  pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
+  mutate(model_set = model_set |> str_remove("multigroup_"),
+         group = group |> str_extract("(?<=_)[a-z]*?$")) |>
+  unite("set", model_set, group) |>
+  pivot_wider(names_from = set, values_from = value)
+
+p_co_items_scatter <- ggplot(co_coefs_wide, aes(x = dataset_bogota, y = dataset_rural)) +
+  facet_wrap(vars(parameter), scales = "free") +
+  geom_abline(linetype = "dashed", colour = "lightgrey") +
+  geom_point()
 
 # co_coefs_wide |> filter(parameter == "difficulty") |>
 #   select(where(is.double)) |>
@@ -920,13 +921,13 @@ co_rural_pct_adaptive <- co_adaptive |>
 ```
 
 
-### Within-site grouping
+### Analysis 1a: Within-site grouping
 The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (CO Bogotá, n = `r co_bogota_n`; CO Rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across Bogotá and rural schools for both 2D and 3D items, with the exception of one unstable estimate for one 3D item at the highest rotation angle at Bogotá that likely reflects estimation instability rather than a genuine difference 
 (see [Appendix B (Uniandes-co Rural and Urban Sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (Bogotá: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; Rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
 <!-- indicating that the invariance result is not driven by age composition differences. -->
 These results support treating uniandes-co as a single group in the main analysis.
 
-### Age Sensitivity
+### Analysis 1b: Age Sensitivity
 Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modelling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
 ```{r}
@@ -1136,7 +1137,7 @@ se_2d_site_co_wes   <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "St
 p_2d_site_co_wes    <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
 
 ```
-## Angular Sensitivity
+## Analysis 2: Angular Sensitivity
 Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_children_3d` children contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. This effect corresponds to a 90-degree increase in rotation angle being associated with approximately `r pct_increase_90`% longer response times for 3D stimuli. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between mpieva-de and uniandes-co (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in western-ca than in mpieva-de", "but did not differ significantly between western-ca and mpieva-de")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
 For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope `r ifelse(p_2d_site_co < .05, "was significantly shallower", "did not differ significantly")` between uniandes-co and mpieva-de (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`); did not differ significantly between western-ca and mpieva-de (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`); and `r ifelse(p_2d_site_co_wes < .05, "differed significantly", "did not differ significantly")` between uniandes-co and western-ca (β = `r round(beta_2d_site_co_wes, 2)`, SE = `r round(se_2d_site_co_wes, 2)`, p `r fmt_p(p_2d_site_co_wes)`). `r ifelse(all(c(p_2d_site_co, p_2d_site_ca, p_2d_site_co_wes) >= .05), "Although the omnibus test was significant, no individual pairwise comparison reached significance, suggesting the omnibus result reflects a joint pattern of site differences rather than any single site driving the effect.", "")`
@@ -1309,7 +1310,7 @@ summary(sex_mod)
 # sexMale        -0.02      0.38    -0.78     0.70 1.00     1153     1946
 # age:sexMale     0.01      0.04    -0.06     0.09 1.00     1152     1976
 ```
-## Sex Differences 
+## Analysis 3: Sex Differences 
 Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix C (Sex Differences)](#sec-apx-sex-diff-plot).
 
 ```{r}
@@ -1537,7 +1538,7 @@ mrot_sd_abs_slope   <- round(mrot_strat$SD_Abs_Slope, 2)
 ability_diff        <- round(flip$Mean_Ability - mrot_strat$Mean_Ability, 2)
 
 ```
-## Strategy Variation
+## Analysis 4: Strategy Variation
 Our fourth research question asked, exploratorily, whether individual differences in children's RT profiles capture meaningful variation in strategy use, and whether strategy groupings differ across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. All analyses in this section are exploratory and descriptive; findings should be treated as hypothesis-generating rather than confirmatory.
 
 To select the number of clusters, we evaluated solutions from k = 1–8 using the elbow method and average silhouette width; see [Appendix E (Cluster Validation)](#sec-apx-cluster) for full results. The statistically optimal solution was k = 2, but inspection of the resulting RT–angle functions revealed that this collapsed two theoretically distinguishable effective engagement profiles into a single region. We therefore adopted k = 3 on both empirical grounds (a moderate elbow inflection at k = 3) and theoretical grounds (the interpretability of the resulting RT profiles), treating the three profiles as descriptive anchors along a continuum rather than evidence for discrete strategy types.
