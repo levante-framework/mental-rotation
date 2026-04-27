@@ -607,6 +607,28 @@ invar_table
 ```
 
 ```{r}
+#| label: fig-mrot-info
+#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by angular disparity. Higher angular disparity items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
+#| fig-width: 8
+#| fig-height: 3.5
+
+mrot_info <- read_rds(here("models/mrot_info.rds"))
+
+info_2pl_scalar <- mrot_info |>
+  filter(model_set == "multigroup_site", itemtype == "2pl")
+
+p_info_2pl <- ggplot(info_2pl_scalar, aes(x = theta, y = info)) +
+  facet_wrap(vars(item_type)) +
+  geom_line(aes(group = item, colour = angle), linewidth = 0.5) +
+  scale_colour_viridis_c(direction = -1,
+                         breaks = sort(unique(info_2pl_scalar$angle)),
+                         guide = guide_legend()) +
+  labs(x = "Ability (θ)", y = "Item information", colour = "Angle") +
+  theme(legend.position = "bottom")
+p_info_2pl
+```
+
+```{r}
 #| label: fig-item-diff
 #| fig-cap: "**Item Difficulty Parameters Across Sites (Configural Model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across cultural contexts."
 #| fig-width: 12
@@ -2070,23 +2092,24 @@ mrot_df_sex |>
 
 n_table <- mrot_items_rt_agebin_ci %>%
   filter(angle != 20) %>%
-  select(site_label, age_group, stimulus, item_group, angle, n) %>%
+  select(site_label, age_group, item_group, stimulus, angle, n) %>%
   mutate(
-    cell = paste(str_to_upper(item_group), stimulus),
+    item_group = str_to_upper(item_group),
+    # cell = paste(str_to_upper(item_group), stimulus),
     age_group = recode(as.character(age_group),
       "[5,7]"  = "5–7",
       "(7,9]"  = "7–9",
       "(9,12]" = "9–12"
     )
   ) %>%
-  select(-stimulus, -item_group) %>%
+  # select(-stimulus, -item_group) %>%
   pivot_wider(names_from = angle, values_from = n) %>%
-  arrange(site_label, desc(age_group), cell)
+  arrange(site_label, desc(age_group), item_group, stimulus)
 
 options(knitr.kable.NA = "–")
 knitr::kable(
   n_table,
-  col.names = c("Site", "Age group", "Stimulus", "40°", "80°", "120°", "160°"),
+  col.names = c("Site", "Age group", "Item type", "Stimulus", "40°", "80°", "120°", "160°"),
   caption = "Sample sizes (n) per cell.",
   linesep = "",
 ) %>%
