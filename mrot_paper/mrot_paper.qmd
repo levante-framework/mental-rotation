@@ -552,7 +552,7 @@ The better fit of the 2PL model compared to the Rasch model indicates that menta
 
 Crucially, scalar invariance was supported over more flexible alternatives, meaning that both item discriminations and difficulties were equivalent across sites — items are not only ordered similarly in difficulty across sites, but the absolute spacing between them on the latent scale is also preserved. This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artifacts. Practically, the relative difficulty and discrimination of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across study sites, and ability estimates can be placed on a common latent scale [@putnick2016measurement].
 
-Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in @sec-angular-sensitivity.
+Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts, but does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in Analysis 2.
 
 ```{r}
 #| label: tbl-mrot-irt
@@ -708,9 +708,9 @@ coef_ns <- mrot_coefs |>
 mrot_scores_all <- readr::read_rds(here::here("models/mrot_scores.rds"))
 
 co_labels <- c(
-  "pilot_uniandes_co_rural"  = "CO Rural",
-  "pilot_uniandes_co_bogota" = "CO Bogotá",
-  "pilot_uniandes_co"        = "CO (pooled)"
+  "pilot_uniandes_co_rural"  = "uniandes-co-rural",
+  "pilot_uniandes_co_bogota" = "uniandes-co-bogota",
+  "pilot_uniandes_co"        = "uniandes-co"
 )
 
 co_theta <- mrot_scores_all |>
@@ -721,12 +721,14 @@ co_theta <- mrot_scores_all |>
   mutate(
     dataset_label = co_labels[dataset],
     model_label = case_when(
-      model_set == "multigroup_site"    ~ "By site (CO pooled)",
-      model_set == "multigroup_dataset" ~ "By dataset (CO split)"
+      model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)",
+      model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)"
     )
   )
 
-co_pal <- c("CO Bogotá" = pal$red, "CO Rural" = pal$blue)
+co_pal <- c("uniandes-co-bogota" = pal$red,
+            "uniandes-co-rural" = pal$blue,
+            "uniandes-co" = pal$grey)
 
 # p_co_theta <- ggplot(co_theta, 
 #                      aes(x = metric_value, fill = dataset_label, 
@@ -748,13 +750,13 @@ co_theta_wide <- co_theta |>
   pivot_wider(names_from = model_set, values_from = metric_value)
 
 p_co_theta <- ggplot(co_theta_wide, aes(y = multigroup_dataset, x = multigroup_site)) +
-  # coord_fixed() +
+  coord_fixed() +
   geom_abline(color = "lightgrey", linetype = "dotted") +
   geom_point(aes(colour = dataset_label), size = 0.8, alpha = 0.5) +
   scale_colour_manual(values = co_pal) +
-  labs(y = "Estimated θ from by dataset model (CO split)",
-       x = "Estimated θ from by site model (CO pooled)",
-       colour = "Site") +
+  labs(y = "Ability (θ) from by dataset model (samples split)",
+       x = "Ability (θ) from by site model (samples pooled)",
+       colour = "Sub-sample") +
   theme(legend.position = "bottom")
 p_co_theta
 ```
@@ -775,37 +777,39 @@ co_coefs <- mrot_coefs |>
   mutate(
     group_label = co_labels[group],
     model_label = case_when(
-      model_set == "multigroup_dataset" ~ "By dataset (CO split)",  
-      model_set == "multigroup_site"    ~ "By site (CO pooled)"
+      model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)",  
+      model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)"
     )
   ) |>
   separate_wider_delim(item, delim = "_", cols_remove = FALSE,
                        names = c("task", "item_group", "stimulus", "angle")) |>
   mutate(item_group = item_group |> str_to_upper(),
+         stimulus = stimulus |> fct_relevel("rabbit"),
          angle = angle |> as.integer(),
          item_label = glue("{item_group} {stimulus} ({angle}°)")) |>
   arrange(item_group, angle, stimulus) |>
   mutate(item_label = item_label |> fct_inorder() |> fct_rev())
 
-co_pal_3 <- c("CO Bogotá" = pal$red, 
-              "CO Rural"  = pal$blue, 
-              "CO (pooled)" = pal$grey)
+# co_pal_3 <- c("uniandes-co-bogota" = pal$red, 
+#               "uniandes-co-rural"  = pal$blue, 
+#               "uniandes-co" = pal$grey)
 
 p_co_items_d <- ggplot(co_coefs,
                      aes(x = difficulty, y = item_label, colour = group_label)) +
   geom_crossbar(aes(xmin = difficulty, xmax = difficulty),
                 width = 0.5, middle.linewidth = 0.2) +
-  scale_colour_manual(values = co_pal_3) +
+  scale_colour_manual(values = co_pal) +
   labs(x = "Item difficulty", y = "Item", colour = "Group") +
-  theme(axis.text.y = element_text(size = 7),
+  theme(#axis.text.y = element_text(size = 7),
         legend.position = "bottom")
+        # legend.direction = "vertical")
 p_co_items_d
 
 p_co_items_a1 <- ggplot(co_coefs,
                      aes(x = discrimination, y = item_label, colour = group_label)) +
   geom_crossbar(aes(xmin = discrimination, xmax = discrimination),
                 width = 0.5, middle.linewidth = 0.2) +
-  scale_colour_manual(values = co_pal_3) +
+  scale_colour_manual(values = co_pal) +
   labs(x = "Item discrimination", y = "Item", colour = "Group") +
   theme(axis.text.y = element_text(size = 7),
         legend.position = "bottom")
@@ -844,9 +848,7 @@ p_co_items_scatter <- ggplot(co_coefs_wide, aes(x = dataset_bogota, y = dataset_
 co_dataset_lookup <- mrot_scores_all |>
   filter(dataset %in% c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota")) |>
   distinct(user_id, dataset) |>
-  mutate(co_site = if_else(dataset == "pilot_uniandes_co_rural", "CO Rural", "CO Bogotá"))
-
-co_pal <- c("CO Bogotá" = pal$red, "CO Rural" = pal$blue)
+  mutate(co_site = co_labels[dataset])
 
 co_age <- runs_filtered |>
   inner_join(co_dataset_lookup, by = "user_id")
@@ -886,12 +888,12 @@ task_anova_both <- read_rds(here("models/mrot_anova.rds")) |>
 #| include: false
 
 # sample sizes and age
-co_bogota_n    <- co_age_summary |> filter(co_site == "CO Bogotá") |> pull(n)
-co_rural_n     <- co_age_summary |> filter(co_site == "CO Rural")  |> pull(n)
-co_bogota_age_mean <- co_age_summary |> filter(co_site == "CO Bogotá") |> pull(age_mean) |> round(1)
-co_bogota_age_sd   <- co_age_summary |> filter(co_site == "CO Bogotá") |> pull(age_sd)   |> round(1)
-co_rural_age_mean  <- co_age_summary |> filter(co_site == "CO Rural")  |> pull(age_mean) |> round(1)
-co_rural_age_sd    <- co_age_summary |> filter(co_site == "CO Rural")  |> pull(age_sd)   |> round(1)
+co_bogota_n    <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(n)
+co_rural_n     <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(n)
+co_bogota_age_mean <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_mean) |> round(1)
+co_bogota_age_sd   <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_sd)   |> round(1)
+co_rural_age_mean  <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_mean) |> round(1)
+co_rural_age_sd    <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_sd)   |> round(1)
 
 # best-fitting model BIC for by-dataset model
 co_dataset_best_bic <- task_anova_both |>
@@ -912,23 +914,23 @@ co_dataset_best_invariance <- task_anova_both |>
 
 # adaptive split
 co_bogota_pct_nonadaptive <- co_adaptive |> 
-  filter(co_site == "CO Bogotá", adaptive == FALSE) |> 
+  filter(co_site == "uniandes-co-bogota", adaptive == FALSE) |> 
   pull(pct)
 
 co_rural_pct_adaptive <- co_adaptive |>
-  filter(co_site == "CO Rural", adaptive == TRUE) |>
+  filter(co_site == "uniandes-co-rural", adaptive == TRUE) |>
   pull(pct)
 ```
 
 
 ### Analysis 1a: Within-site grouping
-The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (CO Bogotá, n = `r co_bogota_n`; CO Rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across Bogotá and rural schools for both 2D and 3D items, with the exception of one unstable estimate for one 3D item at the highest rotation angle at Bogotá that likely reflects estimation instability rather than a genuine difference 
-(see [Appendix B (Uniandes-co Rural and Urban Sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (Bogotá: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; Rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
+The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (uniandes-co-bogota, n = `r co_bogota_n`; uniandes-co-rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across uniandes-co-bogota and uniandes-co-rural for both 2D and 3D items, with the exception of the estimate for one 3D item at the highest rotation angle in uniandes-co-bogota, which likely reflects estimation instability rather than a genuine difference 
+(see [Appendix B (Uniandes-co Rural and Urban Sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (uniandes-co-bogota: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; uniandes-co-rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
 <!-- indicating that the invariance result is not driven by age composition differences. -->
 These results support treating uniandes-co as a single group in the main analysis.
 
 ### Analysis 1b: Age Sensitivity
-Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modelling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
+Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
 ```{r}
 #| label: rt-angle-lme
@@ -1146,7 +1148,7 @@ For 2D stimuli, we observed a significant but smaller positive angle effect (β 
 
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
-#| fig-cap: "**Reaction Time by angle within age groups ±95% CI.** Note. Cells with fewer than 10 observations are excluded. Lines reflect descriptive means; statistical models were fit separately for 2D and 3D stimuli. Age groups shown for visualization only; age was modeled as a continuous predictor."
+#| fig-cap: "**Reaction time by angle within age groups ±95% CI.** Note. Cells with fewer than 10 observations are excluded. Lines reflect descriptive means; statistical models were fit separately for 2D and 3D stimuli. Age groups shown for visualization only; age was modeled as a continuous predictor."
 #| fig-align: "center"
 #| include: true
 #| fig-width: 7
@@ -1158,7 +1160,8 @@ mrot_items_rt_runs <- mrot_rt_trial %>%
   summarise(
     rt_med = median(rt_s[correct == 1], na.rm = TRUE),
     .groups = "drop"
-  )
+  ) %>%
+  mutate(item_group = str_to_upper(item_group))
 
 mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
   filter(!is.na(rt_med)) %>%
@@ -1611,10 +1614,10 @@ p_ability
 ```{r}
 #| label: fig-rt-by-disparity
 #| fig-width: 6
-#| fig-height: 5
+#| fig-height: 5.5
 #| fig-align: "center"
 #| include: true
-#| fig-cap: "**Participant-weighted mean log RT by rotation angle and strategy profile.** Shaded bands show 95% CIs. Note that raw means for the Ineffective Strategies group appear to decline slightly with angle; however, this reflects confounds with stimulus type, item difficulty, and trial position that are controlled in the mixed model. The model-adjusted relative slope for this group is near-zero positive, indicating absent rather than negative angular sensitivity."
+#| fig-cap: "**Participant-weighted mean log reaction time by rotation angle and strategy profile.** Shaded bands show 95% CIs. Note that raw means for the Ineffective Strategies group appear to decline slightly with angle; however, this reflects confounds with stimulus type, item difficulty, and trial position that are controlled in the mixed model. The model-adjusted relative slope for this group is near-zero positive, indicating absent rather than negative angular sensitivity."
 
 rt_run_disparity <- mrot_rich_data %>%
   left_join(
@@ -1637,29 +1640,33 @@ rt_disparity_summary <- rt_run_disparity %>%
     .groups  = "drop"
   )
 
-p_rt_disparity <- ggplot(rt_disparity_summary, aes(x = angle, y = mean_rt,
-                                  colour = Strategy_Label, fill = Strategy_Label)) +
+p_rt_disparity <- ggplot(rt_disparity_summary,
+                         aes(x = angle, y = mean_rt,
+                             colour = Strategy_Label, fill = Strategy_Label)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.15, colour = NA) +
   geom_line(linewidth = 0.8) +
   geom_point(size = 1.6) +
   scale_colour_manual(
     values = my_colors, 
     drop = FALSE,
-    labels = function(x) stringr::str_wrap(x, width = 25)
+    # labels = function(x) stringr::str_wrap(x, width = 25)
   ) +
   scale_fill_manual(
     values = my_colors, 
     drop = FALSE,
-    labels = function(x) stringr::str_wrap(x, width = 25)
+    # labels = function(x) stringr::str_wrap(x, width = 25)
   ) +
   scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
   labs(
     x = "Rotation angle (°)",
-    y = "Mean log reaction time",
-    colour = "Strategy", fill = "Strategy"
+    y = "Mean log reaction time (s)",
+    colour = "Strategy profile",
+    fill = "Strategy profile"
   ) +
-  guides(color = guide_legend(override.aes = list(fill = NA))) +
+  guides(color = guide_legend(reverse = TRUE),
+         fill = guide_legend(reverse = TRUE)) +
   theme(legend.position = "bottom",
+        legend.direction = "vertical",
         plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt"))
 p_rt_disparity
 
@@ -2005,22 +2012,22 @@ knitr::include_graphics("mrot_item_examples.pdf")
 #| label: fig-co-theta
 #| eval: true
 #| include: true
-#| fig-width: 6
-#| fig-height: 6
-#| fig-cap: "**θ distributions across uniandes-co sub-samples.** Ability estimates for CO Bogotá (red) and uniandes-co Rural (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single site (x axis). Near-identical distributions indicate that pooling does not meaningfully distort individual ability estimates."
+#| fig-width: 5
+#| fig-height: 5
+#| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates."
+
 
 p_co_theta
 ```
 
 ```{r}
 #| label: fig-co-item-difficulty
-#| eval: true
-#| include: true
-#| fig-width: 6
-#| fig-height: 4
-#| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for CO Rural (blue) and CO Bogotá (red) separated and pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one unstable estimate for `mrot_3d_shape_120` in CO Bogotá."
+#| dependson: co-item-difficulty-comparison
+#| fig-width: 7
+#| fig-height: 5
+#| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for the uniandes-co-bogota sample (red) and uniandes-co-rural sample (blue) separated and both samples pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one estimate for the 3D shape (120°) item in the uniandes-co-bogota sample."
 
-p_co_items
+p_co_items_d
 ```
 
 # Developmental Trajectories {.appendix #sec-apx-c}
@@ -2124,7 +2131,7 @@ knitr::kable(
 ## Raw RT by age and site {#sec-apx-irt-ability-age}
 ```{r}
 #| label: fig-rt-angle_raw
-#| fig-cap: "Reaction Time by angle within age groups with raw per-run data and ±95% CI. CAT trials excluded."
+#| fig-cap: "Reaction time by angle within age groups with raw per-run data and ±95% CI. CAT trials excluded."
 #| fig-width: 8
 #| fig-height: 8
 #| fig-align: "center"
@@ -2182,7 +2189,7 @@ p_mrot_rt_angle_age_2
 Having established that 3D stimuli elicit a clear angular disparity effect while 2D stimuli do to a lesser extent, we next asked a complementary question: whether children show sensitivity to task demands as they unfold in real time — specifically, whether reaction times shift systematically at the transition from 2D to 3D stimuli, and whether practice effects are detectable within blocks. To isolate time-on-task effects from item-driven RT changes, we residualized log-RTs on angle, stimulus, and item type prior to analysis.
 ```{r}
 #| label: fig-within-person-trials
-#| fig-cap: "**Trial-level reaction time dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Re-test and CAT data removed."
+#| fig-cap: "**Trial-level reaction time dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Retest and CAT data removed."
 #| fig-align: "center"
 #| fig-width: 7
 #| fig-height: 5
@@ -2464,7 +2471,7 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
     title    = NULL,
     subtitle = NULL,
     y = "Mean log(RT) (participant-weighted)", 
-    x = "Rotation angle (degrees)",
+    x = "Rotation angle (°)",
     colour = "Strategy", fill = "Strategy"
   ) +
   theme(legend.position = "bottom")
@@ -2553,7 +2560,7 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
   theme(legend.position = "bottom",
       plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt")) +
   labs(
-    x = "Rotation angle (degrees)",
+    x = "Rotation angle (°)",
     y = "Mean Accuracy",
     colour = "Strategy", fill = "Strategy"
   )
@@ -2917,7 +2924,7 @@ ggplot(rt_angle_person_summary_360, aes(x = angle, y = mean_log_rt, colour = Str
   scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
   theme(legend.position = "bottom") +
   labs(
-    x = "Rotation angle (degrees)",
+    x = "Rotation angle (°)",
     y = "Mean log(RT) (participant-weighted)",
     colour = "Strategy", fill = "Strategy"
   )
@@ -2971,7 +2978,7 @@ ggplot(acc_summary_360, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
   scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
   theme(legend.position = "bottom") +
   labs(
-    x = "Rotation angle (degrees)",
+    x = "Rotation angle (°)",
     y = "Mean Accuracy (participant-weighted)",
     colour = "Strategy", fill = "Strategy"
   )
