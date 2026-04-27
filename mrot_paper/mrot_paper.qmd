@@ -638,7 +638,7 @@ p_info_2pl
 
 ```{r}
 #| label: fig-item-diff
-#| fig-cap: "**Item Difficulty Parameters Across Sites (Configural Model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across cultural contexts."
+#| fig-cap: "**Item difficulty parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across cultural contexts."
 #| fig-width: 12
 #| fig-height: 8
 #| eval: false
@@ -1309,7 +1309,7 @@ summary(sex_mod)
 #   ),
 #   control = list(adapt_delta = 0.99, max_treedepth = 15)
 # )
-# for compariosn
+# for comparison
 # Regression Coefficients:
 #             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
 # Intercept      -2.63      0.53    -3.64    -1.50 1.00     1534     1921
@@ -1551,7 +1551,7 @@ Our fourth research question asked, exploratorily, whether individual difference
 
 To select the number of clusters, we evaluated solutions from k = 1–8 using the elbow method and average silhouette width; see [Appendix E (Cluster Validation)](#sec-apx-cluster) for full results. The statistically optimal solution was k = 2, but inspection of the resulting RT–angle functions revealed that this collapsed two theoretically distinguishable effective engagement profiles into a single region. We therefore adopted k = 3 on both empirical grounds (a moderate elbow inflection at k = 3) and theoretical grounds (the interpretability of the resulting RT profiles), treating the three profiles as descriptive anchors along a continuum rather than evidence for discrete strategy types.
 
-The k = 3 solution identified three differentiable regions of the engagement continuum. Regions were labeled based on their trial-level RT patterns: trial patterns whose RT profiles showed no systematic angular sensitivity and high response instability were labeled "Ineffective"; those whose RT–angle functions peaked before declining at high disparities — consistent with exploiting reflective symmetry rather than full rotation — were labeled "Matching/Flipping/Other"; and those showing a monotonically increasing RT–angle function consistent with analog rotation were labeled "Rotation". Inspection of the RT–angle functions (@fig-rt-by-disparity) reveals meaningfully distinct patterns across the three groups.
+The k = 3 solution identified three distinguishable regions of the engagement continuum. Regions were labeled based on their trial-level RT patterns: trial patterns whose RT profiles showed no systematic angular sensitivity and high response instability were labeled "Ineffective"; those whose RT–angle functions peaked before declining at high disparities — consistent with exploiting reflective symmetry rather than full rotation — were labeled "Matching/Flipping/Other"; and those showing a monotonically increasing RT–angle function consistent with analog rotation were labeled "Rotation". Inspection of the RT–angle functions (@fig-rt-by-disparity) reveals meaningfully distinct patterns across the three groups.
 
 The Ineffective group (n = `r ineff_n`, `r ineff_pct`%) is characterized by lower ability (M = `r ineff_mean_ability`, SD = `r ineff_sd_ability`), the lowest absolute RT–angle slope of the three profiles (M = `r ineff_mean_abs_slope`), and high response instability (M = `r ineff_mean_instab`). Although this group's relative slope (M = `r ineff_mean_slope`) appears elevated relative to the two effective profiles, this reflects their faster baseline processing speed (M = `r ineff_mean_baseline`) rather than genuine angular sensitivity — dividing a small absolute slope by a fast baseline inflates the ratio without implying any rotation cost. The absence of angular sensitivity, 
 combined with steeply declining accuracy (see [Appendix E (Accuracy-Angle Functions)](#sec-apx-accuracy-by-angle)),
@@ -2436,13 +2436,13 @@ high_eff_id <- cluster_stats_k2 %>% arrange(desc(mean_ability)) %>% slice(1) %>%
 
 analysis_data_k2 <- analysis_data_k2 %>%
   mutate(Strategy_Label = case_when(
-    Global_Cluster == low_eff_id ~ "Low Efficiency (Cluster 2)",
-    Global_Cluster == high_eff_id ~ "High Efficiency (Cluster 1)"
+    Global_Cluster == low_eff_id ~ "Low Efficacy (Cluster 2)",
+    Global_Cluster == high_eff_id ~ "High Efficacy (Cluster 1)"
   ))
 
 k2_colors <- c(
-  "Low Efficiency (Cluster 2)"  = strategy_pal[1],
-  "High Efficiency (Cluster 1)" = strategy_pal[3]
+  "Low Efficacy (Cluster 2)"  = strategy_pal[1],
+  "High Efficacy (Cluster 1)" = strategy_pal[3]
 )
 
 # Plot the Curves (Visual Check)
@@ -2494,7 +2494,7 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
 ## Relative RT slope by engagement profile {#sec-apx-slope-boxplot}
 
 ::: {#fig-apx-slope-boxplot}
-```{r}
+```{r fig-apx-slope-boxplot}
 #| fig-width: 5
 #| fig-height: 5
 #| fig-align: "center"
