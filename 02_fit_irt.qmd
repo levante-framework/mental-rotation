@@ -54,7 +54,7 @@ fit_task_models_multigroup(task_data = task_data_nested,
 
 ```{r}
 # read in all models in regdir
-mods <- list_models() |> load_models()
+mods <- list_models() |> load_models() |> filter(task == "mrot")
 
 # extract model specifications from filenames
 mods_coded <- mods |>
@@ -95,13 +95,19 @@ mod_scores <- mods_best_multigroup |>
 write_rds(mod_scores, "models/mrot_scores.rds", compress = "gz")
 
 extract_coefs <- \(mod_rec) {
+  trial_counts <- mod_rec@data |> as_tibble() |> cbind(group = mod_rec@groups) |>
+    pivot_longer(cols = -group, names_to = "item", values_to = "value") |>
+    filter(!is.na(value)) |>
+    count(group, item, name = "n_trials")
   model_vals(mod_rec) |>
     as_tibble() |>
     filter(group != "GROUP", item != "GROUP") |>
     select(group, item, name, value) |>
-    pivot_wider(names_from = name, values_from = value) |>
+    left_join(trial_counts, by = join_by(group, item)) |>
     mutate(item = str_remove(item, glue("{item_sep}[0-9]+$"))) |>
-    distinct() |>
+    summarise(value = unique(value), n_trials = sum(n_trials),
+              .by = c(group, item, name)) |>
+    pivot_wider(names_from = name, values_from = value) |>
     mutate(difficulty = -d / a1) |>
     arrange(difficulty)
 }
@@ -117,7 +123,7 @@ write_rds(mod_coef, "models/mrot_coef.rds", compress = "gz")
 
 ```{r}
 # reconstruct mirt objects out of model records
-mod_obj <- mods_overlap |>
+mod_obj <- mods_coded |>
   mutate(mod = map(mod_rec, model_from_record))
 
 # map multigroup model tibble to coding in mods
@@ -128,6 +134,7 @@ mod_map <- models_multigroup |>
 
 # create anova of all multigroup models for each task
 task_anova <- mod_obj |>
+  filter(subset == "overlap_items") |>
   # join in model list from fit_irt_modular.qmd for sequencing models
   left_join(mod_map) |>
   arrange(model_set, model_order) |>
@@ -143,3 +150,46 @@ task_anova <- mod_obj |>
 
 write_rds(task_anova, here("models/mrot_anova.rds"), compress = "gz")
 ```
+
+```{r}
+mod_obj_group <- mod_obj |>
+  filter(invariance == "scalar", subset == "all_items") |>
+  mutate(group = map(mod, \(m) m@Data$groupNames),
+         group_model = map(mod, multigroup_extract_groups)) |>
+  # select(site, task, itemtype, nfact, invariance, group_models) |>
+  select(model_set, itemtype, invariance, group, group_model) |>
+  unnest(cols = c("group_model", "group"))
+
+mod_rxx <- mod_obj_group |>
+  mutate(rxx = map_dbl(group_model, marginal_rxx)) |>
+  select(model_set, group, itemtype, invariance, rxx)
+
+write_rds(mod_rxx, here("models/mrot_rxx.rds"), compress = "gz")
+```
+
+```{r}
+get_iteminfo_uni <- \(mod, theta) {
+  extract.mirt(mod, "itemnames") |>
+    map(\(item) {
+      it <- extract.item(mod, item)
+      tibble(theta = theta) |>
+        mutate(item_inst = item,
+               info = iteminfo(it, as.matrix(theta)))
+    }) |>
+    list_rbind() |>
+    relocate(item_inst, .before = everything())
+}
+
+theta <- seq(-5, 5, by = 0.01)
+mod_info <- mod_obj_group |>
+  mutate(info = map(group_model, partial(get_iteminfo_uni, theta = theta)))
+mrot_info <- mod_info |>
+  select(-group_model) |>
+  unnest(info) |>
+  mutate(item = str_remove(item_inst, "-[0-9]+$")) |>
+  select(-group, -item_inst) |>
+  distinct()
+
+write_rds(mrot_info, here("models/mrot_rxx.rds"), compress = "gz")
+```
+

@@ -24,28 +24,103 @@ survey_gender_wide <- survey_gender |>
          gender = ChildGenderCurrent)
 ```
 
-
 ```{r}
+#| label: survey-gender-distributions
 
-
-# distributions
 table(survey_gender_wide$sex, useNA = "always")
 table(survey_gender_wide$gender, useNA = "always")
 ```
 
+```{r}
+#| label: load-data
+
+# Run data
+run_data <- readr::read_rds(here::here("data/runs_mrot.rds"))
+
+# RT data
+task_data <- readr::read_rds(here::here("data/task_data_nested.rds"))
+
+# IRT data
+mrot_scores <- readr::read_rds(here::here("models/mrot_scores.rds")) |>
+  filter(model_set == "multigroup_site") # also contains "multigroup_dataset"
+
+# coefficients
+mrot_coefs <- readr::read_rds(here::here("models/mrot_coef.rds"))
+
+# survey data for gender analysis
+survey_gender <- readr::read_rds(
+  here::here("survey", "survey_gender_conditions.rds")
+)
+
+site_labels <- c("uniandes-co" = "pilot_uniandes_co",
+                 "mpieva-de" = "pilot_mpieva_de",
+                 "western-ca" = "pilot_western_ca")
+
+mrot_df <- mrot_scores |>
+  inner_join(runs_filtered)
+
+```
 
 ```{r}
+#| label: filter-runs
+
+# apply filters to runs for use in all subsequent analyses
+min_trials <- 10
+min_gap_months <- 3
+run_data_filtered <- run_data |>
+  filter(num_attempted >= min_trials) |>
+  filter(!is.na(age), age >= 5, age <= 14) |>
+  arrange(user_id, age) |>
+  group_by(user_id) |>
+  mutate(run_number = row_number(),
+         age_gap = age - lag(age)) |>
+  ungroup() |>
+  filter_out(age_gap < min_gap_months / 12) |>
+  select(site, user_id, run_id, age, adaptive)
+
+# create age groups based on roughly equal sample sizes
+n_groups <- 3
+ages <- run_data_filtered |> pull(age)
+age_breaks <- quantile(ages, probs = seq(0, 1, length.out = n_groups + 1))
+
+# add age groups and site labels
+runs_filtered <- run_data_filtered |>
+  mutate(age_group = cut(age, breaks = age_breaks, include.lowest = TRUE),
+         site_label = site |>
+           recode_values(from = site_labels, to = names(site_labels)))
+```
+
+```{r}
+#| label: build-trial-data
+
+mrot_rt_trial <- task_data |>
+  select(site, data) |>
+  unnest(data) |>
+  inner_join(runs_filtered) |>
+  select(site, site_label, user_id, run_id, adaptive, age, age_group, trial_id,
+         trial_number, item_uid, item_group, item, item_original, correct, rt_numeric) |>
+  mutate(
+    correct    = as.integer(correct),
+    rt_s       = as.numeric(rt_numeric) / 1000,
+    log_rt     = log(rt_s),
+    angle      = as.integer(stringr::str_extract(item, "(?<=_)\\d+")),
+    angle_full = as.integer(stringr::str_extract(item_original, "\\d{3}$")),
+    stimulus = stringr::str_extract(item, "^[a-z]+")
+  ) |>
+  filter(is.finite(rt_s), rt_s > 0)
+
+```
+
+```{r}
+#| label: survey-gender-overlap
 
 # do any child_ids from survey match user_ids in your main data?
 sum(survey_gender_wide$child_id %in% mrot_scores$user_id)
 sum(survey_gender_wide$child_id %in% mrot_rt_trial$user_id)
 ```
 
-
-
 ```{r}
-de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
-  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
+#| label: de-sex-data
 
 de_sex <- readxl::read_excel(here::here("demographics_data","all_Leipzig_participants_nonames.xlsx")) |>
   rename(user_id = uid, sex = Gender) |>
@@ -69,14 +144,65 @@ sex_data |>
   filter_out(is.na(sex_survey) | is.na(sex_demo)) |>
   filter(sex_demo != sex_survey)
 
+de_sex_cleaned <- de_sex |>
+  transmute(user_id, sex = sex_demo)
 
-sex_data_cleaned <- sex_data |>
-  filter_out(sex_demo != sex_survey) |>
-  transmute(user_id = user_id,
-    sex = ifelse(is.na(sex_survey), sex_demo, sex_survey))
 ```
 
 ```{r}
+#| label: co-sex-data
+
+co_sex <- readxl::read_excel(here::here("demographics_data", "infoUsuariosLevante_expanded.xlsx"))
+
+# check column names and structure
+colnames(co_sex)
+glimpse(co_sex)
+
+# see the first few rows
+head(co_sex)
+
+sum(co_sex$`user_id 2025` %in% mrot_df$user_id)
+sum(co_sex$`user_id_Pil 2024` %in% mrot_df$user_id)
+
+co_sex_cleaned <- co_sex |>
+  rename(user_id = `user_id 2025`) |>
+  distinct(user_id, .keep_all = TRUE) |>  # remove duplicate rows
+  filter(!is.na(Sex)) |>
+  transmute(
+    user_id,
+    sex = recode_values(Sex, "F" ~ "Female", "M" ~ "Male")
+  )
+
+# check duplicates
+# any duplicate user_ids in the CO data?
+co_sex |> count(`user_id 2025`) |> filter(n > 1)
+
+# any users appearing in both DE and CO datasets?
+intersect(de_sex$user_id, co_sex$`user_id 2025`)
+
+co_sex |>
+  group_by(`user_id 2025`) |>
+  filter(n() > 1) |>
+  summarise(n_sex_values = n_distinct(Sex, na.rm = TRUE)) |>
+  count(n_sex_values)
+
+```
+
+```{r}
+#| label: combine-sex-data
+
+# add survey data
+survey_sex_cleaned <- survey_gender_wide |>
+  filter(!is.na(sex)) |>
+  transmute(user_id = child_id, sex)
+
+sex_data_cleaned <- bind_rows(de_sex_cleaned, co_sex_cleaned, survey_sex_cleaned) |>
+  distinct(user_id, .keep_all = TRUE)  # demographic files take priority over survey
+```
+
+```{r}
+#| label: sex-coverage-summary
+
 mrot_rt_trial |> 
   distinct(user_id) |> 
   nrow()
@@ -93,11 +219,22 @@ mrot_rt_trial |>
 ```
 
 ```{r}
-mrot_df_gender <- inner_join(mrot_df, survey_gender_wide, 
-                             by = c("user_id" = "child_id")) |>
-  filter_out(is.na(sex))
+#| label: sex-irt-plot
 
-ggplot(mrot_df_gender, aes(x = age, y = metric_value, colour = sex)) +
+mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex))
+
+# add sample sizes
+site_n_labels <- mrot_df_sex |>
+  distinct(user_id, site_label) |>
+  count(site_label) |>
+  mutate(label = paste0(site_label, "\n(n = ", n, ")"))
+
+mrot_df_sex <- mrot_df_sex |>
+  left_join(site_n_labels) |>
+  mutate(site_label_n = label)
+
+ggplot(mrot_df_sex, aes(x = age, y = metric_value, colour = sex)) +
   geom_point(alpha = 0.35, size = 1.1) +
   geom_line(aes(group = user_id), alpha = .3) + 
   geom_smooth(method = "lm") +
@@ -106,26 +243,28 @@ ggplot(mrot_df_gender, aes(x = age, y = metric_value, colour = sex)) +
     y      = "Ability (θ)",
     colour = "Sex"
   ) +
-  facet_wrap(~site_label) + 
+  facet_wrap(~site_label_n) + 
   theme(legend.position = "bottom")
 ```
 
 ```{r}
-sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
-  data = mrot_df_gender)
+#| label: sex-models
 
+# sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site), data = mrot_df_sex)
+# summary(sex_mod)
+
+# more simple model
+sex_mod <- lmer(metric_value ~ age * sex + site + (1 | user_id), data = mrot_df_gender) # fixed site effect because there's only three sites
 summary(sex_mod)
 
-
-sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id),
-  data = filter(mrot_df_gender, site == "pilot_mpieva_de"))
-
-summary(sex_mod_de)
-
-
-library(brms)
-sex_mod_bayes <- brm(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
-  data = mrot_df_gender)
+# old
+# # german model only
+# sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id), data = filter(mrot_df_sex, site == "pilot_mpieva_de"))
+# summary(sex_mod_de)
+# 
+# library(brms)
+# sex_mod_bayes <- brm(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
+#   data = mrot_df_sex)
 ```
 
 
