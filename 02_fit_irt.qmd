@@ -152,6 +152,8 @@ write_rds(task_anova, here("models/mrot_anova.rds"), compress = "gz")
 ```
 
 ```{r}
+# extract each group's models from multigroup models
+# only works for scalar models, would need debugging to get metric/configural
 mod_obj_group <- mod_obj |>
   filter(invariance == "scalar", subset == "all_items") |>
   mutate(group = map(mod, \(m) m@Data$groupNames),
@@ -168,6 +170,7 @@ write_rds(mod_rxx, here("models/mrot_rxx.rds"), compress = "gz")
 ```
 
 ```{r}
+# get item information for each item in model at each theta value
 get_iteminfo_uni <- \(mod, theta) {
   extract.mirt(mod, "itemnames") |>
     map(\(item) {
@@ -181,15 +184,22 @@ get_iteminfo_uni <- \(mod, theta) {
 }
 
 theta <- seq(-5, 5, by = 0.01)
+
+# get model info for all group models
 mod_info <- mod_obj_group |>
   mutate(info = map(group_model, partial(get_iteminfo_uni, theta = theta)))
+
 mrot_info <- mod_info |>
   select(-group_model) |>
   unnest(info) |>
   mutate(item = str_remove(item_inst, "-[0-9]+$")) |>
+   # assuming all mods are scalar, makes sense to dedupe without group
   select(-group, -item_inst) |>
-  distinct()
+  distinct() |>
+  separate_wider_delim(item, delim = "_", cols_remove = FALSE,
+                       names = c("task", "group", "stimulus", "angle")) |>
+  mutate(item_type = paste(str_to_upper(group), stimulus),
+         angle = angle |> as.integer())
 
-write_rds(mrot_info, here("models/mrot_rxx.rds"), compress = "gz")
+write_rds(mrot_info, here("models/mrot_info.rds"), compress = "gz")
 ```
-
