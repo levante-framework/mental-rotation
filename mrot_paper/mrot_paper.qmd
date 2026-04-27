@@ -249,6 +249,7 @@ library(brms)
 library(lme4)
 library(lmerTest) # p-values via satterthwaite
 library(Rtsne)
+library(ggforce)
 ```
 
 ```{r}
@@ -1589,7 +1590,7 @@ wrapped_labels <- analysis_data %>%
 
 p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  ggforce::geom_sina(alpha = 0.3, size = 1) +
+  geom_sina(alpha = 0.3, size = 1) +
   # geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = my_colors) +
   scale_x_discrete(labels = setNames(wrapped_labels, 
@@ -1598,7 +1599,8 @@ p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = S
                        "Mental Rotation"))) +
   geom_signif(comparisons = my_comparisons,
               map_signif_level = TRUE,
-              y_position = c(2.5, 3.0, 3.5),
+              y_position = c(2.5, 3.0, 2.5),
+              extend_line = -0.005,
               tip_length = 0.01,
               size = 0.25) +
   labs(y = "Ability (θ)", x = NULL) +
@@ -2049,14 +2051,15 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
   # geom_linerange(aes(ymin = metric_value - metric_se, ymax = metric_value + metric_se),
   #                alpha = 0.35, size = 1.1) +
   geom_line(aes(group = user_id), alpha = .3) + 
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE, fullrange = TRUE) +
   scale_colour_manual(values = site_pal_labelled) +
+  scale_x_continuous(expand = expansion(mult = 0.02)) +
   labs(
     x      = "Age (years)",
     y      = "Ability (θ)",
     colour = "Site"
   ) +
-  guides(color = guide_legend(override.aes = list(fill = NA))) +
+  # guides(color = guide_legend(override.aes = list(fill = NA))) +
   theme(legend.position = "bottom")
 
 # ggsave("mrot_age.png", width = 7, height = 5, dpi = 300)
@@ -2075,7 +2078,7 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
 #| fig-height: 4.5
 
 site_n_labels <- mrot_df_sex |>
-  distinct(user_id, site_label) |>
+  distinct(run_id, site_label) |>
   count(site_label) |>
   mutate(label = paste0(site_label, "\n(n = ", n, ")"))
 
@@ -2084,13 +2087,15 @@ mrot_df_sex |>
   ggplot(aes(x = age, y = metric_value, colour = sex)) +
   facet_wrap(~label) +
   geom_point(alpha = 0.35, size = 1.1) +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", fullrange = TRUE) +
   labs(
     x = "Age (years)",
     y = "Ability (θ)",
-    colour = "Sex"
+    colour = "Sex",
+    fill = "Sex"
   ) +
   scale_colour_brewer(palette = "Set1") +
+  scale_x_continuous(expand = expansion(mult = 0.02)) +
   guides(color = guide_legend(override.aes = list(fill = NA))) +
   theme(legend.position = "bottom")
 ```
@@ -2382,12 +2387,15 @@ To assess the appropriateness of the three-profile solution, we evaluated cluste
 #| fig-height: 3
 #| fig-cap: "**Cluster validation metrics: Elbow Method (left) and Silhouette Analysis (right).** The elbow plot shows a bend at k=3, and silhouette width peaks at k=2 before declining, providing partial support for the 3-cluster solution."
 
-p_elbow <- fviz_nbclust(global_input, kmeans, method = "wss", k.max = 8) +
-  geom_vline(xintercept = 3, linetype = 2, color = pal$red) +
-  labs(title = NULL, subtitle = NULL, x = "Number of clusters k")
+.theme <- theme_get()
+p_elbow <- fviz_nbclust(global_input, kmeans, method = "wss", k.max = 8, linecolor = pal$grey) +
+  geom_vline(xintercept = 3, linetype = 2, color = pal$grey) +
+  labs(title = NULL, subtitle = NULL, x = "Number of clusters k") +
+  .theme
 
-p_sil <- fviz_nbclust(global_input, kmeans, method = "silhouette", k.max = 8) +
-  labs(title = NULL, subtitle = NULL, x = "Number of clusters k")
+p_sil <- fviz_nbclust(global_input, kmeans, method = "silhouette", k.max = 8, linecolor = pal$grey) +
+  labs(title = NULL, subtitle = NULL, x = "Number of clusters k") +
+  .theme
 
 grid.arrange(p_elbow, p_sil, nrow = 1)
 ```
@@ -2397,7 +2405,7 @@ grid.arrange(p_elbow, p_sil, nrow = 1)
 #| eval: true
 #| include: true
 #| fig-width: 7
-#| fig-height: 4
+#| fig-height: 5
 #| fig-cap: "**RT–angle functions for the k=2 solution.** The higher-ability cluster displays an inverted-U RT curve consistent with a mix of Mental Rotation and Other Effective Strategies (Feature matching/Flipping) engagement profiles, suggesting that k=2 collapses two distinguishable effective profiles into a single region."
 
 # Set up Input (same features as main analysis)
@@ -2474,24 +2482,33 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
   labs(
     title    = NULL,
     subtitle = NULL,
-    y = "Mean log(RT) (participant-weighted)", 
+    y = "Mean log reaction time (s)",
+    # y = "Mean log(RT) (participant-weighted)", 
     x = "Rotation angle (°)",
     colour = "Strategy", fill = "Strategy"
   ) +
   theme(legend.position = "bottom")
 ```
 
+\clearpage
+
 ## Relative RT slope by engagement profile {#sec-apx-slope-boxplot}
+
+::: {#fig-apx-slope-boxplot}
 ```{r}
-#| label: apx-slope-boxplot
 #| fig-width: 5
 #| fig-height: 5
 #| fig-align: "center"
-#| fig-cap: "**Relative RT slope by engagement profile.** Significance bars show pairwise t-tests."
 
-p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
+slope_range <- c(-0.4, 0.75)
+n_outliers <- analysis_data |> filter(Rel_Slope < slope_range[1] | Rel_Slope > slope_range[2]) |> nrow()
+
+p_slope <- analysis_data |>
+  filter_out(Rel_Slope < slope_range[1] | Rel_Slope > slope_range[2]) |>
+ggplot(aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
+  geom_sina(alpha = 0.3, size = 1) +
+  # geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = my_colors) +
   scale_x_discrete(labels = setNames(wrapped_labels,
                      c("Ineffective Strategies",
@@ -2500,22 +2517,26 @@ p_slope <- ggplot(analysis_data, aes(x = Strategy_Label, y = Rel_Slope, fill = S
   geom_hline(yintercept = 0, linetype = "dashed", color = pal$grey) +
   geom_signif(comparisons = my_comparisons,
               map_signif_level = TRUE,
-              y_position = c(1.0, 1.5, 2.0),
+              y_position = c(0.75, 0.85, 0.75),
+              extend_line = -0.005,
               tip_length = 0.01,
-              linewidth = 0.25) +
-  labs(y = "Relative Slope", x = NULL) +
+              size = 0.25) +
+  labs(y = "Relative slope", x = NULL) +
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 0, hjust = 0.5)) +
-  coord_cartesian(ylim = c(-2, 2.5))
+        axis.text.x = element_text(angle = 0, hjust = 0.5))
 
 p_slope
 ```
+
+**Relative RT slope by engagement profile.** Significance bars show pairwise t-tests. Note: `{r} n_outliers` outliers (all for Ineffective Strategies) not shown to facilitate comparison.
+
+:::
 
 ## Accuracy-angle functions by engagement profile {#sec-apx-accuracy-by-angle}
 ```{r}
 #| label: apx-accuracy-by-angle
 #| fig-width: 7
-#| fig-height: 4
+#| fig-height: 5
 #| fig-align: "center"
 #| fig-cap: "**Participant-weighted accuracy-angle functions by engagement profile.** Shaded bands show 95% CIs. The Ineffective Strategies group shows steeply declining accuracy with angle, corroborating the interpretation that their near-zero RT slope reflects disengagement from the spatial demands of the task rather than a systematic processing strategy. By contrast, the two effective profiles maintain comparable accuracy throughout despite differing markedly in their RT–angle functions."
 
@@ -2565,7 +2586,7 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
       plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt")) +
   labs(
     x = "Rotation angle (°)",
-    y = "Mean Accuracy",
+    y = "Mean accuracy",
     colour = "Strategy", fill = "Strategy"
   )
 ```
@@ -2607,18 +2628,18 @@ We examined whether the distribution of engagement profiles varied across age gr
 #| label: fig-strategy-by-age
 #| fig-align: "center"
 #| include: true
-#| fig-width: 7
-#| fig-height: 3.5
+#| fig-width: 4
+#| fig-height: 4
 #| fig-cap: "**Strategy profile proportions by age group.**"
 
 strategy_by_age %>%
   ggplot(aes(x = age_group, y = prop, fill = Strategy_Label)) +
-  geom_col(position = "fill") +
+  geom_col(position = "fill", width = 0.8) +
   scale_fill_manual(values = my_colors,
                     labels = function(x) str_wrap(x, width = 25)) +
-  scale_y_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent, expand = expansion()) +
   labs(x = "Age group (years)",
-       y = "Proportion",
+       y = "Proportion in strategy profile",
        fill = "Strategy") +
   theme(legend.position = "bottom")
 ```
@@ -2633,8 +2654,8 @@ Inspection of the PCA loadings offered interpretive support for the feature set.
 
 ```{r}
 #| label: fig-tsne-check
-#| fig-width: 7
-#| fig-height: 4
+#| fig-width: 6
+#| fig-height: 6
 #| fig-cap: "**t-SNE visualization of engagement profiles.** The Ineffective Strategies group forms a distinct region, while the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles show considerable overlap, suggesting softer boundaries between the two effective engagement profiles."
 
 tsne_input <- analysis_data %>%
@@ -2653,7 +2674,8 @@ tsne_plot_data <- tsne_input %>%
     left_join(analysis_data %>% select(run_id, Strategy_Label), by = "run_id")
 
 ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
-    geom_point(alpha = 0.7, size = 2) +
+  # coord_fixed() +
+    geom_point(alpha = 0.7, size = 1) +
     scale_color_manual(values = my_colors,
                        labels = function(x) stringr::str_wrap(x, width = 25)) +
     labs(title = NULL, x = "Dimension 1", y = "Dimension 2", color = "Strategy") +
@@ -2663,7 +2685,7 @@ ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
 ```{r}
 #| label: fig-pca-check
 #| fig-width: 7
-#| fig-height: 4
+#| fig-height: 6
 #| fig-cap: "**PCA projection of the five clustering features colored by engagement profile.** The Ineffective Strategies group separates clearly along PC1, while the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles overlap along both components."
 
 pca_result <- prcomp(tsne_input %>% select(-run_id), center = TRUE, scale. = TRUE)
@@ -2673,7 +2695,7 @@ pca_plot_data <- tsne_input %>%
     left_join(analysis_data %>% select(run_id, Strategy_Label), by = "run_id")
 
 ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Strategy_Label)) +
-    geom_point(alpha = 0.7, size = 2) +
+    geom_point(alpha = 0.7, size = 1) +
     scale_color_manual(values = my_colors,
                        labels = function(x) stringr::str_wrap(x, width = 25)) +
     labs(title = NULL, x = "PC1", y = "PC2", color = "Strategy") +
@@ -2683,7 +2705,7 @@ ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Strategy_Label)) +
 ```{r}
 #| label: fig-pca-loadings
 #| fig-width: 7
-#| fig-height: 4
+#| fig-height: 3
 #| fig-cap: "**PCA loadings for PC1 and PC2.** PC1 contrasts inefficient, variable engagement (positive: Instability, Relative Slope) with efficient, consistent processing (negative: Baseline Speed, Absolute Slope, Learning Rate). PC2 reflects a rotation cost dimension driven primarily by Relative and Absolute Slope, largely independent of general processing speed."
 
 loadings_df <- as.data.frame(pca_result$rotation) %>%
@@ -2702,14 +2724,16 @@ ggplot(loadings_long, aes(
     y = reorder_within(Angle_Condition, Loading, Principal_Component), 
     fill = Loading > 0
   )) +
-  geom_col(show.legend = FALSE) +
+  geom_vline(xintercept = 0, colour = "lightgrey") +
+  geom_col(show.legend = FALSE, width = 0.5) +
+  # geom_crossbar(aes(xmin = Loading, xmax = Loading, colour = Loading > 0)) +
   facet_wrap(~ Principal_Component, scales = "free_y") +
   scale_y_reordered() +
   scale_fill_manual(values = c("TRUE" = pal$blue, "FALSE" = pal$red)) +
   labs(
     title    = NULL,
     subtitle = NULL,
-    x = "Loading Weight",
+    x = "Loading weight",
     y = "Feature"
   ) +
   theme(
@@ -2721,8 +2745,8 @@ ggplot(loadings_long, aes(
 
 ```{r}
 #| label: fig-umap-check
-#| fig-width: 7
-#| fig-height: 4
+#| fig-width: 6
+#| fig-height: 6
 #| fig-cap: "**UMAP projection of the five clustering features colored by engagement profile.** The Ineffective Strategies group forms a distinct region, while the Mental Rotation and Other Effective Strategies (Feature matching/Flipping) profiles show substantial overlap, consistent with the continuum interpretation."
 
 set.seed(42)
@@ -2733,7 +2757,7 @@ umap_plot_data <- tsne_input %>%
     left_join(analysis_data %>% select(run_id, Strategy_Label), by = "run_id")
 
 ggplot(umap_plot_data, aes(x = UMAP_1, y = UMAP_2, color = Strategy_Label)) +
-    geom_point(alpha = 0.7, size = 2) +
+    geom_point(alpha = 0.7, size = 1) +
     scale_color_manual(values = my_colors,
                        labels = function(x) stringr::str_wrap(x, width = 25)) +
     labs(x = "UMAP Dimension 1", y = "UMAP Dimension 2", color = "Strategy") +
@@ -2880,7 +2904,7 @@ ggplot(analysis_data_360, aes(x = ability, y = Rel_Slope, color = Strategy_Label
 ```{r}
 #| label: fig-rt-angle-by-strategy-360
 #| fig-width: 7
-#| fig-height: 4
+#| fig-height: 5
 #| fig-cap: "Participant-weighted RT–angle functions by strategy profile (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs)."
 
 rt_by_strategy_360 <- mrot_rich_data_360 %>%
@@ -2929,7 +2953,7 @@ ggplot(rt_angle_person_summary_360, aes(x = angle, y = mean_log_rt, colour = Str
   theme(legend.position = "bottom") +
   labs(
     x = "Rotation angle (°)",
-    y = "Mean log(RT) (participant-weighted)",
+    y = "Mean log reaction time (s)",
     colour = "Strategy", fill = "Strategy"
   )
 ```
@@ -2937,7 +2961,7 @@ ggplot(rt_angle_person_summary_360, aes(x = angle, y = mean_log_rt, colour = Str
 ```{r}
 #| label: fig-accuracy-angle-by-strategy-360
 #| fig-width: 7
-#| fig-height: 4
+#| fig-height: 5
 #| fig-cap: "Participant-weighted accuracy-angle functions by strategy profile."
 
 acc_by_strategy_360 <- mrot_rich_data_360 %>%
@@ -2983,7 +3007,7 @@ ggplot(acc_summary_360, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
   theme(legend.position = "bottom") +
   labs(
     x = "Rotation angle (°)",
-    y = "Mean Accuracy (participant-weighted)",
+    y = "Mean accuracy",
     colour = "Strategy", fill = "Strategy"
   )
 ```
