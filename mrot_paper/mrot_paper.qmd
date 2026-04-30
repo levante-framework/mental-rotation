@@ -181,7 +181,7 @@ author-note:
     # acknowledgements:
 
 abstract: |
-  Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada)  in 1,037 children aged 5--13 years. The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 216.4 vs. best Rasch model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
+  Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in 1,037 children aged 5--13 years (411 girls, 427 boys, 199 unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 343.5 vs. configural invariance model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
 
 keywords: ["Cognitive Development", "Mental Rotation", "Spatial Reasoning"]
 word-count: true
@@ -359,13 +359,16 @@ runs_filtered <- run_data_filtered |>
 
 # overall
 site_n <- run_data |>
-  filter(!is.na(age), age >= 5, age <= 14) |>
+  # filter(!is.na(age), age >= 5, age <= 14) |>
   group_by(site) |>
-  summarise(n_users = n_distinct(user_id))
+  summarise(n_users = n_distinct(user_id),
+            n_runs = n_distinct(run_id)) |>
+  mutate(site_label = site |>
+           recode_values(from = site_labels, to = names(site_labels)))
 
-n_uniandes <- site_n |> filter(site == "uniandes-co") |> pull(n_users)
-n_mpieva <- site_n |> filter(site == "mpieva-de")  |> pull(n_users)
-n_western <- site_n |> filter(site == "western-ca") |> pull(n_users)
+n_uniandes <- site_n |> filter(site_label == "uniandes-co") |> pull(n_users)
+n_mpieva <- site_n |> filter(site_label == "mpieva-de")  |> pull(n_users)
+n_western <- site_n |> filter(site_label == "western-ca") |> pull(n_users)
 
 mrot_df <- mrot_scores |>
   inner_join(runs_filtered)
@@ -385,31 +388,15 @@ n_repeat_users <- runs_filtered %>%
   filter(n_assessments > 1) %>%
   nrow()
 ```
-# Methods
-
-## Participants
-
-Data were drawn from three LEVANTE pilot sites: Universidad de los Andes, Bogotá and nearby rural areas, Colombia (uniandes-co); Max Planck Institute for Evolutionary Anthropology, Leipzig, Germany (mpieva-de); and the University of Western Ontario, London, Canada (western-ca). Site codes rather than country names are used throughout to reflect that each site represents a single institution/region within a large, diverse country, and should not be taken as representative of national populations.
-
-### uniandes-co
-The Universidad de los Andes site (uniandes-co) recruited `r n_uniandes` children aged 5--13 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá (i.e., in a municipality located northeast of Florencia) and Boyacá (i.e., in a municipality close to Chiquinquira).  Bogota is the largest and most populous city in Colombia, with a population of over seven million individuals residing within the urban area [@statsco], and substantial variation in socioeconomic status [@statsco]. Florencia and Chiquinquira are smaller municipalities with populations of over 150,000 individuals and 50,000 individuals respectively [@statsco]. Children were recruited from schools with existing partnerships with the Universidad de los Andes. Data were collected in groups using tablets provided by the research team, with group size altered for the age of the children (smaller groups for younger children). 
-<!-- Due to time constraints inherent to school-based administration, children typically completed a subset of tasks. -->
-
-### mpieva-de
-The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from `r n_mpieva` children aged 5--13 years in Leipzig, Germany. Leipzig a mid-sized urban centre with a population of approximately 600,000 individuals [@statsde], and participants in the current study mainly came from middle- to upper-middle-income backgrounds. Children and their families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. 
-
-### western-ca
-The Western University site (western-ca) recruited `r n_western` children aged 5--13 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a medium-sized urban and suburban area with a population of over 400,000 individuals [@statscan]. The Greater Toronto Area is a large urban and suburban area, comprising the city of Toronto and four surrounding regional municipalities, and is the most population metropolitan region in Canada with a population of over 6 million individuals [@statscan]. Canadian participants in the current study mainly came from middle- to upper-middle-income backgrounds. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. 
-
-Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5--13 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants). A total of `r n_repeat_users` children contributed two assessments each; each assessment was treated as a separate observation, with participant included as a random effect in all mixed-effects models to account for the non-independence of repeated assessments. Data and analysis code for this paper are available at <https://github.com/levante-framework/mental-rotation>. For more information about LEVANTE public data releases, see <https://researcher.levante-network.org/data>.
 
 ```{r}
 #| label: trial-level-rts
 
-mrot_rt_trial <- task_data |>
+mrot_trials <- task_data |>
   select(site, data) |>
   unnest(data) |>
-  inner_join(runs_filtered) |>
+  inner_join(runs_filtered)
+mrot_rt_trial <- mrot_trials |>
   select(site, site_label, user_id, run_id, adaptive, age, age_group, trial_id,
          trial_number, item_uid, item_group, item, item_original, correct, rt_numeric) |>
   mutate(
@@ -421,6 +408,92 @@ mrot_rt_trial <- task_data |>
     stimulus   = str_extract(item, "^[a-z]+")
   ) |>
   filter(is.finite(rt_s), rt_s > 0)
+```
+
+```{r}
+#| label: sex-analysis-prep
+#| include: false
+# note: survey data loaded in 'load data' chunk above.
+survey_gender_wide <- survey_gender |>
+  filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
+  select(child_id, variable, string_response) |>
+  group_by(child_id, variable) |>
+  summarise(string_response = na.omit(string_response) |> unique() |> 
+              (\(x) if(length(x) == 1) x else NA_character_)(),
+            .groups = "drop") |>
+  tidyr::pivot_wider(names_from = variable, values_from = string_response) |>
+  rename(sex = ChildSexBirth, 
+         gender = ChildGenderCurrent)
+
+survey_sex_cleaned <- survey_gender_wide |>
+  filter(!is.na(sex)) |>
+  transmute(user_id = child_id, sex)
+```
+
+```{r}
+#| label: sex-data-sources
+#| include: false
+
+# German demographic data
+de_sex <- readxl::read_excel(here::here("demographics_data", "all_Leipzig_participants_nonames.xlsx")) |>
+  rename(user_id = uid, sex = Gender) |>
+  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
+
+de_sex_cleaned <- de_sex |>
+  transmute(user_id, sex = sex_demo)
+
+# Colombian demographic data
+co_sex <- readxl::read_excel(here::here("demographics_data", "infoUsuariosLevante_expanded.xlsx"))
+
+co_sex_cleaned <- co_sex |>
+  rename(user_id = `user_id 2025`) |>
+  distinct(user_id, Sex) |>
+  filter(!is.na(Sex)) |>
+  transmute(
+    user_id,
+    sex = recode_values(Sex, "F" ~ "Female", "M" ~ "Male")
+  )
+
+# Combine all sources: demographic files take priority, survey fills gaps (incl. CA)
+sex_data_cleaned <- bind_rows(de_sex_cleaned, co_sex_cleaned, survey_sex_cleaned) |>
+  distinct(user_id, .keep_all = TRUE)
+```
+
+```{r}
+#| label: sex-data-coverage
+#| include: false
+
+mrot_trial_sex <- mrot_rt_trial |>
+  left_join(sex_data_cleaned) |>
+  distinct(user_id, site_label, sex)
+
+# mrot_trial_sex |>
+#   group_by(site_label) |>
+#   summarise(
+#     n_total = n(),
+#     n_with_sex = sum(!is.na(sex)),
+#     pct = round(100 * n_with_sex / n_total, 1)
+#   )
+
+site_sex_counts <- mrot_trial_sex |>
+  count(site_label, sex) |>
+  mutate(sex = sex |> replace_na("Unknown")) |>
+  pivot_wider(names_from = sex, values_from = n)
+
+overall_sex_counts <- mrot_trial_sex |>
+  count(sex) |>
+  mutate(sex = sex |> replace_na("Unknown")) |>
+  pivot_wider(names_from = sex, values_from = n)
+```
+
+```{r}
+#| label: site-timespans
+
+site_spans <- mrot_trials |>
+  group_by(site_label) |>
+  summarise(earliest = min(timestamp),
+            latest = max(timestamp)) |>
+  mutate(across(-site_label, as_date))
 ```
 
 ```{r}
@@ -495,6 +568,24 @@ site_info |>
   kableExtra::column_spec(5, width = "2cm") |>
   kableExtra::column_spec(6, width = "3.5cm")
 ```
+
+# Methods
+
+## Participants
+
+Data were drawn from three LEVANTE pilot sites: Universidad de los Andes, Bogotá and nearby rural areas, Colombia (uniandes-co); Max Planck Institute for Evolutionary Anthropology, Leipzig, Germany (mpieva-de); and the University of Western Ontario, London, Canada (western-ca). Site codes rather than country names are used throughout to reflect that each site represents a single institution/region within a large, diverse country, and should not be taken as representative of national populations.
+
+### uniandes-co
+The Universidad de los Andes site (uniandes-co) recruited `r n_uniandes` children aged 5--13 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá (i.e., in a municipality located northeast of Florencia) and Boyacá (i.e., in a municipality close to Chiquinquira).  Bogota is the largest and most populous city in Colombia, with a population of over seven million individuals residing within the urban area [@statsco], and substantial variation in socioeconomic status [@statsco]. Florencia and Chiquinquira are smaller municipalities with populations of over 150,000 individuals and 50,000 individuals respectively [@statsco]. Children were recruited from schools with existing partnerships with the Universidad de los Andes. Data were collected in groups using tablets provided by the research team, with group size altered for the age of the children (smaller groups for younger children). 
+<!-- Due to time constraints inherent to school-based administration, children typically completed a subset of tasks. -->
+
+### mpieva-de
+The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from `r n_mpieva` children aged 5--13 years in Leipzig, Germany. Leipzig a mid-sized urban centre with a population of approximately 600,000 individuals [@statsde], and participants in the current study mainly came from middle- to upper-middle-income backgrounds. Children and their families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. 
+
+### western-ca
+The Western University site (western-ca) recruited `r n_western` children aged 5--13 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a medium-sized urban and suburban area with a population of over 400,000 individuals [@statscan]. The Greater Toronto Area is a large urban and suburban area, comprising the city of Toronto and four surrounding regional municipalities, and is the most population metropolitan region in Canada with a population of over 6 million individuals [@statscan]. Canadian participants in the current study mainly came from middle- to upper-middle-income backgrounds. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. 
+
+Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5--13 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants; `r overall_sex_counts$Female` female, `r overall_sex_counts$Male` male, `r overall_sex_counts$Unknown` unknown). A total of `r n_repeat_users` children contributed two assessments each; each assessment was treated as a separate observation, with participant included as a random effect in all mixed-effects models to account for the non-independence of repeated assessments. Data and analysis code for this paper are available at <https://github.com/levante-framework/mental-rotation>. For more information about LEVANTE public data releases, see <https://researcher.levante-network.org/data>.
 
 ## Measure
 The nine core tasks in the LEVANTE battery, including mental rotation, were initially designed in English and then subsequently adapted for Spanish and German following a set of internationalization procedures in collaboration with researchers at the uniandes-co and mpieva-de sites, respectively. The LEVANTE mental rotation task [originally based on @frick2013development] is administered digitally on a tablet or computer as part of a battery of nine core tasks. It employs two stimulus categories of increasing difficulty: 2D animal figures (ducks and rabbits), and 3D block configurations from the @shepard1971mental set (see [Appendix A (Example Items)](#sec-apx-mrot-example-items). On each trial, a target image is displayed alongside two alternatives: one shows the same object rotated to a different angle, and the other is a mirror-reversed version that cannot be matched to the target by rotation alone. Children select whichever alternative they judge to correspond to the target by tapping or clicking on their device. The angular disparity between target and correct alternative varies systematically across trials (ranging from 20° to 360°), enabling examination of how increasing rotation demands affect both accuracy and response latency.
@@ -1232,71 +1323,6 @@ p_mrot_rt_angle_age_1
 
 # ggsave("fig3_rt_by_angle_age_site.png", plot = p_mrot_rt_angle_age_1,
 #        width = 8, height = 7, dpi = 300)
-```
-\clearpage
-
-```{r}
-#| label: sex-analysis-prep
-#| include: false
-# note: survey data loaded in 'load data' chunk above.
-survey_gender_wide <- survey_gender |>
-  filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
-  select(child_id, variable, string_response) |>
-  group_by(child_id, variable) |>
-  summarise(string_response = na.omit(string_response) |> unique() |> 
-              (\(x) if(length(x) == 1) x else NA_character_)(),
-            .groups = "drop") |>
-  tidyr::pivot_wider(names_from = variable, values_from = string_response) |>
-  rename(sex = ChildSexBirth, 
-         gender = ChildGenderCurrent)
-
-survey_sex_cleaned <- survey_gender_wide |>
-  filter(!is.na(sex)) |>
-  transmute(user_id = child_id, sex)
-```
-
-```{r}
-#| label: sex-data-sources
-#| include: false
-
-# German demographic data
-de_sex <- readxl::read_excel(here::here("demographics_data", "all_Leipzig_participants_nonames.xlsx")) |>
-  rename(user_id = uid, sex = Gender) |>
-  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
-
-de_sex_cleaned <- de_sex |>
-  transmute(user_id, sex = sex_demo)
-
-# Colombian demographic data
-co_sex <- readxl::read_excel(here::here("demographics_data", "infoUsuariosLevante_expanded.xlsx"))
-
-co_sex_cleaned <- co_sex |>
-  rename(user_id = `user_id 2025`) |>
-  distinct(user_id, Sex) |>
-  filter(!is.na(Sex)) |>
-  transmute(
-    user_id,
-    sex = recode_values(Sex, "F" ~ "Female", "M" ~ "Male")
-  )
-
-# Combine all sources: demographic files take priority, survey fills gaps (incl. CA)
-sex_data_cleaned <- bind_rows(de_sex_cleaned, co_sex_cleaned, survey_sex_cleaned) |>
-  distinct(user_id, .keep_all = TRUE)
-```
-
-```{r}
-#| label: sex-data-coverage
-#| include: false
-mrot_rt_trial |>
-  left_join(sex_data_cleaned) |>
-  distinct(user_id, site, sex) |>
-  group_by(site) |>
-  summarise(
-    n_total = n(),
-    n_with_sex = sum(!is.na(sex)),
-    pct = round(100 * n_with_sex / n_total, 1)
-  )
-
 ```
 
 ```{r}
