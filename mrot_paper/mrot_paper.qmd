@@ -143,22 +143,45 @@ roles:
 
 affiliations:
   - id: stanford
-    name: "Stanford University"
+    name: Stanford University
+    department: Department of Psychology
+    address: 450 Jane Stanford Way
+    city: Stanford
+    region: CA
+    country: United States
+    postal-code: 94305
   - id: western
-    name: "Western University"
+    name: University of Western Ontario
+    department: Department of Psychology
+    city: London
+    region: ON
+    country: Canada
   - id: mpieva
-    name: "Max Planck Institute for Evolutionary Anthropology"
+    name: Max Planck Institute for Evolutionary Anthropology
+    department: Department of Comparative Cultural Psychology
+    city: Leipzig
+    country: Germany
   - id: leuphana
-    name: "Leuphana University"
+    name: Leuphana University
+    department: Institute of Psychology
+    city: Lüneburg
+    country: Germany
   - id: uniandes
-    name: "Universidad de los Andes"
+    name: Universidad de los Andes
+    department: School of Education
+    city: Bogotá
+    country: Colombia
 
 author-note:
   disclosures:
-    financial-support: "This work was supported by the Jacobs Foundation."
+    data-sharing: "The data and analytic code necessary to reproduce the analyses presented here are publicly accessible at <https://github.com/levante-framework/mental-rotation>. The materials necessary to attempt to replicate the findings presented here are publicly accessible at <https://github.com/levante-framework/core-tasks>. The analyses presented here were not preregistered."
+    # related-report: ""
     conflict-of-interest: "The author has no conflict of interest to declare."
+    financial-support: "This work was supported by the Jacobs Foundation."
+    # acknowledgements:
 
-abstract: "Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada)  in 1,037 children aged 5--13 years. The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 216.4 vs. best Rasch model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning."
+abstract: |
+  Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada)  in 1,037 children aged 5--13 years. The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 216.4 vs. best Rasch model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
 
 keywords: ["Cognitive Development", "Mental Rotation", "Spatial Reasoning"]
 word-count: true
