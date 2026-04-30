@@ -188,7 +188,7 @@ word-count: true
 
 bibliography: library_mrot.bib
 
-floatsintext: true
+floatsintext: false
 numbered-lines: true
 # draft: false
 mask: false
@@ -2047,7 +2047,6 @@ knitr::include_graphics("mrot_item_examples.pdf")
 #| fig-height: 5
 #| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates."
 
-
 p_co_theta
 ```
 
@@ -2128,8 +2127,10 @@ mrot_df_sex |>
 # Angular Sensitivity {.appendix #sec-apx-d}
 
 ## Sample sizes per cell {#sec-apx-rt-angle-sample-sizes}
+
 ```{r}
 #| label: tbl-rt-angle-sample-sizes
+#| tbl-cap: "Sample sizes at each cell (age group by item).\\vspace{1em}"
 
 n_table <- mrot_items_rt_agebin_ci %>%
   filter(angle != 20) %>%
@@ -2147,18 +2148,30 @@ n_table <- mrot_items_rt_agebin_ci %>%
   pivot_wider(names_from = angle, values_from = n) %>%
   arrange(site_label, desc(age_group), item_group, stimulus)
 
-options(knitr.kable.NA = "–")
-knitr::kable(
-  n_table,
-  col.names = c("Site", "Age group", "Item type", "Stimulus", "40°", "80°", "120°", "160°"),
-  caption = "Sample sizes (n) per cell.",
-  linesep = "",
-) %>%
-  kable_styling(
-    latex_options = c("hold_position", "scale_down"),
-    position = "center",
-    full_width = FALSE
-  )
+n_table |> gt() |>
+  cols_label(site_label = "Site",
+             age_group = "Age group",
+             item_group = "Item type",
+             stimulus = "Stimulus",
+             `40` = "40°",
+             `80` = "80°",
+             `120` = "120°",
+             `160` = "160°") |>
+  sub_missing() |>
+  tab_options(table.layout = "auto", table.width = pct(80))
+# options(knitr.kable.NA = "–")
+# knitr::kable(
+#   n_table,
+#   col.names = c("Site", "Age group", "Item type", "Stimulus", "40°", "80°", "120°", "160°"),
+#   # caption = "Sample sizes (n) per cell.",
+#   linesep = "",
+#   booktabs = TRUE
+# ) #%>%
+#   # kable_styling(
+#     # latex_options = c("hold_position") #, "scale_down")
+#   #   position = "center",
+#   #   full_width = FALSE
+#   # )
 ```
 
 ## Raw RT by age and site {#sec-apx-irt-ability-age}
@@ -2383,7 +2396,8 @@ analysis_data %>%
     decimals = 2
   ) %>%
   fmt_number(columns = N, decimals = 0, use_seps = FALSE) %>%
-  cols_align(align = "center", columns = c(Strategy, N)) %>%
+  cols_align(align = "left", columns = c(Strategy)) %>%
+  cols_align(align = "center", columns = c(N)) %>%
   cols_align(align = "right", columns = where(is.numeric)) %>%
   cols_width(
     Strategy ~ px(160),
