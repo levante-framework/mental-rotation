@@ -202,6 +202,8 @@ appendix-style: default
 # footnotelist: no
 
 format:
+  apaquarto-docx:
+    fig-dpi: 300
   apaquarto-pdf:
     documentmode: man
     keep-tex: true
@@ -210,7 +212,7 @@ format:
     extra_dependencies: ["booktabs", "longtable"]
     # fig-pos: H        
     # tbl-pos: H  
-    
+
 knitr:
   opts_chunk:
     ft.arraystretch: 1.25
@@ -557,16 +559,17 @@ site_info <- mrot_df |>
          `Trials per assessment: M [range]` = trials_summary,
          `Testing format` = testing_format)
 
-site_info |>
-  knitr::kable(align = c("l", "c", "c", "c", "c", "l"), booktabs = TRUE) |>
-  # kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"),
-  #                           full_width = TRUE) |>
-  kableExtra::column_spec(1, width = "2.1cm") |>
-  kableExtra::column_spec(2, width = "1.8cm") |>
-  kableExtra::column_spec(3, width = "1.8cm") |>
-  kableExtra::column_spec(4, width = "3cm") |>
-  kableExtra::column_spec(5, width = "2cm") |>
-  kableExtra::column_spec(6, width = "3.5cm")
+site_info |> gt()
+# site_info |>
+#   knitr::kable(align = c("l", "c", "c", "c", "c", "l"), booktabs = TRUE) |>
+#   # kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"),
+#   #                           full_width = TRUE) |>
+#   kableExtra::column_spec(1, width = "2.1cm") |>
+#   kableExtra::column_spec(2, width = "1.8cm") |>
+#   kableExtra::column_spec(3, width = "1.8cm") |>
+#   kableExtra::column_spec(4, width = "3cm") |>
+#   kableExtra::column_spec(5, width = "2cm") |>
+#   kableExtra::column_spec(6, width = "3.5cm")
 ```
 
 # Methods
@@ -731,7 +734,7 @@ invar_table
 ```
 
 ```{r}
-#| label: fig-mrot-info
+#| label: fig-item-info
 #| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by rotation angle. Higher rotation angle items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
 #| fig-width: 8
 #| fig-height: 3.5
@@ -822,7 +825,7 @@ coef_ns <- mrot_coefs |>
 ```
 
 ```{r}
-#| label: co-theta-comparison
+#| label: fig-co-theta-comparison
 #| include: false
 
 # Re-read without the model_set filter
@@ -883,7 +886,7 @@ p_co_theta
 ```
 
 ```{r}
-#| label: co-item-difficulty-comparison
+#| label: fig-co-item-difficulty-comparison
 #| include: false
 
 co_groups <- c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota", "pilot_uniandes_co")
@@ -1729,7 +1732,7 @@ p_rt_disparity
 # ggsave("fig5_rt_by_angle_strategy.png", plot = p_rt_disparity,
 #        width = 7, height = 5, dpi = 300)
 ```
-\clearpage
+
 
 ```{r}
 #| label: tbl-descriptive-validation
@@ -2015,7 +2018,7 @@ Turning to our first research question, the demonstration of scalar invariance u
 ## Angular Sensitivity
 Our second research question asked whether performance is driven by the spatial properties of the stimuli. The key benchmark here is the angular disparity effect first reported by @shepard1971mental: as the rotational distance between a 3D target and its match increases, so too does the time required to judge whether they correspond. This relationship, among the most replicated findings in cognitive psychology [@cooper1973chronometric; @peters2008applications], has been demonstrated extensively in children and adults from middle-to-high-income Western convenience samples [@kaltner2016developmental; @jansen2015role], but had not previously been established in culturally diverse samples of children. Its consistent emergence here, across all three sites, suggests that the underlying cognitive process it indexes — the spatially continuous transformation of object orientation — is not specific to the cultural or educational contexts in which it was originally documented. This matters because psychometric equivalence and process-level validity are distinct forms of evidence. It is one thing to show that a task achieves comparable difficulty ordering across sites; it is another to show that performance is sensitive to the spatial structure of the stimuli in the way that mental rotation theory predicts [@borsboom2004concept]. The angular disparity effect provides the latter, and its cross-cultural replication substantially strengthens the case that the task is engaging spatial cognition specifically, rather than some culturally-variable combination of task-general skills. The shallower slope for 2D stimuli likely reflects the greater familiarity of duck and rabbit silhouettes relative to the 3D geometric shapes: when stimuli are easy to tell apart, children can make same/different judgments by comparing surface features rather than rotating, producing a weaker RT–angle relationship [@folk1987effects; @bethell1988mental].
 
-Children at mpieva-de showed both higher baseline response times and steeper absolute RT–angle slopes than the other two sites — a pattern consistent with a testing format explanation rather than a genuine cultural difference in angular sensitivity. Remote home-based testing on family devices, as used at mpieva-de, may introduce environmental variability that is likely to inflate both baseline RT and trial-to-trial noise; because absolute slopes scale with baseline speed, this would mechanically produce steeper slopes even without greater rotation sensitivity, a pattern visible in the wider raw RT distributions at mpieva-de (@sec-apx-irt-ability-age). 
+Children at mpieva-de showed both higher baseline response times and steeper absolute RT–angle slopes than the other two sites — a pattern consistent with a testing format explanation rather than a genuine cultural difference in angular sensitivity. Remote home-based testing on family devices, as used at mpieva-de, may introduce environmental variability that is likely to inflate both baseline RT and trial-to-trial noise; because absolute slopes scale with baseline speed, this would mechanically produce steeper slopes even without greater rotation sensitivity, a pattern visible in the wider raw RT distributions at mpieva-de (see [Appendix D (Raw RT)](#sec-apx-irt-ability-age)).
 
 ## Sex Differences
 Our third research question asked whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. The absence of a main effect of sex or an age-by-sex interaction replicates the pattern reported in several recent studies of primary school-aged children using child-friendly mental rotation tasks [@hodgkiss2021developmental; @lauer2019development], and is consistent with the meta-analytic picture: reliable sex differences in mental rotation are small and inconsistent in this age range, particularly for tasks using 2D stimuli and child-friendly formats of the kind used here [@lauer2019development]. The LEVANTE task's design — 2D animal silhouettes alongside 3D block figures — places it squarely in the category of tasks where the meta-analytic expectation for a gender difference is modest at best. Notably, the null finding held across all three international study sites, extending prior null results beyond the middle-to-high-income Western samples in which they have predominantly been documented [@hodgkiss2021developmental]. Taken together, the sex difference results are consistent with the broader argument of this paper: that the task captures a spatially-driven construct that is consistent across cultural contexts.
@@ -2038,7 +2041,7 @@ Several limitations of the present study should be acknowledged. Although the th
 # Conclusion
 Four research questions motivated this study, each asking in a different way whether the LEVANTE mental rotation task is doing consistent and interpretable work across culturally diverse settings. Across all four, the answer is largely affirmative. Scalar measurement invariance holds across sites including a low-to-middle-income site from the Global South; the angular disparity effect replicates as a process-level signature of spatial engagement; sex differences are absent in a pattern consistent with the meta-analytic picture for this age range and task type; and a meaningful continuum of engagement strategies is detectable, at least in broad outline, across all three sites. These findings do not mean that mental rotation development is uniform across children or contexts — the substantial individual variability within sites, and the tentative evidence for cross-cultural differences in strategy distributions, suggest there is much still to understand about what drives variation in spatial ability across children. But they do mean that the task is measuring something consistent — that when a child in Bogotá, a child in Leipzig, and a child in London (Ontario) sit down to judge whether two rotated objects are the same, they are, by and large, engaging the same cognitive process. Such consistency is the foundation on which meaningful cross-cultural comparisons can be built.
 
-\clearpage
+
 
 # References
 
@@ -2054,13 +2057,13 @@ Four research questions motivated this study, each asking in a different way whe
 #| out-width: "100%"
 #| fig-align: "center"
 
-knitr::include_graphics("mrot_item_examples.pdf")
+knitr::include_graphics("images/mrot_item_examples.pdf")
 
 # library(pdftools)
 # pdf_convert("mrot_item_examples.pdf", format = "png", dpi = 300,
 #             filenames = "mrot_item_examples.png")
 ```
-\clearpage
+
 
 # Uniandes-co Rural and Urban Sub-samples {.appendix #sec-apx-b}
 
@@ -2116,7 +2119,7 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
 # ggsave("fig2_age_plot.png", plot = age_plot,
 #        width = 7, height = 5, dpi = 300)
 ```
-\clearpage
+
 
 ## Sex differences {#sec-apx-sex-diff-plot}
 ```{r}
@@ -2373,7 +2376,7 @@ wp_slope_chisq <- anova_wp_slope$Chisq[2]
 wp_slope_df    <- anova_wp_slope$Df[2]
 wp_slope_p     <- anova_wp_slope[["Pr(>Chisq)"]][2]
 ```
-\clearpage
+
 
 @fig-within-person-trials plots mean residual log-RT across trials for each site. To test for a discontinuous shift in RT at the 2D→3D block transition and for within-block practice effects, we fitted a series of mixed-effects models predicting residual log-RT from trial number, with by-participant random intercepts and slopes.
 
@@ -2553,15 +2556,15 @@ ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) 
   theme(legend.position = "bottom")
 ```
 
-\clearpage
+
 
 ## Relative RT slope by engagement profile {#sec-apx-slope-boxplot}
 
-::: {#fig-apx-slope-boxplot}
 ```{r fig-apx-slope-boxplot}
 #| fig-width: 5
 #| fig-height: 5
 #| fig-align: "center"
+#| fig-cap: "**Relative RT slope by engagement profile.** Significance bars show pairwise t-tests. Note: 7 outliers (all for Ineffective) are not shown to facilitate comparison."
 
 slope_range <- c(-0.4, 0.75)
 n_outliers <- analysis_data |> filter(Rel_Slope < slope_range[1] | Rel_Slope > slope_range[2]) |> nrow()
@@ -2589,13 +2592,9 @@ ggplot(aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
 p_slope
 ```
 
-**Relative RT slope by engagement profile.** Significance bars show pairwise t-tests. Note: `{r} n_outliers` outliers (all for Ineffective) are not shown to facilitate comparison.
-
-:::
-
 ## Accuracy-angle functions by engagement profile {#sec-apx-accuracy-by-angle}
 ```{r}
-#| label: apx-accuracy-by-angle
+#| label: fig-apx-accuracy-by-angle
 #| fig-width: 7
 #| fig-height: 5
 #| fig-align: "center"
@@ -2651,7 +2650,7 @@ ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
     colour = "Strategy", fill = "Strategy"
   )
 ```
-\clearpage
+
 
 ## Strategy Use Across Age Groups {#sec-apx-strategy-age-group}
 ```{r}
@@ -2706,7 +2705,7 @@ strategy_by_age %>%
   theme(legend.position = "bottom",
         legend.direction = "vertical")
 ```
-\clearpage
+
 
 ## Dimensionality Reduction Checks {#sec-apx-dimreduc}
 To validate the continuum structure, we examined whether the three-profile solution was recoverable using alternative dimensionality reduction methods: PCA (@fig-pca-check), t-SNE (@fig-tsne-check), and UMAP (@fig-umap-check). PCA loadings were also inspected to characterize the underlying feature structure (@fig-pca-loadings).
@@ -2826,7 +2825,7 @@ ggplot(umap_plot_data, aes(x = UMAP_1, y = UMAP_2, color = Strategy_Label)) +
     labs(x = "UMAP Dimension 1", y = "UMAP Dimension 2", color = "Strategy") +
     theme(legend.position = "bottom")
 ```
-\clearpage
+
 
 ## Full 0–360° Angle Functions check {#sec-apx-360-angle}
 The primary analyses modeled angular disparity as the shortest path to upright, capped at 180°, on the assumption that participants take the most efficient route when rotating stimuli. To test this assumption, we re-ran the clustering using full 0–360° rotation angles and plotted RT and accuracy functions across the complete angular range (@fig-rt-angle-by-strategy-360, @fig-accuracy-angle-by-strategy-360). We verified that the angular disparity variable was correctly computed, confirming that full rotation angles were accurately recoded to their shortest-path equivalents (e.g., a 320° rotation has a disparity of 40°). The 360° clustering produced identical profile assignments to the main analysis (Ineffective: n = 228; Rotation: n = 511; Matching/Flipping/Other: n = 419), confirming that the robustness check is examining the same profiles under a different angle representation.
