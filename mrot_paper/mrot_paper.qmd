@@ -178,7 +178,7 @@ author-note:
     conflict-of-interest: "The author has no conflict of interest to declare."
     financial-support: "This work was supported by the Jacobs Foundation."
 
-abstract: "Mental rotation `{r} delta_bic_configural` — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in 1,037 children aged 5--13 years (411 girls, 427 boys, 199 unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 343.5 vs. configural invariance model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning."
+abstract: "Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in 1,037 children aged 5--13 years (411 girls, 427 boys, 199 unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 343.5 vs. configural invariance model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning."
 
 keywords: ["cognitive development", "mental rotation", "spatial reasoning"]
 word-count: true
@@ -199,14 +199,14 @@ appendix-style: default
 # footnotelist: no
 
 format:
-  apaquarto-docx:
-    fig-dpi: 300
   apaquarto-pdf:
     documentmode: man
     keep-tex: true
     include-in-header: preamble.tex
     fig-format: pdf
     extra_dependencies: ["booktabs", "longtable"]
+  apaquarto-docx:
+    fig-dpi: 300
 
 knitr:
   opts_chunk:
@@ -253,9 +253,11 @@ Our first research question asks whether the LEVANTE mental rotation task achiev
 
 ```{r}
 #| include: false
+#| cache: false
 
 # packages
 library(tidyverse)
+library(stringr)
 library(glue)
 library(here)
 library(tidytext)
@@ -272,6 +274,7 @@ library(lme4)
 library(lmerTest) # p-values via satterthwaite
 library(Rtsne)
 library(ggforce)
+library(broom.mixed)
 ```
 
 ```{r}
@@ -280,6 +283,15 @@ library(ggforce)
 
 source(here::here("helper", "plot_settings.R"))
 source(here::here("helper", "explore_helper.R"))
+
+# p-value formatter
+fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
+
+# stringify one row of an output of tidy.lm()
+effect_str <- \(coefs) glue('β = {round(coefs$estimate, 2)}, SE = {round(coefs$std.error, 2)}, p {fmt_p(coefs$p.value)}')
+
+# stringify one row of an output of tidy.anova()
+anova_str <- \(av) glue("χ²({av$df}) = {round(av$statistic, 2)}, p {fmt_p(av$p.value)}")
 ```
 
 ```{r}
@@ -342,13 +354,16 @@ run_data_filtered <- run_data |>
 # create age groups based on roughly equal sample sizes
 n_groups <- 3
 ages <- run_data_filtered |> pull(age)
-age_breaks <- quantile(ages, probs = seq(0, 1, length.out = n_groups + 1))
+# age_breaks <- quantile(ages, probs = seq(0, 1, length.out = n_groups + 1))
+age_breaks <- c(5, 8, 11, 14)
 
 # add age groups and site labels
 runs_filtered <- run_data_filtered |>
-  mutate(age_group = cut(age, breaks = age_breaks, include.lowest = TRUE),
+  mutate(age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
          site_label = site |>
            recode_values(from = site_labels, to = names(site_labels)))
+# runs_filtered |> count(age_group) |> mutate(p = n / sum(n))
 ```
 
 ```{r}
@@ -393,6 +408,7 @@ mrot_trials <- task_data |>
   select(site, data) |>
   unnest(data) |>
   inner_join(runs_filtered)
+
 mrot_rt_trial <- mrot_trials |>
   select(site, site_label, user_id, run_id, adaptive, age, age_group, trial_id,
          trial_number, item_uid, item_group, item, item_original, correct, rt_numeric) |>
@@ -405,6 +421,7 @@ mrot_rt_trial <- mrot_trials |>
     stimulus   = str_extract(item, "^[a-z]+")
   ) |>
   filter(is.finite(rt_s), rt_s > 0)
+# write_rds(mrot_rt_trial, "data/mrot_rt_trial.rds")
 ```
 
 ```{r}
@@ -1039,7 +1056,7 @@ mrot_lme_data <- mrot_rt_trial %>%
   mutate(
     item_group = factor(item_group) |> fct_relevel("3d"), # 2D vs 3D
     site       = factor(site),
-    angle_sc   = as.numeric(scale(angle)), 
+    angle_sc   = as.numeric(scale(angle)),
   )
 ```
 
@@ -1057,8 +1074,13 @@ mrot_3d <- mrot_lme_data %>%
 # nrow(mrot_3d)
 
 # fit all models on the same object
-m_3d_main <- lmer(
+m_3d_base <- lmer(
   log_rt ~ angle_sc + (1 + angle_sc | user_id),
+  data = mrot_3d, REML = FALSE,
+  control = lmerControl(optimizer = "bobyqa")
+)
+m_3d_base <- lmer(
+  log_rt ~ angle_sc + (1 | user_id),
   data = mrot_3d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
@@ -1068,29 +1090,44 @@ m_3d_site <- lmer(
   data = mrot_3d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
-
-m_3d_age <- lmer(
-  log_rt ~ angle_sc * age_group + (1 + angle_sc | user_id),
+m_3d_site <- lmer(
+  log_rt ~ angle_sc * site + (1 | user_id),
   data = mrot_3d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
 
-m_3d_full <- lmer(
+# m_3d_age <- lmer(
+#   log_rt ~ angle_sc * age_group + (1 + angle_sc | user_id),
+#   data = mrot_3d, REML = FALSE,
+#   control = lmerControl(optimizer = "bobyqa")
+# )
+# m_3d_age <- lmer(
+#   log_rt ~ angle_sc * age + (1 + angle_sc | user_id),
+#   data = mrot_3d, REML = FALSE,
+#   control = lmerControl(optimizer = "bobyqa")
+# )
+
+# TODO: no angle random slope?
+m_3d_site_age <- lmer(
   log_rt ~ angle_sc * site * age_group + (1 | user_id),
   data = mrot_3d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
 )
+m_3d_site_age <- lmer(
+  log_rt ~ angle_sc * site * age + (1 | user_id),
+  data = mrot_3d, REML = FALSE,
+  control = lmerControl(optimizer = "bobyqa")
+)
 
-anova_3d <- anova(m_3d_main, m_3d_site, m_3d_age, m_3d_full)
+# anova_3d <- anova(m_3d_main, m_3d_site, m_3d_age, m_3d_full)
+anova_3d <- anova(m_3d_base, m_3d_site, m_3d_site_age)
 
 mrot_2d <- mrot_lme_data %>%
   filter(item_group == "2d") %>%
   # filter(!is.na(site), !is.na(age_group), !is.na(angle_sc), !is.na(log_rt)) %>%
   droplevels()
 
-# nrow(mrot_2d)
-
-m_2d_main <- lmer(
+m_2d_base <- lmer(
   log_rt ~ angle_sc + (1 + angle_sc | user_id),
   data = mrot_2d, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
@@ -1102,6 +1139,13 @@ m_2d_site <- lmer(
   control = lmerControl(optimizer = "bobyqa")
 )
 
+m_2d_site_age <- lmer(
+  log_rt ~ angle_sc * site * age_group + (1 + angle_sc | user_id),
+  data = mrot_2d, REML = FALSE,
+  control = lmerControl(optimizer = "bobyqa")
+)
+
+anova_2d <- anova(m_2d_base, m_2d_site, m_2d_site_age)
 ```
 
 ```{r}
@@ -1110,7 +1154,7 @@ m_2d_site <- lmer(
 # mrot_combined <- bind_rows(mrot_3d, mrot_2d) %>%
 #   mutate(item_group = factor(item_group, levels = c("3d", "2d")))
 
-m_combined_main <- lmer(
+m_combined_base <- lmer(
   log_rt ~ angle_sc + item_group + (1 + angle_sc | user_id),
   data = mrot_lme_data, REML = FALSE,
   control = lmerControl(optimizer = "bobyqa")
@@ -1123,67 +1167,81 @@ m_combined_interaction <- lmer(
 )
 
 # assign rather than just print
-anova_combined <- anova(m_combined_main, m_combined_interaction)
+anova_combined <- anova(m_combined_base, m_combined_interaction)
+anova_combined_interaction <- tidy(anova_combined) |> slice_tail()
 ```
 
 ```{r}
 #| label: rt-angle-results
 
 # site model numbers (for results text)
-m_3d_site_coefs <- coef(summary(m_3d_site))
-beta_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
-se_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
-p_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
-beta_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
-se_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
-p_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
+# m_3d_site_coefs <- coef(summary(m_3d_site))
+# beta_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
+# se_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
+# p_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
+# beta_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
+# se_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
+# p_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
+coef_3d_co <- tidy(m_3d_site) |> filter(term == "angle_sc:sitepilot_uniandes_co")
+coef_3d_ca <- tidy(m_3d_site) |> filter(term == "angle_sc:sitepilot_western_ca")
 
-anova_site_chisq <- anova(m_3d_main, m_3d_site)$Chisq[2]
-anova_site_df <- anova(m_3d_main, m_3d_site)$Df[2]
-anova_site_p <- anova(m_3d_main, m_3d_site)[["Pr(>Chisq)"]][2]
+# anova_site_chisq <- anova(m_3d_main, m_3d_site)$Chisq[2]
+# anova_site_df <- anova(m_3d_main, m_3d_site)$Df[2]
+# anova_site_p <- anova(m_3d_main, m_3d_site)[["Pr(>Chisq)"]][2]
+anova_3d_site <- tidy(anova_3d) |> filter(term == "m_3d_site")
 
 # age moderation - tested over and above site
-anova_age_chisq <- anova(m_3d_site, m_3d_full)$Chisq[2]
-anova_age_df    <- anova(m_3d_site, m_3d_full)$Df[2]
-anova_age_p     <- anova(m_3d_site, m_3d_full)[["Pr(>Chisq)"]][2]
+# anova_age_chisq <- anova(m_3d_site, m_3d_full)$Chisq[2]
+# anova_age_df    <- anova(m_3d_site, m_3d_full)$Df[2]
+# anova_age_p     <- anova(m_3d_site, m_3d_full)[["Pr(>Chisq)"]][2]
+anova_3d_site_age <- tidy(anova_3d) |> filter(term == "m_3d_site_age")
 
 # age group contrasts from m_3d_age
-m_3d_age_coefs <- coef(summary(m_3d_age))
-beta_age_mid   <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Estimate"]
-se_age_mid     <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Std. Error"]
-p_age_mid      <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Pr(>|t|)"]
-beta_age_old   <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Estimate"]
-se_age_old     <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Std. Error"]
-p_age_old      <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Pr(>|t|)"]
+# m_3d_age_coefs <- coef(summary(m_3d_age))
+# beta_age_mid   <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Estimate"]
+# se_age_mid     <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Std. Error"]
+# p_age_mid      <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Pr(>|t|)"]
+# beta_age_old   <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Estimate"]
+# se_age_old     <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Std. Error"]
+# p_age_old      <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Pr(>|t|)"]
+# coef_3d_age <- tidy(m_3d_age) |> filter(str_detect(term, "^age_group"))
 
 # 3D main model numbers
-fe_3d <- fixef(m_3d_main)
-beta_3d_main <- fe_3d["angle_sc"]
-se_3d_main <- sqrt(diag(vcov(m_3d_main)))["angle_sc"]
-t_3d_main <- coef(summary(m_3d_main))["angle_sc", "t value"]
-df_3d_main <- coef(summary(m_3d_main))["angle_sc", "df"]
-p_3d_main <- coef(summary(m_3d_main))["angle_sc", "Pr(>|t|)"]
+# fe_3d <- fixef(m_3d_main)
+# beta_3d_main <- fe_3d["angle_sc"]
+# se_3d_main <- sqrt(diag(vcov(m_3d_main)))["angle_sc"]
+# t_3d_main <- coef(summary(m_3d_main))["angle_sc", "t value"]
+# df_3d_main <- coef(summary(m_3d_main))["angle_sc", "df"]
+# p_3d_main <- coef(summary(m_3d_main))["angle_sc", "Pr(>|t|)"]
+coef_3d_base <- tidy(m_3d_base) |> filter(term == "angle_sc")
+beta_3d_base <- coef_3d_base$estimate
 
 # 2D main model numbers
-fe_2d <- fixef(m_2d_main)
-beta_2d_main <- fe_2d["angle_sc"]
-se_2d_main <- sqrt(diag(vcov(m_2d_main)))["angle_sc"]
-t_2d_main <- coef(summary(m_2d_main))["angle_sc", "t value"]
-df_2d_main <- coef(summary(m_2d_main))["angle_sc", "df"]
-p_2d_main <- coef(summary(m_2d_main))["angle_sc", "Pr(>|t|)"]
+# fe_2d <- fixef(m_2d_main)
+# beta_2d_main <- fe_2d["angle_sc"]
+# se_2d_main <- sqrt(diag(vcov(m_2d_main)))["angle_sc"]
+# t_2d_main <- coef(summary(m_2d_main))["angle_sc", "t value"]
+# df_2d_main <- coef(summary(m_2d_main))["angle_sc", "df"]
+# p_2d_main <- coef(summary(m_2d_main))["angle_sc", "Pr(>|t|)"]
+coef_2d_base <- tidy(m_2d_base) |> filter(term == "angle_sc")
 
 # 2D site model numbers
-m_2d_site_coefs <- coef(summary(m_2d_site))
-beta_2d_site_co <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
-se_2d_site_co   <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
-p_2d_site_co    <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
-beta_2d_site_ca <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
-se_2d_site_ca   <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
-p_2d_site_ca    <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
+# m_2d_site_coefs <- coef(summary(m_2d_site))
+# beta_2d_site_co <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
+# se_2d_site_co   <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
+# p_2d_site_co    <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
+# beta_2d_site_ca <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
+# se_2d_site_ca   <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
+# p_2d_site_ca    <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
+coef_2d_site <- tidy(m_2d_site) |> filter(term == "angle_sc")
+coef_2d_co <- tidy(m_2d_site) |> filter(term == "angle_sc:sitepilot_uniandes_co")
+coef_2d_ca <- tidy(m_2d_site) |> filter(term == "angle_sc:sitepilot_western_ca")
 
-anova_2d_site_chisq <- anova(m_2d_main, m_2d_site)$Chisq[2]
-anova_2d_site_df    <- anova(m_2d_main, m_2d_site)$Df[2]
-anova_2d_site_p     <- anova(m_2d_main, m_2d_site)[["Pr(>Chisq)"]][2]
+# anova_2d_site_chisq <- anova(m_2d_main, m_2d_site)$Chisq[2]
+# anova_2d_site_df    <- anova(m_2d_main, m_2d_site)$Df[2]
+# anova_2d_site_p     <- anova(m_2d_main, m_2d_site)[["Pr(>Chisq)"]][2]
+# anova_2d_site <- anova(m_2d_main, m_2d_site) |> tidy() |> filter(term == "m_2d_site")
+anova_2d_site <- tidy(anova_2d) |> filter(term == "m_2d_site")
 
 # children who completed 3D trials
 n_runs_3d <- mrot_3d %>% distinct(run_id) %>% nrow()
@@ -1194,31 +1252,44 @@ age_3d_min  <- ages_3d %>% min(na.rm = TRUE) %>% round(1)
 age_3d_max  <- ages_3d %>% max(na.rm = TRUE) %>% round(1)
 
 # combined model numbers
-anova_combined_chisq <- anova_combined$Chisq[2]
-anova_combined_df    <- anova_combined$Df[2]
-anova_combined_p     <- anova_combined[["Pr(>Chisq)"]][2]
+# anova_combined_chisq <- anova_combined$Chisq[2]
+# anova_combined_df    <- anova_combined$Df[2]
+# anova_combined_p     <- anova_combined[["Pr(>Chisq)"]][2]
 
-fe_comb <- fixef(m_combined_interaction)
-se_comb <- sqrt(diag(vcov(m_combined_interaction)))
+# fe_comb <- fixef(m_combined_interaction)
+# se_comb <- sqrt(diag(vcov(m_combined_interaction)))
+# 
+# beta_3d_comb <- fe_comb["angle_sc"]
+# se_3d_comb   <- se_comb["angle_sc"]
+# beta_2d_comb <- fe_comb["angle_sc"] + fe_comb["angle_sc:item_group2d"]
+# beta_diff    <- fe_comb["angle_sc:item_group2d"]
+# se_diff      <- se_comb["angle_sc:item_group2d"]
+# 
+# comb_coefs <- coef(summary(m_combined_interaction))
+# t_diff <- comb_coefs["angle_sc:item_group2d", "t value"]
+# p_diff <- comb_coefs["angle_sc:item_group2d", "Pr(>|t|)"]
 
-beta_3d_comb <- fe_comb["angle_sc"]
-se_3d_comb   <- se_comb["angle_sc"]
-beta_2d_comb <- fe_comb["angle_sc"] + fe_comb["angle_sc:item_group2d"]
-beta_diff    <- fe_comb["angle_sc:item_group2d"]
-se_diff      <- se_comb["angle_sc:item_group2d"]
-
-comb_coefs <- coef(summary(m_combined_interaction))
-t_diff <- comb_coefs["angle_sc:item_group2d", "t value"]
-p_diff <- comb_coefs["angle_sc:item_group2d", "Pr(>|t|)"]
-
-# p-value formatter
-fmt_p <- function(p) {
-  if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
-}
+coef_comb <- tidy(m_combined_interaction)
 
 # 90-degree RT interpretation
+angles <- mrot_lme_data |> distinct(angle, angle_sc) |> arrange(angle)
+angle_fits <- angles |>
+  mutate(log_rt = predict(m_3d_base, re.form = NA, newdata = angles),
+         rt = exp(log_rt)) |>
+  select(angle, rt) |>
+  deframe()
+pts <- c(40, 80)
+angle_slope_40 <- angle_fits[[as.character(pts[2])]] / angle_fits[[as.character(pts[1])]]
+rt_pct_40 <- (angle_slope_40 - 1) * 100
+rt_pct_90 <- rt_pct_40 * (90/40)
+# 40 - 18%
+# 90 - 40%
+
+# beta = diff(log_rt) / diff(angle_sc)
+# angle_sc = (angle - mean(angle)) / sd(angle)
+
 sd_angle       <- mrot_lme_data |> pull(angle) |> sd()
-beta_per_90    <- beta_3d_main * (90 / sd_angle)
+beta_per_90    <- beta_3d_base * (90 / sd_angle)
 rt_multiplier_90 <- exp(beta_per_90)
 pct_increase_90  <- round((rt_multiplier_90 - 1) * 100, 1) |> unname()
 
@@ -1238,10 +1309,14 @@ se_2d_site_co_wes   <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "St
 p_2d_site_co_wes    <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
 
 ```
-## Analysis 2: Angular Sensitivity
-Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_runs_3d` assessments contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (β = `r round(beta_3d_main, 2)`, SE = `r round(se_3d_main, 2)`, t(`r round(df_3d_main, 1)`) = `r round(t_3d_main, 2)`, p `r fmt_p(p_3d_main)`), confirming that response times increased systematically with angular disparity across the full sample. This effect corresponds to a 90-degree increase in rotation angle being associated with approximately `r pct_increase_90`% longer response times for 3D stimuli. Adding site as a moderator significantly improved model fit (χ²(`r anova_site_df`) = `r round(anova_site_chisq, 2)`, p `r fmt_p(anova_site_p)`), indicating that the magnitude of the angle slope differed across sites. The angle slope `r ifelse(p_site_co < .05, "differed significantly", "did not differ significantly")` between mpieva-de and uniandes-co (β = `r round(beta_site_co, 2)`, SE = `r round(se_site_co, 2)`, p `r fmt_p(p_site_co)`), `r ifelse(p_site_ca < .05, "and was significantly shallower in western-ca than in mpieva-de", "but did not differ significantly between western-ca and mpieva-de")` (β = `r round(beta_site_ca, 2)`, SE = `r round(se_site_ca, 2)`, p `r fmt_p(p_site_ca)`). Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (χ²(`r anova_age_df`) = `r round(anova_age_chisq, 2)`, p `r fmt_p(anova_age_p)`).
 
-For 2D stimuli, we observed a significant but smaller positive angle effect (β = `r round(beta_2d_main, 2)`, SE = `r round(se_2d_main, 2)`, t(`r round(df_2d_main, 1)`) = `r round(t_2d_main, 2)`, p `r fmt_p(p_2d_main)`). Adding site as a moderator `r ifelse(anova_2d_site_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r anova_2d_site_df`) = `r round(anova_2d_site_chisq, 2)`, p `r fmt_p(anova_2d_site_p)`), indicating that the angle slope `r ifelse(anova_2d_site_p < .05, "differed", "did not differ significantly")` across sites. The angle slope `r ifelse(p_2d_site_co < .05, "was significantly shallower", "did not differ significantly")` between uniandes-co and mpieva-de (β = `r round(beta_2d_site_co, 2)`, SE = `r round(se_2d_site_co, 2)`, p `r fmt_p(p_2d_site_co)`); did not differ significantly between western-ca and mpieva-de (β = `r round(beta_2d_site_ca, 2)`, SE = `r round(se_2d_site_ca, 2)`, p `r fmt_p(p_2d_site_ca)`); and `r ifelse(p_2d_site_co_wes < .05, "differed significantly", "did not differ significantly")` between uniandes-co and western-ca (β = `r round(beta_2d_site_co_wes, 2)`, SE = `r round(se_2d_site_co_wes, 2)`, p `r fmt_p(p_2d_site_co_wes)`). `r ifelse(all(c(p_2d_site_co, p_2d_site_ca, p_2d_site_co_wes) >= .05), "Although the omnibus test was significant, no individual pairwise comparison reached significance, suggesting the omnibus result reflects a joint pattern of site differences rather than any single site driving the effect.", "")`
+## Analysis 2: Angular Sensitivity
+
+Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_runs_3d` assessments contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (`{r} effect_str(coef_3d_base)`), confirming that response times increased systematically with angular disparity across the full sample. This effect corresponds to a 90-degree increase in rotation angle being associated with approximately `r pct_increase_90`% longer response times for 3D stimuli. Adding site as a moderator significantly improved model fit (`{r} anova_str(anova_3d_site)`), indicating that the magnitude of the angle slope differed across sites.
+The angle slope `r ifelse(coef_3d_co$p.value < .05, "differed significantly", "did not differ significantly")` between mpieva-de and uniandes-co (`{r} effect_str(coef_3d_co)`), `r ifelse(coef_3d_ca$p.value < .05, "and was significantly shallower in western-ca than in mpieva-de", "but did not differ significantly between western-ca and mpieva-de")` (`{r} effect_str(coef_3d_ca)`).
+Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (`{r} anova_str(anova_3d_site_age)`).
+
+For 2D stimuli, we observed a significant but smaller positive angle effect (`{r} effect_str(coef_2d_base)`). Adding site as a moderator `r ifelse(anova_2d_site$p.value < .05, "significantly improved model fit", "did not significantly improve model fit")` (`{r} anova_str(anova_2d_site)`), indicating that the angle slope `r ifelse(anova_2d_site$p.value < .05, "differed", "did not differ significantly")` across sites.
 
 @fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by site and age group (binned for visualization; age was modeled continuously in all analyses), separately for 2D and 3D stimuli. Cell-level sample sizes underlying this figure are reported in [Appendix C (Sample sizes per cell)](#sec-apx-rt-angle-sample-sizes). Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
 
@@ -1307,11 +1382,17 @@ p_mrot_rt_angle_age_1
 #| include: false
 
 mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
-  filter(!is.na(sex))
+  filter(!is.na(sex)) |>
+  mutate(sex = factor(sex))
+
+contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
 
 # more simple model (Fionnuala) to avoid singular fits
 sex_mod <- lmer(metric_value ~ age * sex + site + (1 | user_id), data = mrot_df_sex) # include site as fixed because there are only 3 sites
 summary(sex_mod)
+
+sex_coef <- tidy(sex_mod)
+sex_effect <- \(name) sex_coef |> filter(term == name) |> effect_str()
 
 # Mike's model
 # sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
@@ -1347,8 +1428,12 @@ summary(sex_mod)
 # sexMale        -0.02      0.38    -0.78     0.70 1.00     1153     1946
 # age:sexMale     0.01      0.04    -0.06     0.09 1.00     1152     1976
 ```
+
 ## Analysis 3: Sex Differences 
-Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(lme4::fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(lme4::fixef(sex_mod)["sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sexMale","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(lme4::fixef(sex_mod)["age:sexMale"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sexMale","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
+
+Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (`{r} sex_effect("age")`), with no evidence for a main effect of sex (`{r} sex_effect("sex1")`) or an age-by-sex interaction (`{r} sex_effect("age:sex1")`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
+
+Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(fixef(sex_mod)["sex1"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sex1","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(fixef(sex_mod)["age:sex1e"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sex1","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
 
 ```{r}
 #| label: strategy-analysis-prep
@@ -3081,3 +3166,7 @@ ggplot(acc_summary_360, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
     colour = "Strategy", fill = "Strategy"
   )
 ```
+
+
+\clearpage
+Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (`{r} effect_str(coef_3d_base)`), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (`{r} effect_str(coef_2d_base)`). No main effect of sex was detected (`{r} sex_effect("sex1")`). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
