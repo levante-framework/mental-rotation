@@ -174,7 +174,7 @@ affiliations:
 
 author-note:
   disclosures:
-    data-sharing: "The data and analytic code necessary to reproduce the analyses presented here are publicly accessible at <https://github.com/levante-framework/mental-rotation>. The materials necessary to attempt to replicate the findings presented here are publicly accessible at <https://github.com/levante-framework/core-tasks>. The analyses presented here were not preregistered."
+    data-sharing: "The data and analytic code necessary to reproduce the analyses presented here are publicly accessible at <hhttps://anonymous.4open.science/r/levante-mental-rotation>. The materials necessary to attempt to replicate the findings presented here are publicly accessible at <https://github.com/levante-framework/core-tasks>. The analyses presented here were not preregistered."
     conflict-of-interest: "The author has no conflict of interest to declare."
     financial-support: "This work was supported by the Jacobs Foundation."
 
@@ -456,42 +456,13 @@ survey_sex_cleaned <- survey_gender_wide |>
 ```
 
 ```{r}
-#| label: sex-data-sources
-#| include: false
-
-# German demographic data
-de_sex <- readxl::read_excel(here::here("demographics_data", "all_Leipzig_participants_nonames.xlsx")) |>
-  rename(user_id = uid, sex = Gender) |>
-  mutate(sex_demo = recode_values(sex, "m" ~ "Male", "f" ~ "Female"))
-
-de_sex_cleaned <- de_sex |>
-  transmute(user_id, sex = sex_demo)
-
-# Colombian demographic data
-co_sex <- readxl::read_excel(here::here("demographics_data", "infoUsuariosLevante_expanded.xlsx"))
-
-co_sex_cleaned <- co_sex |>
-  rename(user_id = `user_id 2025`) |>
-  distinct(user_id, Sex) |>
-  filter(!is.na(Sex)) |>
-  transmute(
-    user_id,
-    sex = recode_values(Sex, "F" ~ "Female", "M" ~ "Male")
-  )
-
-# Combine all sources: demographic files take priority, survey fills gaps (incl. CA)
-sex_data_cleaned <- bind_rows(de_sex_cleaned, co_sex_cleaned, survey_sex_cleaned) |>
-  distinct(user_id, .keep_all = TRUE)
-write_rds(sex_data_cleaned, "data/sex_data_cleaned.rds")
-```
-
-```{r}
 #| label: sex-data-coverage
-#| include: false
+
+sex_data_cleaned <- read_rds(here("data","sex_data_cleaned.rds"))
 
 mrot_trial_sex <- mrot_rt_trial |>
   left_join(sex_data_cleaned) |>
-  distinct(user_id, site_label, sex)
+  distinct(user_id, site, sex)
 
 # mrot_trial_sex |>
 #   group_by(site_label) |>
@@ -502,7 +473,7 @@ mrot_trial_sex <- mrot_rt_trial |>
 #   )
 
 site_sex_counts <- mrot_trial_sex |>
-  count(site_label, sex) |>
+  count(site, sex) |>
   mutate(sex = sex |> replace_na("Unknown")) |>
   pivot_wider(names_from = sex, values_from = n)
 
@@ -544,9 +515,9 @@ cat_counts <- mrot_rt_trial |>
 #| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
 
 trials_per_run <- mrot_rt_trial %>%
-  group_by(site_label, user_id, run_id) %>%
+  group_by(dataset, user_id, run_id) %>%
   summarise(n_trials = n(), .groups = "drop") %>%
-  group_by(site_label) %>%
+  group_by(dataset) %>%
   summarise(
     trials_mean = mean(n_trials, na.rm = TRUE),
     trials_min  = min(n_trials, na.rm = TRUE),
@@ -554,11 +525,11 @@ trials_per_run <- mrot_rt_trial %>%
     .groups = "drop"
   ) %>%
   mutate(trials_summary = sprintf("%.0f [%d–%d]", trials_mean, trials_min, trials_max)) |>
-  select(site_label, trials_summary)
+  select(dataset, trials_summary)
 
 site_info <- mrot_df |>
   # distinct(user_id, .keep_all = TRUE) |>
-  group_by(site_label) |>
+  group_by(dataset) |>
   summarise(
     n_run    = n(),
     n_user   = n_distinct(user_id),
@@ -572,13 +543,13 @@ site_info <- mrot_df |>
     age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
                           age_mean, age_sd, age_min, age_max),
     testing_format =  case_when(
-      site_label == "uniandes-co" ~ "In school; group; tablet (researcher-provided)",
-      site_label == "mpieva-de"   ~ "Remote (home-based); individual; family device",
-      site_label == "western-ca"  ~ "On-campus; individual; tablet (researcher-provided)"
+      dataset == "uniandes-co" ~ "In school; group; tablet (researcher-provided)",
+      dataset == "mpieva-de"   ~ "Remote (home-based); individual; family device",
+      dataset == "western-ca"  ~ "On-campus; individual; tablet (researcher-provided)"
     )
   ) |>
   left_join(trials_per_run) |>
-  select(Site = site_label,
+  select(Site = dataset,
          `N assessments` = n_run,
          `N participants` = n_user,
          `Age: M (SD) [range]` = age_summary,
@@ -619,7 +590,7 @@ Site-level sampling characteristics are described in @tbl-participants. Due to d
 
 ## Data availability
 
-Data and analysis code for this paper are available at <https://github.com/levante-framework/mental-rotation>. For more information about LEVANTE public data releases, see <https://researcher.levante-network.org/data>.
+Data and analysis code for this paper are available at <https://anonymous.4open.science/r/levante-mental-rotation>. For more information about LEVANTE public data releases, see <https://researcher.levante-network.org/data>.
 
 ## Measure
 
