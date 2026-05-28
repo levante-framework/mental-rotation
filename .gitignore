@@ -13,3 +13,9 @@
 *.log
 *.docx
 .positai
+
+# Demographics data — sensitive, must never be committed
+demographics_data/LEVANTE Demographics Western University (By Child).xlsx
+demographics_data/all_Leipzig_participants_nonames.xlsx
+demographics_data/all_Leipzig_participants_nonames_cache.xlsx
+demographics_data/infoUsuariosLevante_expanded.xlsx
