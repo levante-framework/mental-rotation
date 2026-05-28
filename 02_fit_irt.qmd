@@ -183,7 +183,7 @@ get_iteminfo_uni <- \(mod, theta) {
     relocate(item_inst, .before = everything())
 }
 
-theta <- seq(-5, 5, by = 0.01)
+theta <- seq(-5, 5, by = 0.005)
 
 # get model info for all group models
 mod_info <- mod_obj_group |>

@@ -303,6 +303,11 @@ site_labels <- c("uniandes-co" = "pilot_uniandes_co",
 
 site_map <- site_labels |> enframe(name = "site_label", value = "site")
 
+dataset_labels <- c("uniandes-co-bogota" = "pilot_uniandes_co_bogota",
+                    "uniandes-co-rural" = "pilot_uniandes_co_rural",
+                    "mpieva-de" = "pilot_mpieva_de_main",
+                    "western-ca" = "pilot_western_ca_main")
+
 # site_pal is keyed by pilot_* names
 # site_labels is keyed by readable names, values are pilot_* names
 # index site_pal by the pilot_* values, then assign readable names
@@ -349,7 +354,7 @@ run_data_filtered <- run_data |>
          age_gap = age - lag(age)) |>
   ungroup() |>
   filter_out(age_gap < min_gap_months / 12) |>
-  select(site, user_id, run_id, age, adaptive)
+  select(site, dataset, user_id, run_id, age, adaptive)
 
 # create age groups based on roughly equal sample sizes
 n_groups <- 3
@@ -362,7 +367,9 @@ runs_filtered <- run_data_filtered |>
   mutate(age_group = cut(age, breaks = age_breaks,
                          include.lowest = TRUE, right = FALSE),
          site_label = site |>
-           recode_values(from = site_labels, to = names(site_labels)))
+           recode_values(from = site_labels, to = names(site_labels)),
+         dataset_label = dataset |>
+           recode_values(from = dataset_labels, to = names(dataset_labels)))
 # runs_filtered |> count(age_group) |> mutate(p = n / sum(n))
 ```
 
@@ -405,13 +412,14 @@ n_repeat_users <- runs_filtered %>%
 #| label: trial-level-rts
 
 mrot_trials <- task_data |>
-  select(site, data) |>
+  select(data) |>
   unnest(data) |>
   inner_join(runs_filtered)
 
 mrot_rt_trial <- mrot_trials |>
-  select(site, site_label, user_id, run_id, adaptive, age, age_group, trial_id,
-         trial_number, item_uid, item_group, item, item_original, correct, rt_numeric) |>
+  select(site = site_label, dataset = dataset_label, user_id, run_id, adaptive,
+         age, age_group, trial_id, trial_number, item_uid, item_group, item,
+         item_original, correct, rt_numeric) |>
   mutate(
     correct    = as.integer(correct),
     rt_s       = as.numeric(rt_numeric) / 1000,
@@ -421,7 +429,7 @@ mrot_rt_trial <- mrot_trials |>
     stimulus   = str_extract(item, "^[a-z]+")
   ) |>
   filter(is.finite(rt_s), rt_s > 0)
-# write_rds(mrot_rt_trial, "data/mrot_rt_trial.rds")
+# write_rds(mrot_rt_trial, "data/mrot_rt_trial.rds", compress = "gz")
 ```
 
 ```{r}
@@ -471,6 +479,7 @@ co_sex_cleaned <- co_sex |>
 # Combine all sources: demographic files take priority, survey fills gaps (incl. CA)
 sex_data_cleaned <- bind_rows(de_sex_cleaned, co_sex_cleaned, survey_sex_cleaned) |>
   distinct(user_id, .keep_all = TRUE)
+write_rds(sex_data_cleaned, "data/sex_data_cleaned.rds")
 ```
 
 ```{r}
