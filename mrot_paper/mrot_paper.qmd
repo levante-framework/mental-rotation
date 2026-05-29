@@ -205,8 +205,8 @@ format:
     include-in-header: preamble.tex
     fig-format: pdf
     extra_dependencies: ["booktabs", "longtable"]
-  apaquarto-docx:
-    fig-dpi: 300
+  # apaquarto-docx:
+  #   fig-dpi: 300
 
 knitr:
   opts_chunk:
@@ -278,23 +278,32 @@ library(lmerTest) # p-values via satterthwaite
 library(Rtsne)
 library(ggforce)
 library(broom.mixed)
+library(performance)
+library(marginaleffects)
 ```
 
 ```{r}
 #| label: setup
 #| cache: false
 
-source(here::here("helper", "plot_settings.R"))
-source(here::here("helper", "explore_helper.R"))
+source(here("helper", "plot_settings.R"))
+source(here("helper", "explore_helper.R"))
 
 # p-value formatter
 fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
 
-# stringify one row of an output of tidy.lm()
-effect_str <- \(coefs) glue('β = {round(coefs$estimate, 2)}, SE = {round(coefs$std.error, 2)}, p {fmt_p(coefs$p.value)}')
+# convert multiplicative factor to percentage increase/decrease
+mult_to_pct <- \(x, more, less) {
+  if_else(x > 1,
+          glue("{round((x - 1) * 100, 1)}% {more}"),
+          glue("{round((1 - x) * 100, 1)}% {less}"))
+}
 
-# stringify one row of an output of tidy.anova()
-anova_str <- \(av) glue("χ²({av$df}) = {round(av$statistic, 2)}, p {fmt_p(av$p.value)}")
+# # stringify one row of an output of tidy.lm()
+# effect_str <- \(coefs) glue('β = {round(coefs$estimate, 2)}, SE = {round(coefs$std.error, 2)}, p {fmt_p(coefs$p.value)}')
+# 
+# # stringify one row of an output of tidy.anova()
+# anova_str <- \(av) glue("χ²({av$df}) = {round(av$statistic, 2)}, p {fmt_p(av$p.value)}")
 ```
 
 ```{r}
@@ -304,42 +313,40 @@ site_labels <- c("uniandes-co" = "pilot_uniandes_co",
                  "mpieva-de" = "pilot_mpieva_de",
                  "western-ca" = "pilot_western_ca")
 
-site_map <- site_labels |> enframe(name = "site_label", value = "site")
+# # site_pal is keyed by pilot_* names
+# # site_labels is keyed by readable names, values are pilot_* names
+# # index site_pal by the pilot_* values, then assign readable names
+# site_pal_labelled <- setNames(
+#   site_pal[unname(site_labels)],
+#   names(site_labels)
+# )
 
 dataset_labels <- c("uniandes-co-bogota" = "pilot_uniandes_co_bogota",
                     "uniandes-co-rural" = "pilot_uniandes_co_rural",
                     "mpieva-de" = "pilot_mpieva_de_main",
                     "western-ca" = "pilot_western_ca_main")
 
-# site_pal is keyed by pilot_* names
-# site_labels is keyed by readable names, values are pilot_* names
-# index site_pal by the pilot_* values, then assign readable names
-site_pal_labelled <- setNames(
-  site_pal[unname(site_labels)],
-  names(site_labels)
-)
+dataset_pal <- solarized_pal()(length(dataset_labels)) |> rlang::set_names(names(dataset_labels))
 ```
 
 ```{r}
 #| label: load-data
 
-# Run data
-run_data <- readr::read_rds(here::here("data/runs_mrot.rds"))
+# run data
+run_data <- read_rds(here("data/runs_mrot.rds"))
 
 # RT data
-task_data <- readr::read_rds(here::here("data/task_data_nested.rds"))
+task_data <- read_rds(here("data/task_data_nested.rds"))
 
 # IRT data
-mrot_scores <- readr::read_rds(here::here("models/mrot_scores.rds")) |>
-  filter(model_set == "multigroup_site") # also contains "multigroup_dataset"
+mrot_scores <- read_rds(here("models/mrot_scores.rds")) |>
+  filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
 
 # coefficients
-mrot_coefs <- readr::read_rds(here::here("models/mrot_coef.rds"))
+mrot_coefs <- read_rds(here("models/mrot_coef.rds"))
 
-# survey data for gender analysis
-survey_gender <- readr::read_rds(
-  here::here("survey", "survey_gender_conditions.rds")
-)
+# sex info for sex differences analyses
+sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))
 ```
 
 ```{r}
@@ -360,8 +367,8 @@ run_data_filtered <- run_data |>
   select(site, dataset, user_id, run_id, age, adaptive)
 
 # create age groups based on roughly equal sample sizes
-n_groups <- 3
 ages <- run_data_filtered |> pull(age)
+# n_groups <- 3
 # age_breaks <- quantile(ages, probs = seq(0, 1, length.out = n_groups + 1))
 age_breaks <- c(5, 8, 11, 14)
 
@@ -373,24 +380,23 @@ runs_filtered <- run_data_filtered |>
            recode_values(from = site_labels, to = names(site_labels)),
          dataset_label = dataset |>
            recode_values(from = dataset_labels, to = names(dataset_labels)))
-# runs_filtered |> count(age_group) |> mutate(p = n / sum(n))
 ```
 
 ```{r}
 #| label: sample-counts
 
 # overall
-site_n <- run_data |>
-  # filter(!is.na(age), age >= 5, age <= 14) |>
-  group_by(site) |>
+site_n_df <- run_data |>
+  group_by(dataset) |>
   summarise(n_users = n_distinct(user_id),
             n_runs = n_distinct(run_id)) |>
-  mutate(site_label = site |>
-           recode_values(from = site_labels, to = names(site_labels)))
+  mutate(dataset = dataset |>
+           recode_values(from = dataset_labels, to = names(dataset_labels)))
 
-n_uniandes <- site_n |> filter(site_label == "uniandes-co") |> pull(n_users)
-n_mpieva <- site_n |> filter(site_label == "mpieva-de")  |> pull(n_users)
-n_western <- site_n |> filter(site_label == "western-ca") |> pull(n_users)
+site_n <- site_n_df |> nest(ns = -dataset) |> deframe()
+# n_uniandes <- site_n |> filter(site_label == "uniandes-co") |> pull(n_users)
+# n_mpieva <- site_n |> filter(site_label == "mpieva-de")  |> pull(n_users)
+# n_western <- site_n |> filter(site_label == "western-ca") |> pull(n_users)
 
 mrot_df <- mrot_scores |>
   inner_join(runs_filtered)
@@ -404,10 +410,10 @@ n_final <- mrot_df |>
   summarise(n_users = n_distinct(user_id),
             n_runs = n_distinct(run_id))
 
-n_repeat_users <- runs_filtered %>%
-  group_by(user_id) %>%
-  summarise(n_assessments = n_distinct(run_id)) %>%
-  filter(n_assessments > 1) %>%
+n_repeat_users <- runs_filtered |>
+  group_by(user_id) |>
+  summarise(n_assessments = n_distinct(run_id)) |>
+  filter(n_assessments > 1) |>
   nrow()
 ```
 
@@ -420,7 +426,7 @@ mrot_trials <- task_data |>
   inner_join(runs_filtered)
 
 mrot_rt_trial <- mrot_trials |>
-  select(site = site_label, dataset = dataset_label, user_id, run_id, adaptive,
+  select(site_label, dataset_label, user_id, run_id, adaptive,
          age, age_group, trial_id, trial_number, item_uid, item_group, item,
          item_original, correct, rt_numeric) |>
   mutate(
@@ -436,44 +442,14 @@ mrot_rt_trial <- mrot_trials |>
 ```
 
 ```{r}
-#| label: sex-analysis-prep
-#| include: false
-# note: survey data loaded in 'load data' chunk above.
-survey_gender_wide <- survey_gender |>
-  filter(variable %in% c("ChildSexBirth", "ChildGenderCurrent")) |>
-  select(child_id, variable, string_response) |>
-  group_by(child_id, variable) |>
-  summarise(string_response = na.omit(string_response) |> unique() |> 
-              (\(x) if(length(x) == 1) x else NA_character_)(),
-            .groups = "drop") |>
-  tidyr::pivot_wider(names_from = variable, values_from = string_response) |>
-  rename(sex = ChildSexBirth, 
-         gender = ChildGenderCurrent)
-
-survey_sex_cleaned <- survey_gender_wide |>
-  filter(!is.na(sex)) |>
-  transmute(user_id = child_id, sex)
-```
-
-```{r}
 #| label: sex-data-coverage
-
-sex_data_cleaned <- read_rds(here("data","sex_data_cleaned.rds"))
 
 mrot_trial_sex <- mrot_rt_trial |>
   left_join(sex_data_cleaned) |>
-  distinct(user_id, site, sex)
-
-# mrot_trial_sex |>
-#   group_by(site_label) |>
-#   summarise(
-#     n_total = n(),
-#     n_with_sex = sum(!is.na(sex)),
-#     pct = round(100 * n_with_sex / n_total, 1)
-#   )
+  distinct(user_id, site_label, dataset_label, sex)
 
 site_sex_counts <- mrot_trial_sex |>
-  count(site, sex) |>
+  count(dataset_label, sex) |>
   mutate(sex = sex |> replace_na("Unknown")) |>
   pivot_wider(names_from = sex, values_from = n)
 
@@ -487,11 +463,11 @@ overall_sex_counts <- mrot_trial_sex |>
 #| label: site-timespans
 
 site_spans <- mrot_trials |>
-  group_by(site_label) |>
+  group_by(dataset_label) |>
   summarise(earliest = min(timestamp),
             latest = max(timestamp)) |>
-  mutate(across(-site_label, as_date)) |>
-  nest(range = -site_label) |>
+  mutate(across(-dataset_label, as_date)) |>
+  nest(range = -dataset_label) |>
   deframe()
 ```
 
@@ -514,42 +490,47 @@ cat_counts <- mrot_rt_trial |>
 #| label: tbl-participants
 #| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
 
-trials_per_run <- mrot_rt_trial %>%
-  group_by(dataset, user_id, run_id) %>%
-  summarise(n_trials = n(), .groups = "drop") %>%
-  group_by(dataset) %>%
+trials_per_run <- mrot_rt_trial |>
+  group_by(dataset_label, user_id, run_id) |>
+  summarise(n_trials = n()) |>
+  group_by(dataset_label) |>
   summarise(
-    trials_mean = mean(n_trials, na.rm = TRUE),
-    trials_min  = min(n_trials, na.rm = TRUE),
-    trials_max  = max(n_trials, na.rm = TRUE),
+    trials_mean = mean(n_trials),
+    trials_sd   = sd(n_trials),
+    trials_min  = min(n_trials),
+    trials_max  = max(n_trials),
     .groups = "drop"
-  ) %>%
-  mutate(trials_summary = sprintf("%.0f [%d–%d]", trials_mean, trials_min, trials_max)) |>
-  select(dataset, trials_summary)
+  ) |>
+  mutate(trials_summary = sprintf("%.0f (%.1f) [%d–%d]", trials_mean, trials_sd,
+                                  trials_min, trials_max)) |>
+  select(dataset_label, trials_summary)
+
+site_features <- tribble(
+  ~dataset_label, ~area, ~location, ~setting, ~device,
+  "mpieva-de", "Leipzig, Germany", "remote (home-based)", "individual", "family device",
+  "uniandes-co-bogota", "Bogotá, Colombia", "in school", "group", "tablet (researcher-provided)",
+  "uniandes-co-rural", "Caquetá and Boyacá, Colombia", "in school", "group", "tablet (researcher-provided)",
+  "western-ca", "London, Ontario, Canada", "on-campus", "individual", "tablet (researcher-provided)"
+)
 
 site_info <- mrot_df |>
-  # distinct(user_id, .keep_all = TRUE) |>
-  group_by(dataset) |>
+  group_by(dataset_label) |>
   summarise(
     n_run    = n(),
     n_user   = n_distinct(user_id),
-    age_mean = mean(age, na.rm = TRUE),
-    age_sd   = sd(age, na.rm = TRUE),
-    age_min  = min(age, na.rm = TRUE),
-    age_max  = max(age, na.rm = TRUE),
+    age_mean = mean(age),
+    age_sd   = sd(age),
+    age_min  = min(age),
+    age_max  = max(age),
     .groups  = "drop"
   ) |>
-  mutate(
-    age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
-                          age_mean, age_sd, age_min, age_max),
-    testing_format =  case_when(
-      dataset == "uniandes-co" ~ "In school; group; tablet (researcher-provided)",
-      dataset == "mpieva-de"   ~ "Remote (home-based); individual; family device",
-      dataset == "western-ca"  ~ "On-campus; individual; tablet (researcher-provided)"
-    )
-  ) |>
+  mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
+                               age_mean, age_sd, age_min, age_max)) |>
   left_join(trials_per_run) |>
-  select(Site = dataset,
+  left_join(site_features) |>
+  mutate(testing_format = glue("Location: {location}\nSetting: {setting}\nDevice: {device}")) |>
+  select(Site = dataset_label,
+         Area = area,
          `N assessments` = n_run,
          `N participants` = n_user,
          `Age: M (SD) [range]` = age_summary,
@@ -557,34 +538,22 @@ site_info <- mrot_df |>
          `Testing format` = testing_format)
 
 site_info |> gt()
-# site_info |>
-#   knitr::kable(align = c("l", "c", "c", "c", "c", "l"), booktabs = TRUE) |>
-#   # kableExtra::kable_styling(latex_options = c("hold_position", "scale_down"),
-#   #                           full_width = TRUE) |>
-#   kableExtra::column_spec(1, width = "2.1cm") |>
-#   kableExtra::column_spec(2, width = "1.8cm") |>
-#   kableExtra::column_spec(3, width = "1.8cm") |>
-#   kableExtra::column_spec(4, width = "3cm") |>
-#   kableExtra::column_spec(5, width = "2cm") |>
-#   kableExtra::column_spec(6, width = "3.5cm")
 ```
 
 # Methods
 
 ## Participants
 
-Data were drawn from three LEVANTE pilot sites: Universidad de los Andes, Bogotá and nearby rural areas, Colombia (uniandes-co); Max Planck Institute for Evolutionary Anthropology, Leipzig, Germany (mpieva-de); and the University of Western Ontario, London, Canada (western-ca). Site codes rather than country names are used throughout to reflect that each site represents data collected by a single institution from one or several distinct samples within a large, diverse country, and should not be taken as representative of national populations.
+Data were drawn from four LEVANTE pilot sites administered by three partner teams: at Universidad de los Andes administered in Bogotá, Colombia (uniandes-co-bogota) and nearby rural areas (uniandes-co-rural); at the Max Planck Institute for Evolutionary Anthropology administered in Leipzig, Germany (mpieva-de); and at the University of Western Ontario administered in London, Ontario, Canada (western-ca). Site codes rather than country names are used throughout to reflect that each site represents data collected by a single institution from one or several distinct samples within a large, diverse country, and should not be taken as representative of national populations.
 
 ### Colombia 
-
-The Universidad de los Andes site (uniandes-co) recruited `r n_uniandes` children aged 5--13 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá (i.e., in a municipality located northeast of Florencia) and Boyacá (i.e., in a municipality close to Chiquinquira). Bogotá is the largest and most populous city in Colombia, with a population of over seven million individuals residing within the urban area [@statsco], and substantial variation in socioeconomic status [@statsco]. Florencia and Chiquinquira are smaller municipalities with populations of over 150,000 individuals and 50,000 individuals respectively [@statsco]. Children were recruited from schools with existing partnerships with the Universidad de los Andes. Children completed the tasks individually using tablets. A researcher supervised groups of children completing the tasks simultaneously, with group size altered for the age of the children (smaller groups for younger children). Data for the mental rotation task were collected from `{r} site_spans[["uniandes-co"]]$earliest` to `r site_spans[["uniandes-co"]]$latest`.
-<!-- Due to time constraints inherent to school-based administration, children typically completed a subset of tasks. -->
+The Universidad de los Andes sites (uniandes-co-bogota and uniandes-co-rural) recruited children aged 5--13 years across six schools in Colombia: four in Bogotá — three affiliated with family compensation funds and one managed by a charter school organisation — and two public schools in the rural departments of Caquetá (i.e., in a municipality located northeast of Florencia) and Boyacá (i.e., in a municipality close to Chiquinquira). Bogotá is the largest and most populous city in Colombia, with a population of over seven million individuals residing within the urban area [@statsco], and substantial variation in socioeconomic status [@statsco]. Florencia and Chiquinquira are smaller municipalities with populations of over 150,000 individuals and 50,000 individuals respectively [@statsco]. Children were recruited from schools with existing partnerships with the Universidad de los Andes. Children completed the tasks individually using tablets. A researcher supervised groups of children completing the tasks simultaneously, with group size altered for the age of the children (smaller groups for younger children). For uniandes-co-bogota, data for the mental rotation task were collected from `{r} site_spans[["uniandes-co-bogota"]]$earliest` to `r site_spans[["uniandes-co-bogota"]]$latest` and are comprised of `{r} site_n[["uniandes-co-bogota"]]$n_runs` assessments from `{r} site_n[["uniandes-co-bogota"]]$n_users` participants; for uniandes-co-rural they were collected from `{r} site_spans[["uniandes-co-rural"]]$earliest` to `r site_spans[["uniandes-co-rural"]]$latest` and are comprised of `{r} site_n[["uniandes-co-rural"]]$n_runs` assessments from `{r} site_n[["uniandes-co-rural"]]$n_users` participants.
 
 ### Germany
-The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from `r n_mpieva` children aged 5--13 years in Leipzig, Germany. Leipzig a mid-sized urban centre with a population of approximately 600,000 individuals [@statsde], and participants in the current study mainly came from middle- to upper-middle-income backgrounds. Children and their families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. Data for the mental rotation task were collected from `{r} site_spans[["mpieva-de"]]$earliest` to `r site_spans[["mpieva-de"]]$latest`.
+The Max Planck Institute for Evolutionary Anthropology site (mpieva-de) collected data from children aged 5--13 years in Leipzig, Germany. Leipzig a mid-sized urban centre with a population of approximately 600,000 individuals [@statsde], and participants in the current study mainly came from middle- to upper-middle-income backgrounds. Children and their families were recruited from an existing database of Leipzig residents via telephone and completed tasks remotely at home using their own devices. Data for the mental rotation task were collected from `{r} site_spans[["mpieva-de"]]$earliest` to `r site_spans[["mpieva-de"]]$latest` and are comprised of `{r} site_n[["mpieva-de"]]$n_runs` assessments from `{r} site_n[["mpieva-de"]]$n_users` participants.
 
 ### Canada
-The Western University site (western-ca) recruited `r n_western` children aged 5--13 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a medium-sized urban and suburban area with a population of over 400,000 individuals [@statscan]. The Greater Toronto Area is a large urban and suburban area, comprising the city of Toronto and four surrounding regional municipalities, and is the most population metropolitan region in Canada with a population of over 6 million individuals [@statscan]. Canadian participants in the current study mainly came from middle- to upper-middle-income backgrounds. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. Data for the mental rotation task were collected from `{r} site_spans[["western-ca"]]$earliest` to `r site_spans[["western-ca"]]$latest`.
+The Western University site (western-ca) recruited children aged 5--13 years primarily from London, Ontario, with a smaller number from the Greater Toronto Area. London is a medium-sized urban and suburban area with a population of over 400,000 individuals [@statscan]. The Greater Toronto Area is a large urban and suburban area, comprising the city of Toronto and four surrounding regional municipalities, and is the most population metropolitan region in Canada with a population of over 6 million individuals [@statscan]. Canadian participants in the current study mainly came from middle- to upper-middle-income backgrounds. Recruitment relied on online outreach through social media and community groups, supplemented by local posters and school newsletters. Children were assessed individually by a researcher in a dedicated campus testing space. Data for the mental rotation task were collected from `{r} site_spans[["western-ca"]]$earliest` to `r site_spans[["western-ca"]]$latest` and are comprised of `{r} site_n[["western-ca"]]$n_runs` assessments from `{r} site_n[["western-ca"]]$n_users` participants.
 
 Site-level sampling characteristics are described in @tbl-participants. Due to de-identification protocols, individual-level demographic data — including socioeconomic indicators — are not available for the current sample. `r n_excluded$n_runs` assessments (from `r n_excluded$n_users` participants) were excluded due to missing age, being outside the target age range (5--13 years), having too few trials (<`r min_trials`), or having too short a gap between administrations (<`r min_gap_months` months), leaving a final sample of n = `r n_final$n_runs` assessments (from `r n_final$n_users` participants; `r overall_sex_counts$Female` female, `r overall_sex_counts$Male` male, `r overall_sex_counts$Unknown` unknown). A total of `r n_repeat_users` children contributed two assessments each; each assessment was treated as a separate observation, with participant included as a random effect in all mixed-effects models to account for the non-independence of repeated assessments. 
 
@@ -635,7 +604,7 @@ From this model, we extracted five person-level features for each child. Baselin
 #| label: irt-anova
 
 task_anova <- read_rds(here("models/mrot_anova.rds"))
-mrot_models <- task_anova |> filter(model_set == "multigroup_site")
+mrot_models <- task_anova |> filter(model_set == "multigroup_dataset")
 ```
 
 ```{r}
@@ -643,10 +612,11 @@ mrot_models <- task_anova |> filter(model_set == "multigroup_site")
 
 task_rxx <- read_rds(here("models/mrot_rxx.rds"))
 site_rxx <- task_rxx |>
-  filter(model_set == "multigroup_site") |>
-  rename(site = group) |>
-  left_join(site_map) |>
-  select(itemtype, site_label, rxx)
+  filter(model_set == "multigroup_dataset") |>
+  rename(dataset = group) |>
+  mutate(dataset_label = dataset |>
+           recode_values(from = dataset_labels, to = names(dataset_labels))) |>
+  select(itemtype, dataset_label, rxx)
 
 rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
   nest(data = -itemtype) |> deframe() |> map(deframe) |>
@@ -656,13 +626,13 @@ rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
 ```{r}
 #| label: mrot-irt-values
 
-mrot_2pl_scalar <- mrot_models %>%
+mrot_2pl_scalar <- mrot_models |>
   filter(task == "mrot", itemtype == "2pl", invariance == "scalar")
 
-mrot_2pl_configural <- mrot_models %>%
+mrot_2pl_configural <- mrot_models |>
   filter(task == "mrot", itemtype == "2pl", invariance == "configural")
 
-mrot_rasch_scalar <- mrot_models %>%
+mrot_rasch_scalar <- mrot_models |>
   filter(task == "mrot", itemtype == "rasch", invariance == "scalar")
 
 delta_bic_rasch <- round(mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC, 1)
@@ -686,49 +656,49 @@ Scalar invariance is a psychometric property of the instrument: it establishes t
 
 best_row <- which.min(mrot_models$BIC)
 
-invar_table <- mrot_models %>%
+invar_table <- mrot_models |>
   # transmute(
-  #   Model       = itemtype %>% fct_recode("Rasch" = "rasch", "2PL" = "2pl"),
+  #   Model       = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl"),
   #   Invariance  = invariance,
   #   `Log-likelihood` = logLik,
   #   AIC         = AIC,
   #   BIC         = BIC,
   #   Parameters  = df,
   #   model_order = model_order
-  # ) %>%
-  mutate(itemtype = itemtype %>% fct_recode("Rasch" = "rasch", "2PL" = "2pl")) %>%
-  mutate(dBIC = BIC - lag(BIC)) %>%
-  select(itemtype, invariance, logLik, AIC, BIC, dBIC, df, model_order) %>%
-  gt() %>%
-  tab_header(title = md("")) %>%
-  cols_hide(columns = model_order) %>%
+  # ) |>
+  mutate(itemtype = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl")) |>
+  mutate(dBIC = BIC - lag(BIC)) |>
+  select(itemtype, invariance, logLik, AIC, BIC, dBIC, df, model_order) |>
+  gt() |>
+  tab_header(title = md("")) |>
+  cols_hide(columns = model_order) |>
   cols_label(itemtype = "Model",
              invariance = "Invariance",
              logLik = "Log-likelihood",
              dBIC = "ΔBIC",
-             df = "ΔParameters") %>%
-  fmt_number(columns = c(logLik, AIC, BIC, dBIC), decimals = 2) %>%
-  fmt_number(columns = df, decimals = 0, use_seps = FALSE) %>%
-  cols_align(align = "center", columns = c(itemtype, invariance, df)) %>%
-  cols_align(align = "right",  columns = c(logLik, AIC, BIC)) %>%
+             df = "ΔParameters") |>
+  fmt_number(columns = c(logLik, AIC, BIC, dBIC), decimals = 2) |>
+  fmt_number(columns = df, decimals = 0, use_seps = FALSE) |>
+  cols_align(align = "center", columns = c(itemtype, invariance, df)) |>
+  cols_align(align = "right",  columns = c(logLik, AIC, BIC)) |>
   tab_style(
     style = list(
       cell_text(weight = "bold"),
       cell_fill(color = "#f0f7ff")
     ),
     locations = cells_body(rows = best_row)
-  ) %>%
+  ) |>
   # tab_footnote(
   #   footnote = "Degrees of freedom not computed for the baseline configural model.",
   #   locations = cells_body(columns = df, 
   #                          rows = itemtype == "Rasch" & itemtype == "configural")
-  # ) %>%
+  # ) |>
   tab_footnote(
     footnote = "Computed relative to the previous model in the sequence.",
     locations = cells_column_labels(columns = c(dBIC, df))
-  ) %>%
-  tab_row_group(label = "2PL",   rows = model_order %in% 3:5) %>%
-  tab_row_group(label = "Rasch", rows = model_order %in% 1:2) %>%
+  ) |>
+  tab_row_group(label = "2PL",   rows = model_order %in% 3:5) |>
+  tab_row_group(label = "Rasch", rows = model_order %in% 1:2) |>
   tab_options(
     table.width = pct(100),
     data_row.padding = px(3),
@@ -809,7 +779,7 @@ coef_ns <- mrot_coefs |>
 #| include: false
 
 # Re-read without the model_set filter
-mrot_scores_all <- readr::read_rds(here::here("models/mrot_scores.rds"))
+mrot_scores_all <- read_rds(here("models/mrot_scores.rds"))
 
 co_labels <- c(
   "pilot_uniandes_co_rural"  = "uniandes-co-rural",
@@ -1037,408 +1007,385 @@ These results support treating uniandes-co as a single group in the main analysi
 Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
 ```{r}
-#| label: rt-angle-lme
+#| label: rt-angle-data
+
+# set up data for modeling
+
+deg <- 40 # angle unit size
+yrs <- 2  # age unit size
 
 # filter to non-CAT, add age group, stimulus, angle
-mrot_lme_data <- mrot_rt_trial %>%
-  filter(!adaptive, correct == 1) %>%
+mrot_lme_data <- mrot_rt_trial |>
+  rename(site = site_label, dataset = dataset_label) |>
+  filter(!adaptive,            # exclude CAT runs
+         correct == 1,         # exclude incorrect responses
+         trial_number != 1) |> # exclude each run's first trial
   mutate(
-    item_group = factor(item_group) |> fct_relevel("3d"), # 2D vs 3D
+    item_group = factor(item_group),
+    stimulus   = factor(stimulus),
     site       = factor(site),
-    angle_sc   = as.numeric(scale(angle)),
-  )
+    dataset    = factor(dataset),
+    angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
+    age_sc     = (age - mean(age)) / yrs # scale to 2 units = sd
+  ) |>
+  select(site, dataset, user_id, run_id,  matches("age"), trial_number,
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt)
+
+# effects code all factors
+contrasts(mrot_lme_data$site) <- contr.sum(levels(mrot_lme_data$site))
+contrasts(mrot_lme_data$dataset) <- contr.sum(levels(mrot_lme_data$dataset))
+contrasts(mrot_lme_data$item_group) <- contr.sum(levels(mrot_lme_data$item_group))
+contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
 ```
 
 ```{r}
-#| label: rt-angle-models
+#| label: rt-angle-model
 
-# 3D stimuli: main test of angular disparity effect
-
-mrot_3d <- mrot_lme_data %>%
-  filter(item_group == "3d") %>%
-  # filter(!is.na(site), !is.na(age_group), !is.na(angle_sc), !is.na(log_rt)) %>%
-  droplevels()  # drops empty factor levels
-
-# check size
-# nrow(mrot_3d)
-
-# fit all models on the same object
-m_3d_base <- lmer(
-  log_rt ~ angle_sc + (1 + angle_sc | user_id),
-  data = mrot_3d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-m_3d_base <- lmer(
-  log_rt ~ angle_sc + (1 | user_id),
-  data = mrot_3d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-m_3d_site <- lmer(
-  log_rt ~ angle_sc * site + (1 + angle_sc | user_id),
-  data = mrot_3d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-m_3d_site <- lmer(
-  log_rt ~ angle_sc * site + (1 | user_id),
-  data = mrot_3d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-# m_3d_age <- lmer(
-#   log_rt ~ angle_sc * age_group + (1 + angle_sc | user_id),
-#   data = mrot_3d, REML = FALSE,
-#   control = lmerControl(optimizer = "bobyqa")
-# )
-# m_3d_age <- lmer(
-#   log_rt ~ angle_sc * age + (1 + angle_sc | user_id),
-#   data = mrot_3d, REML = FALSE,
-#   control = lmerControl(optimizer = "bobyqa")
-# )
-
-# TODO: no angle random slope?
-m_3d_site_age <- lmer(
-  log_rt ~ angle_sc * site * age_group + (1 | user_id),
-  data = mrot_3d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-m_3d_site_age <- lmer(
-  log_rt ~ angle_sc * site * age + (1 | user_id),
-  data = mrot_3d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-# anova_3d <- anova(m_3d_main, m_3d_site, m_3d_age, m_3d_full)
-anova_3d <- anova(m_3d_base, m_3d_site, m_3d_site_age)
-
-mrot_2d <- mrot_lme_data %>%
-  filter(item_group == "2d") %>%
-  # filter(!is.na(site), !is.na(age_group), !is.na(angle_sc), !is.na(log_rt)) %>%
-  droplevels()
-
-m_2d_base <- lmer(
-  log_rt ~ angle_sc + (1 + angle_sc | user_id),
-  data = mrot_2d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-m_2d_site <- lmer(
-  log_rt ~ angle_sc * site + (1 + angle_sc | user_id),
-  data = mrot_2d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-m_2d_site_age <- lmer(
-  log_rt ~ angle_sc * site * age_group + (1 + angle_sc | user_id),
-  data = mrot_2d, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-anova_2d <- anova(m_2d_base, m_2d_site, m_2d_site_age)
+full_mod <- lmer(log_rt ~ angle_sc * stimulus * dataset * age_sc + (1 + angle_sc | user_id),
+                 data = mrot_lme_data,
+                 REML = FALSE,
+                 control = lmerControl(optimizer = "bobyqa"))
+full_mod_stats <- model_performance(full_mod, estimator = "ML")
 ```
 
 ```{r}
-#| label: rt-angle-combined
+#| label: rt-angle-fits
 
-# mrot_combined <- bind_rows(mrot_3d, mrot_2d) %>%
-#   mutate(item_group = factor(item_group, levels = c("3d", "2d")))
+# extract stimuli predictors for later joining
+stim_map <- mrot_lme_data |> distinct(angle, angle_sc, item_group, stimulus)
 
-m_combined_base <- lmer(
-  log_rt ~ angle_sc + item_group + (1 + angle_sc | user_id),
-  data = mrot_lme_data, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
+# create angle level as correctly spaced factor
+angle_levels <- mrot_lme_data |>
+  distinct(angle) |>
+  arrange(angle) |>
+  mutate(angle_level = factor(angle, levels = as.character(seq(20, 160, 20)),
+                              ordered = TRUE))
 
-m_combined_interaction <- lmer(
-  log_rt ~ angle_sc * item_group + (1 + angle_sc | user_id),
-  data = mrot_lme_data, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
+# create data-spanning grid points for prediction
+age_seq <- seq(min(mrot_lme_data$age_sc), max(mrot_lme_data$age_sc), length.out = 100)
+pred_grid <- datagrid(angle_sc = unique,        # each angle
+                      stimulus = unique,        # each stimulus
+                      dataset = unique,         # each dataset
+                      age_sc = age_seq,         # 100 equally spaced values of age
+                      newdata = mrot_lme_data) |>
+  select(rowid, angle_sc, stimulus, dataset, age_sc) |>
+  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
+         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
+         age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot") |>
+  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
+  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
+  left_join(angle_levels)
 
-# assign rather than just print
-anova_combined <- anova(m_combined_base, m_combined_interaction)
-anova_combined_interaction <- tidy(anova_combined) |> slice_tail()
+# get model predictions at grid, average age by age_group
+grid_preds <- c("angle", "item_group", "stimulus", "dataset", "age_group")
+avg_preds <- avg_predictions(full_mod,
+                             newdata = pred_grid,
+                             re.form = NA,
+                             by = grid_preds) |>
+  as_tibble() |>
+  left_join(angle_levels)
 ```
 
 ```{r}
-#| label: rt-angle-results
+#| label: rt-angle-slopes
 
-# site model numbers (for results text)
-# m_3d_site_coefs <- coef(summary(m_3d_site))
-# beta_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
-# se_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
-# p_site_co <- m_3d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
-# beta_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
-# se_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
-# p_site_ca <- m_3d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
-coef_3d_co <- tidy(m_3d_site) |> filter(term == "angle_sc:sitepilot_uniandes_co")
-coef_3d_ca <- tidy(m_3d_site) |> filter(term == "angle_sc:sitepilot_western_ca")
+# extract angle slopes for each predictor
+slope_preds <- c("task", "item_group", "stimulus", "dataset", "age_group")
+get_pred_slopes <- \(pred) {
+  slopes(full_mod,
+         newdata = pred_grid,
+         re.form = NA,
+         variables = "angle_sc",
+         by = pred) |> as_tibble() |>
+    rename(value = !!pred) |>
+    mutate(predictor = pred, .before = value)
+}
+pred_slopes <- map(slope_preds, get_pred_slopes) |> list_rbind()
 
-# anova_site_chisq <- anova(m_3d_main, m_3d_site)$Chisq[2]
-# anova_site_df <- anova(m_3d_main, m_3d_site)$Df[2]
-# anova_site_p <- anova(m_3d_main, m_3d_site)[["Pr(>Chisq)"]][2]
-anova_3d_site <- tidy(anova_3d) |> filter(term == "m_3d_site")
-
-# age moderation - tested over and above site
-# anova_age_chisq <- anova(m_3d_site, m_3d_full)$Chisq[2]
-# anova_age_df    <- anova(m_3d_site, m_3d_full)$Df[2]
-# anova_age_p     <- anova(m_3d_site, m_3d_full)[["Pr(>Chisq)"]][2]
-anova_3d_site_age <- tidy(anova_3d) |> filter(term == "m_3d_site_age")
-
-# age group contrasts from m_3d_age
-# m_3d_age_coefs <- coef(summary(m_3d_age))
-# beta_age_mid   <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Estimate"]
-# se_age_mid     <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Std. Error"]
-# p_age_mid      <- m_3d_age_coefs["angle_sc:age_group(8.3,10.6]", "Pr(>|t|)"]
-# beta_age_old   <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Estimate"]
-# se_age_old     <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Std. Error"]
-# p_age_old      <- m_3d_age_coefs["angle_sc:age_group(10.6,13.7]", "Pr(>|t|)"]
-# coef_3d_age <- tidy(m_3d_age) |> filter(str_detect(term, "^age_group"))
-
-# 3D main model numbers
-# fe_3d <- fixef(m_3d_main)
-# beta_3d_main <- fe_3d["angle_sc"]
-# se_3d_main <- sqrt(diag(vcov(m_3d_main)))["angle_sc"]
-# t_3d_main <- coef(summary(m_3d_main))["angle_sc", "t value"]
-# df_3d_main <- coef(summary(m_3d_main))["angle_sc", "df"]
-# p_3d_main <- coef(summary(m_3d_main))["angle_sc", "Pr(>|t|)"]
-coef_3d_base <- tidy(m_3d_base) |> filter(term == "angle_sc")
-beta_3d_base <- coef_3d_base$estimate
-
-# 2D main model numbers
-# fe_2d <- fixef(m_2d_main)
-# beta_2d_main <- fe_2d["angle_sc"]
-# se_2d_main <- sqrt(diag(vcov(m_2d_main)))["angle_sc"]
-# t_2d_main <- coef(summary(m_2d_main))["angle_sc", "t value"]
-# df_2d_main <- coef(summary(m_2d_main))["angle_sc", "df"]
-# p_2d_main <- coef(summary(m_2d_main))["angle_sc", "Pr(>|t|)"]
-coef_2d_base <- tidy(m_2d_base) |> filter(term == "angle_sc")
-
-# 2D site model numbers
-# m_2d_site_coefs <- coef(summary(m_2d_site))
-# beta_2d_site_co <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
-# se_2d_site_co   <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
-# p_2d_site_co    <- m_2d_site_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
-# beta_2d_site_ca <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Estimate"]
-# se_2d_site_ca   <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Std. Error"]
-# p_2d_site_ca    <- m_2d_site_coefs["angle_sc:sitepilot_western_ca", "Pr(>|t|)"]
-coef_2d_site <- tidy(m_2d_site) |> filter(term == "angle_sc")
-coef_2d_co <- tidy(m_2d_site) |> filter(term == "angle_sc:sitepilot_uniandes_co")
-coef_2d_ca <- tidy(m_2d_site) |> filter(term == "angle_sc:sitepilot_western_ca")
-
-# anova_2d_site_chisq <- anova(m_2d_main, m_2d_site)$Chisq[2]
-# anova_2d_site_df    <- anova(m_2d_main, m_2d_site)$Df[2]
-# anova_2d_site_p     <- anova(m_2d_main, m_2d_site)[["Pr(>Chisq)"]][2]
-# anova_2d_site <- anova(m_2d_main, m_2d_site) |> tidy() |> filter(term == "m_2d_site")
-anova_2d_site <- tidy(anova_2d) |> filter(term == "m_2d_site")
-
-# children who completed 3D trials
-n_runs_3d <- mrot_3d %>% distinct(run_id) %>% nrow()
-ages_3d <- mrot_3d %>% distinct(run_id, age) %>% pull(age)
-age_3d_mean <- ages_3d %>% mean(na.rm = TRUE) %>% round(1)
-age_3d_sd   <- ages_3d %>% sd(na.rm = TRUE) %>% round(1)
-age_3d_min  <- ages_3d %>% min(na.rm = TRUE) %>% round(1)
-age_3d_max  <- ages_3d %>% max(na.rm = TRUE) %>% round(1)
-
-# combined model numbers
-# anova_combined_chisq <- anova_combined$Chisq[2]
-# anova_combined_df    <- anova_combined$Df[2]
-# anova_combined_p     <- anova_combined[["Pr(>Chisq)"]][2]
-
-# fe_comb <- fixef(m_combined_interaction)
-# se_comb <- sqrt(diag(vcov(m_combined_interaction)))
-# 
-# beta_3d_comb <- fe_comb["angle_sc"]
-# se_3d_comb   <- se_comb["angle_sc"]
-# beta_2d_comb <- fe_comb["angle_sc"] + fe_comb["angle_sc:item_group2d"]
-# beta_diff    <- fe_comb["angle_sc:item_group2d"]
-# se_diff      <- se_comb["angle_sc:item_group2d"]
-# 
-# comb_coefs <- coef(summary(m_combined_interaction))
-# t_diff <- comb_coefs["angle_sc:item_group2d", "t value"]
-# p_diff <- comb_coefs["angle_sc:item_group2d", "Pr(>|t|)"]
-
-coef_comb <- tidy(m_combined_interaction)
-
-# 90-degree RT interpretation
-angles <- mrot_lme_data |> distinct(angle, angle_sc) |> arrange(angle)
-angle_fits <- angles |>
-  mutate(log_rt = predict(m_3d_base, re.form = NA, newdata = angles),
-         rt = exp(log_rt)) |>
-  select(angle, rt) |>
-  deframe()
-pts <- c(40, 80)
-angle_slope_40 <- angle_fits[[as.character(pts[2])]] / angle_fits[[as.character(pts[1])]]
-rt_pct_40 <- (angle_slope_40 - 1) * 100
-rt_pct_90 <- rt_pct_40 * (90/40)
-# 40 - 18%
-# 90 - 40%
-
-# beta = diff(log_rt) / diff(angle_sc)
-# angle_sc = (angle - mean(angle)) / sd(angle)
-
-sd_angle       <- mrot_lme_data |> pull(angle) |> sd()
-beta_per_90    <- beta_3d_base * (90 / sd_angle)
-rt_multiplier_90 <- exp(beta_per_90)
-pct_increase_90  <- round((rt_multiplier_90 - 1) * 100, 1) |> unname()
-
-# 2D: refit with western-ca as reference to get uniandes-co vs western-ca
-mrot_2d_wes <- mrot_2d %>%
-  mutate(site = relevel(factor(site), ref = "pilot_western_ca"))
-
-m_2d_site_wes <- lmer(
-  log_rt ~ angle_sc * site + (1 + angle_sc | user_id),
-  data = mrot_2d_wes, REML = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-m_2d_site_wes_coefs <- coef(summary(m_2d_site_wes))
-beta_2d_site_co_wes <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "Estimate"]
-se_2d_site_co_wes   <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "Std. Error"]
-p_2d_site_co_wes    <- m_2d_site_wes_coefs["angle_sc:sitepilot_uniandes_co", "Pr(>|t|)"]
-
+pred_slopes_tbl <- pred_slopes |>
+  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         interpretation = paste(interpretation, glue("per {deg}°")),
+         p.value = map_chr(p.value, fmt_p)) |>
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
 ```
 
-## Analysis 2: Angular Sensitivity
+```{r}
+#| label: rt-angle-slope-tests
 
-Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites. A total of `r n_runs_3d` assessments contributed 3D trials (M age = `r age_3d_mean`, SD = `r age_3d_sd`, range = `r age_3d_min`--`r age_3d_max` years). For 3D stimuli, there was a strong positive effect of rotation angle (`{r} effect_str(coef_3d_base)`), confirming that response times increased systematically with angular disparity across the full sample. This effect corresponds to a 90-degree increase in rotation angle being associated with approximately `r pct_increase_90`% longer response times for 3D stimuli. Adding site as a moderator significantly improved model fit (`{r} anova_str(anova_3d_site)`), indicating that the magnitude of the angle slope differed across sites.
-The angle slope `r ifelse(coef_3d_co$p.value < .05, "differed significantly", "did not differ significantly")` between mpieva-de and uniandes-co (`{r} effect_str(coef_3d_co)`), `r ifelse(coef_3d_ca$p.value < .05, "and was significantly shallower in western-ca than in mpieva-de", "but did not differ significantly between western-ca and mpieva-de")` (`{r} effect_str(coef_3d_ca)`).
-Age, operationalized as a three-level grouping, did not independently moderate the angle slope once site was accounted for (`{r} anova_str(anova_3d_site_age)`).
+get_pred_slope_test <- \(pred) {
+  slopes(full_mod,
+         newdata = pred_grid,
+         re.form = NA,
+         variables = "angle_sc",
+         by = pred,
+         hypothesis = difference ~ pairwise) |>
+    mutate(predictor = pred, .before = everything())
+}
+pred_slope_tests <- map(slope_preds[-1], get_pred_slope_test) |> list_rbind()
 
-For 2D stimuli, we observed a significant but smaller positive angle effect (`{r} effect_str(coef_2d_base)`). Adding site as a moderator `r ifelse(anova_2d_site$p.value < .05, "significantly improved model fit", "did not significantly improve model fit")` (`{r} anova_str(anova_2d_site)`), indicating that the angle slope `r ifelse(anova_2d_site$p.value < .05, "differed", "did not differ significantly")` across sites.
-
-@fig-rt-angle-per-run-no-cat plots mean reaction times (±95% confidence intervals) as a function of rotation angle, stratified by site and age group (binned for visualization; age was modeled continuously in all analyses), separately for 2D and 3D stimuli. Cell-level sample sizes underlying this figure are reported in [Appendix C (Sample sizes per cell)](#sec-apx-rt-angle-sample-sizes). Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
+pred_slope_tests_tbl <- pred_slope_tests |> as_tibble() |>
+  select(predictor, hypothesis, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
+         p.value = map_chr(p.value, fmt_p))
+```
 
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
 #| fig-cap: "**Reaction time by angle within age groups ±95% CI.** Note. Cells with fewer than 10 observations are excluded. Lines reflect descriptive means; statistical models were fit separately for 2D and 3D stimuli. Age groups shown for visualization only; age was modeled as a continuous predictor."
 #| fig-align: "center"
 #| include: true
-#| fig-width: 7
-#| fig-height: 6.5
+#| fig-width: 9
+#| fig-height: 7
 
-mrot_items_rt_runs <- mrot_rt_trial %>%
-  group_by(site, site_label, user_id, run_id, age, age_group,
-           stimulus, item_group, angle) %>%
+# data points to plot - cut off RT tails
+mrot_lme_data_plot <- mrot_lme_data |>
+  mutate(z_rt = scale(log_rt)[,1]) |>
+  filter(abs(z_rt) <= 2) |>
+  left_join(angle_levels)
+
+# empirical means and CIs
+rt_summary <- mrot_lme_data |>
+  group_by(across(all_of(grid_preds))) |>
   summarise(
-    rt_med = median(rt_s[correct == 1], na.rm = TRUE),
+    mean_rt = mean(log_rt),
+    se_rt = sd(log_rt) / sqrt(n()),
+    ci_lower = mean_rt - 1.96 * se_rt,
+    ci_upper = mean_rt + 1.96 * se_rt,
     .groups = "drop"
-  ) %>%
-  mutate(item_group = str_to_upper(item_group))
+  ) |>
+  ungroup() |>
+  left_join(angle_levels)
 
-mrot_items_rt_agebin_ci <- mrot_items_rt_runs %>%
-  filter(!is.na(rt_med)) %>%
-  group_by(site, site_label, stimulus, item_group, angle, age_group) %>%
-  summarise(
-    y   = mean(rt_med),
-    sd  = sd(rt_med),
-    n   = n(),
-    se  = sd / sqrt(n),
-    lwr = y - 1.96 * se,
-    upr = y + 1.96 * se,
-    .groups = "drop"
-  )
+# RT axis breaks and labels
+rt_labels <- c(0.25, 0.5, 1, 2, 4, 8)
+rt_breaks <- log(rt_labels)
 
-min_n <- 10
+# panel labellers
+age_labeller <- \(x) if_else(x == "", "", glue("Age (years): {x}"))
+dataset_labeller <- \(x) if_else(x == "", "", glue("Dataset: {x}"))
 
-.scale_colour_stimulus <- \(...) scale_colour_brewer(palette = "Set2", ...)
-
-p_mrot_rt_angle_age_1 <- ggplot(
-  mrot_items_rt_agebin_ci %>% filter(n >= min_n),
-  aes(x = angle, y = y,
-      group = interaction(item_group, stimulus),
-      colour = stimulus, linetype = item_group)
-) +
-  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 2,
-                linewidth = 0.35, alpha = 0.6) +
-  geom_point(size = 1) +
-  geom_line(alpha = 0.85) +
-  facet_grid(site_label ~ age_group) +
-  labs(x = "Rotation angle (°)", y = "Reaction time (s)",
-       colour = "Stimulus", linetype = "Item type") +
-  scale_x_continuous(breaks = c(40, 80, 120, 160)) +
-  
-  .scale_colour_stimulus() +
+ggplot(avg_preds, aes(x = angle_level)) +
+  facet_grid(vars(dataset), vars(age_group),
+             labeller = labeller(.cols = age_labeller, .rows = dataset_labeller)) +
+  # fake points to make discrete x axis work
+  geom_point(aes(y = -Inf), colour = "white", alpha = 0,
+             data = tibble(angle_level = fct_inorder(levels(angle_levels$angle_level)))) +
+  # observations
+  geom_sina(aes(y = log_rt, colour = stimulus),
+            data = mrot_lme_data_plot, position = position_identity(),
+            size = 0.1, alpha = 0.05, seed = 3141) +
+  # model fit SE
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, group = stimulus),
+              fill = "lightgrey", alpha = 0.4) +
+  # empirical mean + CI
+  geom_pointrange(aes(y = mean_rt, ymin = ci_lower, ymax = ci_upper, colour = stimulus),
+                  linewidth = 0.5, size = 0.1, data = rt_summary) +
+  geom_line(aes(y = mean_rt, group = stimulus, colour = stimulus),
+            linewidth = 0.5, linetype = "dashed", data = rt_summary) +
+  # model fit
+  geom_line(aes(y = estimate, group = stimulus, colour = stimulus)) +
+  scale_x_discrete(breaks = angle_levels$angle_level) +
+  scale_y_continuous(breaks = rt_breaks, labels = rt_labels) +
+  scale_colour_brewer(palette = "Set2",
+                      breaks = c("duck", "rabbit", "shape"),
+                      labels = c("2D (duck)", "2D (rabbit)", "3D")) +
+  labs(x = "Rotation angle (°)", y = "Reaction time (seconds, log scale)",
+       colour = "Stimulus type") +
   theme(legend.position = "bottom")
-p_mrot_rt_angle_age_1
-
-# ggsave("fig3_rt_by_angle_age_site.png", plot = p_mrot_rt_angle_age_1,
-#        width = 8, height = 7, dpi = 300)
 ```
 
 ```{r}
-#| label: sex-models
-#| include: false
+#| label: rt-angle-results
 
-mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
+# set up various lists and functions for reporting model results in text
+
+angle_stats <- mrot_lme_data |>
+  summarise(age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age),
+            n_trials = n(),
+            n_runs = n_distinct(run_id)) |>
+  mutate(across(everything(), \(x) round(x, 2)))
+
+mod_stats_tbl <- full_mod_stats |>
+  select(R2_conditional, R2_marginal, RMSE) |>
+  mutate(RMSE_exp = exp(RMSE)) |>
+  mutate(across(everything(), \(x) round(x, 2)))
+
+slope_str <- \(s) glue("β = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p {s$p.value}")
+slope <- \(v) pred_slopes_tbl |> filter(value == v)
+interp_str <- \(s) glue("β = {round(s$estimate, 2)}, {s$interpretation}")
+
+slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
+slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
+```
+
+## Analysis 2: Angular Sensitivity
+
+Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites.
+After exclusion of adaptive assessments and incorrect trials, a total of `r angle_stats$n_runs` assessments contributed `r format(angle_stats$n_trials, big.mark = ",")` trials to the analysis (M age = `r angle_stats$age_mean`, SD = `r format(angle_stats$age_sd, nsmall = 1)`).
+Our model predicts reaction time (in log transformed seconds) from angle (20°--160°), stimulus type (2D duck, 2D rabbit, 3D), site (uniandes-co-bogota, mpieva-de, western-ca), age (`r angle_stats$age_min`--`r angle_stats$age_max` years), and all of their possible interactions, along with participant-level random intercepts and random slopes of angle.
+This model's conditional $r^2$ (i.e. variance explained by both fixed and random effects) was `r mod_stats_tbl$R2_conditional`, its marginal $r^2$ (i.e. variance explained by only fixed effects) was `r mod_stats_tbl$R2_marginal`, and its RMSE (root mean squared error) is `r mod_stats_tbl$RMSE` (corresponding to `r mod_stats_tbl$RMSE_exp` seconds of RT). @fig-rt-angle-per-run-no-cat show the resulting model fits as a function of angle, along with empirical means and individual data points, stratified by site and age group (age was modeled as continuous and only binned for visualization or marginalization.)
+
+Overall there was a strong positive effect of rotation angle, in that the average marginal effect (slope) of angle was `r slope_str(slope("mrot"))`, confirming that response times increased systematically with angular disparity across the full sample.
+Since RT is modeled in log space, this corresponds to a multiplicative factor of `r slope("mrot")$estimate_rt` per unit of angle (40°).
+In other words, reaction times are approximately `r slope("mrot")$interpretation` of simulus rotation.
+
+The relationship between angle and reaction time was additionally moderated by stimulus type, age, and site (see @tbl-slopes).
+The angle effect was comparatively larger for 2D stimuli (`r interp_str(slope("2d"))`) than 3D stimuli (`r interp_str(slope("3d"))`).
+There was a negligible difference in angle effect between 2D duck stimuli (`r interp_str(slope("duck"))`) and 2D rabbit stimuli (`r interp_str(slope("rabbit"))`).
+There were small differences in angle effect among sites, with a slightly larger effect for mpieva-de (`r interp_str(slope("mpieva-de"))`) than for western-ca (`r interp_str(slope("western-ca"))`) or for uniandes-co-bogota (`r interp_str(slope("uniandes-co-bogota"))`).
+The angle effect increased considerably over age, being smallest for 5--7 year olds (`r interp_str(slope("[5,8)"))`), middle for 8--10 year olds (`r interp_str(slope("[8,11)"))`), and largest for 11-13 year olds (`r interp_str(slope("[11,14]"))`).
+
+Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
+
+```{r}
+#| label: sex-models-rt
+
+mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |>
   filter(!is.na(sex)) |>
   mutate(sex = factor(sex))
 
+contrasts(mrot_lme_data_sex$sex) <- contr.sum(levels(mrot_lme_data_sex$sex))
+
+sex_mod <- lmer(log_rt ~ angle_sc * stimulus * dataset * age_sc * sex + (1 + angle_sc | user_id),
+                data = mrot_lme_data_sex,
+                REML = FALSE,
+                control = lmerControl(optimizer = "bobyqa"))
+perf_sex_mod <- model_performance(sex_mod, estimator = "ML")
+
+sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
+                          stimulus = unique,        # each stimulus
+                          dataset = unique,         # each dataset
+                          sex = unique,             # each sex
+                          age_sc = age_seq,         # 100 equally spaced values of age
+                          newdata = mrot_lme_data_sex) |>
+  select(rowid, angle_sc, stimulus, dataset, age_sc, sex) |>
+  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
+         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
+         age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot") |>
+  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
+  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
+  left_join(angle_levels)
+
+get_sex_comp <- \(pred) {
+  avg_comparisons(sex_mod,
+                  newdata = sex_pred_grid,
+                  re.form = NA,
+                  variables = "sex",
+                  by = pred) |>
+    as_tibble() |>
+    rename(value = !!pred) |>
+    mutate(predictor = pred, .before = value)
+}
+
+sex_comps <- map(slope_preds, get_sex_comp) |> list_rbind()
+
+sex_comps_tbl <- sex_comps |>
+  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         p.value = map_chr(p.value, fmt_p))
+
+sex_slopes <- slopes(sex_mod,
+                     newdata = sex_pred_grid,
+                     re.form = NA,
+                     variables = "angle_sc",
+                     by = "sex") |> as_tibble() |>
+  mutate(predictor = "sex") |>
+  select(term, contrast, predictor, value = sex, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         interpretation = paste(interpretation, glue("per {deg}°")),
+         p.value = map_chr(p.value, fmt_p))
+
+sex_slope_diffs <- slopes(sex_mod,
+                          newdata = sex_pred_grid,
+                          re.form = NA,
+                          variables = "angle_sc",
+                          by = "sex",
+                          hypothesis = difference ~ pairwise) |> as_tibble() |>
+  mutate(predictor = "sex") |>
+  select(predictor, hypothesis, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
+         p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: sex-models-ability
+
+mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex)) |>
+  mutate(sex    = factor(sex),
+         site   = factor(site)
+         # age_sc = (age - mean(age)) / yrs
+  ) |>
+  rename(ability = metric_value) |>
+  select(dataset = dataset_label, user_id, run_id, age_group, age, sex, ability)
+
 contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
 
-# more simple model (Fionnuala) to avoid singular fits
-sex_mod <- lmer(metric_value ~ age * sex + site + (1 | user_id), data = mrot_df_sex) # include site as fixed because there are only 3 sites
-summary(sex_mod)
+ability_sex_mod <- lmer(ability ~ age * sex * dataset + (1 | user_id), data = mrot_df_sex)
 
-sex_coef <- tidy(sex_mod)
-sex_effect <- \(name) sex_coef |> filter(term == name) |> effect_str()
+perf_ability_sex_mod <- model_performance(ability_sex_mod)
+```
 
-# Mike's model
-# sex_mod <- lmer(metric_value ~ age * sex + (1 | user_id) + (age * sex | site),
-#   data = mrot_df_sex)
-# 
-# summary(sex_mod)
+```{r}
+age_seq_yrs <- seq(min(mrot_df_sex$age), max(mrot_df_sex$age), length.out = 100)
+ability_grid <- datagrid(dataset = unique,
+                         sex = unique,
+                         age = age_seq_yrs,
+                         newdata = mrot_df_sex) |>
+  select(rowid, dataset, sex, age) |>
+  mutate(age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot")
 
-# no evidence of sex differences in either overall performance or developmental trajectories
+ability_preds <- avg_predictions(ability_sex_mod,
+                                 newdata = ability_grid,
+                                 re.form = NA,
+                                 by = c("dataset", "age_group", "age", "sex")) |>
+  as_tibble()
 
-# German model
-# sex_mod_de <- lmer(metric_value ~ age * sex + (1 | user_id),
-#   data = filter(mrot_df_sex, site == "pilot_mpieva_de"))
-# 
-# summary(sex_mod_de)
-
-# Bayesian model -- left for completeness but not used
-# updated model with priors (not reported)
-# sex_mod_bayes <- brm(
-#   metric_value ~ age * sex + (1 | user_id) + (1 | site),
-#   data = mrot_df_sex,
-#   prior = c(
-#     prior(normal(0, 1), class = "b"),
-#     prior(normal(0, 1), class = "Intercept"),
-#     prior(exponential(1), class = "sd")
-#   ),
-#   control = list(adapt_delta = 0.99, max_treedepth = 15)
-# )
-# for comparison
-# Regression Coefficients:
-#             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-# Intercept      -2.63      0.53    -3.64    -1.50 1.00     1534     1921
-# age             0.24      0.03     0.18     0.30 1.00     1252     1990
-# sexMale        -0.02      0.38    -0.78     0.70 1.00     1153     1946
-# age:sexMale     0.01      0.04    -0.06     0.09 1.00     1152     1976
+sd_ability <- sd(mrot_df_sex$ability)
+ability_comps <- comparisons(ability_sex_mod,
+                             newdata = ability_grid,
+                             re.form = NA,
+                             variables = list(dataset = "pairwise", sex = "pairwise", age = 1),
+                             by = "task") |> as_tibble() |>
+  select(term, contrast, estimate, std.error, p.value) |>
+  mutate(p.value = map_chr(p.value, fmt_p),
+         estimate_sd = estimate / sd_ability)
 ```
 
 ## Analysis 3: Sex Differences 
 
-Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (`{r} sex_effect("age")`), with no evidence for a main effect of sex (`{r} sex_effect("sex1")`) or an age-by-sex interaction (`{r} sex_effect("age:sex1")`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
-
-Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (β = `r round(fixef(sex_mod)["age"], 2)`, SE = `r round(coef(summary(sex_mod))["age","Std. Error"], 2)`, p < .001), with no evidence for a main effect of sex (β = `r round(fixef(sex_mod)["sex1"], 2)`, p = `r format.pval(coef(summary(sex_mod))["sex1","Pr(>|t|)"], digits = 2, eps = .001)`) or an age-by-sex interaction (β = `r round(fixef(sex_mod)["age:sex1e"], 2)`, p = `r format.pval(coef(summary(sex_mod))["age:sex1","Pr(>|t|)"], digits = 2, eps = .001)`). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
+Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (), with no evidence for a main effect of sex () or an age-by-sex interaction (). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
 
 ```{r}
 #| label: strategy-analysis-prep
 #| results: "hide"
 
 # ability
-ability_run <- mrot_df %>%
-  group_by(site_label, user_id, run_id, age, age_group) %>%
+ability_run <- mrot_df |>
+  group_by(site_label, user_id, run_id, age, age_group) |>
   summarise(
     ability = mean(metric_value, na.rm = TRUE),
     .groups = "drop"
   )
 
 # prep trial-level data for the rich model
-mrot_rich_data <- mrot_rt_trial %>%
-  # filter(!adaptive) %>% # note: added by Fionnuala, april 12
+mrot_rich_data <- mrot_rt_trial |>
+  # filter(!adaptive) |> # note: added by Fionnuala, april 12
   mutate(
     stimulus = as.factor(stimulus),
     angle_s  = as.numeric(scale(angle)),
@@ -1458,9 +1405,9 @@ m_rich <- lmer(
 )
 
 # extract subject-level random effects
-ran_effs <- ranef(m_rich)$run_id %>%
-  tibble::rownames_to_column("run_id") %>%
-  as_tibble() %>%
+ran_effs <- ranef(m_rich)$run_id |>
+  tibble::rownames_to_column("run_id") |>
+  as_tibble() |>
   rename(
     int_dev   = `(Intercept)`,
     slope_dev = angle_s,
@@ -1473,7 +1420,7 @@ fix_ang <- fixef(m_rich)["angle_s"]
 fix_tri <- fixef(m_rich)["trial_s"]
 
 # compute cognitive features (on log-RT scale)
-rich_features_raw <- ran_effs %>%
+rich_features_raw <- ran_effs |>
   mutate(
     # Baseline Speed: Speed at angle 0 (Intercept)
     Baseline_Speed = fix_int + int_dev,
@@ -1490,8 +1437,8 @@ rich_features_raw <- ran_effs %>%
 # This isolates internal inconsistency from the fact that some kids saw harder items.
 mrot_rich_data$resid <- residuals(m_rich)
 
-instability_data <- mrot_rich_data %>%
-  group_by(run_id) %>%
+instability_data <- mrot_rich_data |>
+  group_by(run_id) |>
   summarise(
     # Instability = SD of residuals (pure internal noise)
     Instability = sd(resid, na.rm = TRUE), 
@@ -1499,10 +1446,10 @@ instability_data <- mrot_rich_data %>%
   )
 
 # join
-rich_features_final <- rich_features_raw %>%
-  left_join(instability_data, by = c("run_id")) %>% 
-  left_join(ability_run,  by = c("run_id")) %>%
-  mutate(Site = site_label) %>%
+rich_features_final <- rich_features_raw |>
+  left_join(instability_data, by = c("run_id")) |> 
+  left_join(ability_run,  by = c("run_id")) |>
+  mutate(Site = site_label) |>
   # filter to ensure all needed features
   filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
 ```
@@ -1517,21 +1464,21 @@ strategy_colors <- c(
   "Ineffective" = strategy_pal[3]
 )
 
-analysis_data <- rich_features_final %>%
+analysis_data <- rich_features_final |>
   filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, 
                   Instability, Learning_Rate), is.finite)) 
 
-global_input <- analysis_data %>%
+global_input <- analysis_data |>
   select(Baseline_Speed, Rel_Slope, Abs_Slope, 
-         Instability, Learning_Rate) %>%
+         Instability, Learning_Rate) |>
   scale()
 
 set.seed(123)
 k_global <- kmeans(global_input, centers = 3, nstart = 25)
 analysis_data$Global_Cluster <- as.factor(k_global$cluster)
 
-cluster_stats <- analysis_data %>%
-  group_by(Global_Cluster) %>%
+cluster_stats <- analysis_data |>
+  group_by(Global_Cluster) |>
   summarise(
     mean_ability = mean(ability),
     mean_slope   = mean(Rel_Slope), 
@@ -1539,27 +1486,27 @@ cluster_stats <- analysis_data %>%
   )
 
 # as.character() on all pull() calls
-low_eff_id <- cluster_stats %>%
-  arrange(mean_ability) %>% 
-  slice(1) %>% 
-  pull(Global_Cluster) %>%
+low_eff_id <- cluster_stats |>
+  arrange(mean_ability) |> 
+  slice(1) |> 
+  pull(Global_Cluster) |>
   as.character()
 
-effective_clusters <- cluster_stats %>%
-  filter(as.character(Global_Cluster) != low_eff_id) %>%
+effective_clusters <- cluster_stats |>
+  filter(as.character(Global_Cluster) != low_eff_id) |>
   arrange(mean_slope) 
 
-analytical_id <- effective_clusters %>%
-  slice(1) %>% 
-  pull(Global_Cluster) %>%
+analytical_id <- effective_clusters |>
+  slice(1) |> 
+  pull(Global_Cluster) |>
   as.character()
 
-holistic_id <- effective_clusters %>%
-  slice(2) %>% 
-  pull(Global_Cluster) %>%
+holistic_id <- effective_clusters |>
+  slice(2) |> 
+  pull(Global_Cluster) |>
   as.character()
 
-analysis_data <- analysis_data %>%
+analysis_data <- analysis_data |>
   mutate(Strategy_Label = case_when(
     as.character(Global_Cluster) == low_eff_id ~ "Ineffective",
     as.character(Global_Cluster) == analytical_id ~ "Matching/Flipping/Other",
@@ -1581,8 +1528,8 @@ analysis_data <- analysis_data %>%
 fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
 fmt_pct <- function(x, d = 1) paste0(formatC(100*x, format = "f", digits = d), "%")
 
-ineff <- analysis_data %>%
-  filter(Strategy_Label == "Ineffective") %>%
+ineff <- analysis_data |>
+  filter(Strategy_Label == "Ineffective") |>
   summarise(
     N              = n(),
     Mean_Ability   = mean(ability, na.rm = TRUE),
@@ -1595,8 +1542,8 @@ ineff <- analysis_data %>%
     Mean_Instab    = mean(Instability, na.rm = TRUE)
   )
 
-flip <- analysis_data %>%
-  filter(Strategy_Label == "Matching/Flipping/Other") %>%
+flip <- analysis_data |>
+  filter(Strategy_Label == "Matching/Flipping/Other") |>
   summarise(
     N              = n(),
     Mean_Ability   = mean(ability, na.rm = TRUE),
@@ -1609,8 +1556,8 @@ flip <- analysis_data %>%
     Mean_Instab    = mean(Instability, na.rm = TRUE)
   )
 
-mrot_strat <- analysis_data %>%
-  filter(Strategy_Label == "Rotation") %>%
+mrot_strat <- analysis_data |>
+  filter(Strategy_Label == "Rotation") |>
   summarise(
     N              = n(),
     Mean_Ability   = mean(ability, na.rm = TRUE),
@@ -1681,8 +1628,8 @@ strategy_comparisons <- list(
   c("Matching/Flipping/Other", "Rotation")
 )
 
-count_labels <- analysis_data %>%
-  count(Strategy_Label) %>%
+count_labels <- analysis_data |>
+  count(Strategy_Label) |>
   mutate(
     pct = round(n / sum(n) * 100),
     count_label = glue("{Strategy_Label}\n(n = {n}, {pct}%)")
@@ -1694,8 +1641,8 @@ count_labels <- analysis_data %>%
     #   Strategy_Label == "Rotation" ~ 
     #     glue::glue("Rotation\n(n = {n}, {pct}%)")
     # )
-  ) %>%
-  select(Strategy_Label, count_label) #%>%
+  ) |>
+  select(Strategy_Label, count_label) #|>
   # deframe()
 
 p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
@@ -1729,18 +1676,18 @@ p_ability
 #| include: true
 #| fig-cap: "**Participant-weighted mean log reaction time by rotation angle and strategy profile.** Shaded bands show 95% CIs. Note that raw means for the Ineffective group appear to decline slightly with angle; however, this reflects confounds with stimulus type, item difficulty, and trial position that are controlled in the mixed model. The model-adjusted relative slope for this group is near-zero positive, indicating absent rather than negative angular sensitivity."
 
-rt_run_disparity <- mrot_rich_data %>%
+rt_run_disparity <- mrot_rich_data |>
   left_join(
-    analysis_data %>% select(Site, run_id, Strategy_Label),
+    analysis_data |> select(Site, run_id, Strategy_Label),
     by = c("run_id")
-  ) %>%
-  filter(!is.na(Strategy_Label), is.finite(log_rt)) %>%
-  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors))) %>%
-  group_by(Strategy_Label, run_id, angle) %>%      
+  ) |>
+  filter(!is.na(Strategy_Label), is.finite(log_rt)) |>
+  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors))) |>
+  group_by(Strategy_Label, run_id, angle) |>      
   summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
 
-rt_disparity_summary <- rt_run_disparity %>%
-  group_by(Strategy_Label, angle) %>%                 
+rt_disparity_summary <- rt_run_disparity |>
+  group_by(Strategy_Label, angle) |>                 
   summarise(
     n_runs   = n_distinct(run_id),
     mean_rt  = mean(user_mean_log_rt, na.rm = TRUE),
@@ -1787,8 +1734,8 @@ p_rt_disparity
 #| tbl-cap: "**Descriptive statistics by Strategy Cluster.**"
 #| include: false
 
-validation_table <- analysis_data %>%
-  group_by(Strategy_Label) %>%
+validation_table <- analysis_data |>
+  group_by(Strategy_Label) |>
   summarise(
     N            = n(),
     Mean_Ability = mean(ability, na.rm = TRUE),
@@ -1799,7 +1746,7 @@ validation_table <- analysis_data %>%
     .groups = "drop"
   )
 
-validation_table %>%
+validation_table |>
   transmute(
     Strategy      = Strategy_Label,
     N             = N,
@@ -1808,21 +1755,21 @@ validation_table %>%
     `Mean Slope`  = Mean_Slope,
     `SD Slope`    = SD_Slope,
     `Instability` = Mean_Instab
-  ) %>%
-  gt() %>%
-  tab_header(title = md("")) %>% 
+  ) |>
+  gt() |>
+  tab_header(title = md("")) |> 
   fmt_number(
     columns = c(`Mean Ability`, `SD Ability`, `Mean Slope`, `SD Slope`, Instability), 
     decimals = 2
-  ) %>%
-  fmt_number(columns = c(N), decimals = 0, use_seps = FALSE) %>%
-  cols_align(align = "center", columns = c(Strategy, N)) %>%
-  cols_align(align = "right", columns = c(`Mean Ability`, `SD Ability`, `Mean Slope`, `SD Slope`, Instability)) %>%
+  ) |>
+  fmt_number(columns = c(N), decimals = 0, use_seps = FALSE) |>
+  cols_align(align = "center", columns = c(Strategy, N)) |>
+  cols_align(align = "right", columns = c(`Mean Ability`, `SD Ability`, `Mean Slope`, `SD Slope`, Instability)) |>
   cols_width(
     Strategy     ~ px(180),
     N            ~ px(40),
     everything() ~ px(75)
-  ) %>%
+  ) |>
   tab_options(
     table.width = pct(100),
     data_row.padding = px(3)
@@ -1867,31 +1814,31 @@ get_local_strategy_labels <- function(df_site,
   if (nrow(df_site) < min_n) return(NULL)
   set.seed(seed)
 
-  X <- df_site %>%
-    select(all_of(cluster_vars)) %>%
-    scale() %>%
+  X <- df_site |>
+    select(all_of(cluster_vars)) |>
+    scale() |>
     as.matrix()
 
   km <- kmeans(X, centers = k, nstart = nstart)
 
-  tmp <- df_site %>%
+  tmp <- df_site |>
     mutate(Local_Cluster = factor(km$cluster))
 
-  local_stats <- tmp %>%
-    group_by(Local_Cluster) %>%
+  local_stats <- tmp |>
+    group_by(Local_Cluster) |>
     summarise(
       mean_abil  = mean(ability,   na.rm = TRUE),
       mean_slope = mean(Rel_Slope, na.rm = TRUE),
       .groups = "drop"
-    ) %>%
+    ) |>
     arrange(mean_abil)
 
-  ineff_id     <- local_stats %>% slice(1) %>% pull(Local_Cluster) %>% as.character()
-  other_two    <- local_stats %>% filter(as.character(Local_Cluster) != ineff_id) %>% arrange(mean_slope)
-  other_eff_id <- other_two   %>% slice(1) %>% pull(Local_Cluster) %>% as.character()
-  mrot_id      <- other_two   %>% slice(2) %>% pull(Local_Cluster) %>% as.character()
+  ineff_id     <- local_stats |> slice(1) |> pull(Local_Cluster) |> as.character()
+  other_two    <- local_stats |> filter(as.character(Local_Cluster) != ineff_id) |> arrange(mean_slope)
+  other_eff_id <- other_two   |> slice(1) |> pull(Local_Cluster) |> as.character()
+  mrot_id      <- other_two   |> slice(2) |> pull(Local_Cluster) |> as.character()
 
-  tmp %>%
+  tmp |>
     mutate(
       Strategy_Local = case_when(
         as.character(Local_Cluster) == ineff_id ~ "Ineffective",
@@ -1899,24 +1846,24 @@ get_local_strategy_labels <- function(df_site,
         as.character(Local_Cluster) == mrot_id ~ "Rotation"
       ),
       Strategy_Local = factor(Strategy_Local, levels = levels(analysis_data$Strategy_Label))
-    ) %>%
+    ) |>
     select(Site, user_id, run_id, Strategy_Local)
 }
 
 # fit local models independently within each site
-local_labels_all <- analysis_data %>%
-  group_by(Site) %>%
-  group_split() %>%
+local_labels_all <- analysis_data |>
+  group_by(Site) |>
+  group_split() |>
   purrr::map_dfr(get_local_strategy_labels)
 
-analysis_local <- analysis_data %>%
-  select(-any_of("Strategy_Local")) %>%
+analysis_local <- analysis_data |>
+  select(-any_of("Strategy_Local")) |>
   left_join(local_labels_all, by = c("Site", "user_id", "run_id"))
 
 # agreement (3-class)
-agreement_3class <- analysis_local %>%
-  filter(!is.na(Strategy_Local)) %>%
-  group_by(Site) %>%
+agreement_3class <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  group_by(Site) |>
   summarise(
     n         = n(),
     pct_agree = mean(Strategy_Local == Strategy_Label),
@@ -1927,37 +1874,37 @@ agreement_3class <- analysis_local %>%
 agreement_3class
 
 # confusion matrices per site — save split first to avoid pipe . scoping issue
-site_splits <- analysis_local %>%
-  filter(!is.na(Strategy_Local)) %>%
+site_splits <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
   group_split(Site)
 
-confusion_by_site <- site_splits %>%
-  purrr::set_names(purrr::map_chr(site_splits, ~ unique(.x$Site))) %>%
+confusion_by_site <- site_splits |>
+  purrr::set_names(purrr::map_chr(site_splits, ~ unique(.x$Site))) |>
   purrr::map(~ table(.x$Strategy_Local, .x$Strategy_Label))
 
 confusion_by_site
 
 # recall + purity
-recall_tbl <- analysis_local %>%
-  filter(!is.na(Strategy_Local)) %>%
-  count(Site, Strategy_Label, Strategy_Local) %>%
-  group_by(Site, Strategy_Label) %>%
-  mutate(recall = n / sum(n)) %>%
+recall_tbl <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  count(Site, Strategy_Label, Strategy_Local) |>
+  group_by(Site, Strategy_Label) |>
+  mutate(recall = n / sum(n)) |>
   ungroup()
 
-purity_tbl <- analysis_local %>%
-  filter(!is.na(Strategy_Local)) %>%
-  count(Site, Strategy_Local, Strategy_Label) %>%
-  group_by(Site, Strategy_Local) %>%
-  mutate(purity = n / sum(n)) %>%
+purity_tbl <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  count(Site, Strategy_Local, Strategy_Label) |>
+  group_by(Site, Strategy_Local) |>
+  mutate(purity = n / sum(n)) |>
   ungroup()
 
-diag_summary <- recall_tbl %>%
-  filter(Strategy_Label == Strategy_Local) %>%
-  transmute(Site, Strategy = Strategy_Label, recall) %>%
+diag_summary <- recall_tbl |>
+  filter(Strategy_Label == Strategy_Local) |>
+  transmute(Site, Strategy = Strategy_Label, recall) |>
   left_join(
-    purity_tbl %>%
-      filter(Strategy_Local == Strategy_Label) %>%
+    purity_tbl |>
+      filter(Strategy_Local == Strategy_Label) |>
       transmute(Site, Strategy = Strategy_Local, purity),
     by = c("Site", "Strategy")
   )
@@ -2175,13 +2122,13 @@ p_co_items_d
 #| fig-width: 6.5
 #| fig-height: 5.5
 
-ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
+ggplot(mrot_df, aes(x = age, y = metric_value, colour = dataset_label)) +
   geom_point(alpha = 0.35, size = 1.1, shape = 16) +
   # geom_linerange(aes(ymin = metric_value - metric_se, ymax = metric_value + metric_se),
   #                alpha = 0.35, size = 1.1) +
   geom_line(aes(group = user_id), alpha = .3) + 
   geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE, fullrange = TRUE) +
-  scale_colour_manual(values = site_pal_labelled) +
+  scale_colour_manual(values = dataset_pal) +
   scale_x_continuous(expand = expansion(mult = 0.02)) +
   labs(
     x      = "Age (years)",
@@ -2237,10 +2184,11 @@ mrot_df_sex |>
 ```{r}
 #| label: tbl-rt-angle-sample-sizes
 #| tbl-cap: "Sample sizes at each cell (age group by item).\\vspace{1em}"
+#| eval: false
 
-n_table <- mrot_items_rt_agebin_ci %>%
-  filter(angle != 20) %>%
-  select(site_label, age_group, item_group, stimulus, angle, n) %>%
+n_table <- mrot_items_rt_agebin_ci |>
+  filter(angle != 20) |>
+  select(site_label, age_group, item_group, stimulus, angle, n) |>
   mutate(
     item_group = str_to_upper(item_group),
     # cell = paste(str_to_upper(item_group), stimulus),
@@ -2249,9 +2197,9 @@ n_table <- mrot_items_rt_agebin_ci %>%
       "(7,9]"  = "7–9",
       "(9,12]" = "9–12"
     )
-  ) %>%
-  # select(-stimulus, -item_group) %>%
-  pivot_wider(names_from = angle, values_from = n) %>%
+  ) |>
+  # select(-stimulus, -item_group) |>
+  pivot_wider(names_from = angle, values_from = n) |>
   arrange(site_label, desc(age_group), item_group, stimulus)
 
 n_table |> gt() |>
@@ -2272,7 +2220,7 @@ n_table |> gt() |>
 #   # caption = "Sample sizes (n) per cell.",
 #   linesep = "",
 #   booktabs = TRUE
-# ) #%>%
+# ) #|>
 #   # kable_styling(
 #     # latex_options = c("hold_position") #, "scale_down")
 #   #   position = "center",
@@ -2288,6 +2236,7 @@ n_table |> gt() |>
 #| fig-width: 8
 #| fig-height: 8
 #| fig-align: "center"
+#| eval: false
 
 # Add raw data underneath
 p_mrot_rt_angle_age_2 <- ggplot() +
@@ -2347,17 +2296,28 @@ Having established that 3D stimuli elicit a clear angular disparity effect while
 #| fig-width: 7
 #| fig-height: 5
 
-# prep: remove CAT data
-trial_resid_data <- mrot_rt_trial %>%
-  filter(!adaptive, correct == 1)
+# # prep: remove CAT data
+# trial_resid_data <- mrot_rt_trial |>
+#   filter(!adaptive, correct == 1)
+# 
+# # residualize log_rt on angle + stimulus + item_group
+# resid_model <- lm(log_rt ~ angle + stimulus + item_group, 
+#                   data = trial_resid_data)
+# 
+# trial_resid_data <- trial_resid_data |>
+#   mutate(log_rt_resid = residuals(resid_model),
+#          block = item_group |> str_to_upper())
 
-# residualize log_rt on angle + stimulus + item_group
-resid_model <- lm(log_rt ~ angle + stimulus + item_group, 
-                  data = trial_resid_data)
-
-trial_resid_data <- trial_resid_data %>%
-  mutate(log_rt_resid = residuals(resid_model),
+trial_resid_data <- mrot_lme_data |>
+  mutate(log_rt_resid = residuals(full_mod),
          block = item_group |> str_to_upper())
+
+trial_resid_data |>
+  group_by(run_id, item_group) |>
+  summarise(start = min(trial_number), end = max(trial_number)) |>
+  ungroup() |>
+  # filter(item_group == "3d") |>
+  count(item_group, start)
 
 transition_trial <- trial_resid_data |>
   filter(item_group == "3d") |>
@@ -2367,16 +2327,16 @@ transition_trial <- trial_resid_data |>
 # plot
 ggplot(trial_resid_data, 
        aes(x = trial_number, y = log_rt_resid, 
-           color = site_label, fill = site_label)) +
+           color = dataset, fill = dataset)) +
   stat_summary(fun = mean, geom = "point", size = 1.2, alpha = 0.5) +
-  geom_smooth(aes(group = interaction(site_label, block)),
+  geom_smooth(aes(group = interaction(dataset, block)),
               method = "loess", span = 0.75, se = TRUE, alpha = 0.2) +
   geom_vline(xintercept = transition_trial - 0.5, linetype = "dotted",
              color = "lightgrey", linewidth = 0.7) +
   annotate("text", x = transition_trial + 1, y = Inf,
            label = "Start of 3D block", hjust = 0, vjust = 1.5, size = 3.5) +
-  scale_colour_manual(values = site_pal_labelled) +
-  scale_fill_manual(values = site_pal_labelled) +
+  scale_colour_manual(values = dataset_pal) +
+  scale_fill_manual(values = dataset_pal) +
   labs(
     x     = "Trial number",
     y     = "Residual reaction time",
@@ -2391,13 +2351,13 @@ ggplot(trial_resid_data,
 #| include: false
 
 # center trial number within each block so the intercept at transition is interpretable
-within_person_data <- trial_resid_data %>%
+within_person_data <- trial_resid_data |>
   mutate(
     block         = factor(block, levels = c("2D", "3D")),
     # trial number centered within block
     trial_c       = trial_number - transition_trial,
     site          = factor(site)
-  ) %>%
+  ) |>
   filter(!is.na(trial_number), !is.na(log_rt_resid))
 
 # Model 1: continuous trial slope only 
@@ -2472,8 +2432,8 @@ Second, within each block, RTs decreased across trials, indicating a practice ef
 #| fig-height: 5
 #| tbl-cap: "**Profile summary statistics**. The Rotation profile shows the steepest absolute RT–angle slope but lower mean ability than the Matching/Flipping/Other profile. The Ineffective profile is characterized by near-zero slope and high response instability rather than slow or fast processing per se. Note that the Ineffective profile's elevated relative slope reflects a fast baseline speed rather than genuine angular sensitivity — its absolute slope is the lowest of the three profiles."
 
-analysis_data %>%
-  group_by(Strategy_Label) %>%
+analysis_data |>
+  group_by(Strategy_Label) |>
   summarise(
     n              = n(),
     mean_ability   = mean(ability, na.rm = TRUE),
@@ -2483,8 +2443,8 @@ analysis_data %>%
     mean_abs_slope = mean(Abs_Slope, na.rm = TRUE),
     sd_abs_slope   = sd(Abs_Slope, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
-  # arrange(desc(mean_rel_slope)) %>%
+  ) |>
+  # arrange(desc(mean_rel_slope)) |>
   transmute(
     Strategy       = Strategy_Label,
     N              = n,
@@ -2494,28 +2454,28 @@ analysis_data %>%
     `SD Rel. Slope`   = sd_rel_slope,
     `Mean Abs. Slope` = mean_abs_slope,
     `SD Abs. Slope`   = sd_abs_slope
-  ) %>%
-  gt() %>%
-  tab_header(title = md("")) %>%
+  ) |>
+  gt() |>
+  tab_header(title = md("")) |>
   fmt_number(
     columns = c(`Mean Ability`, `SD Ability`, 
                 `Mean Rel. Slope`, `SD Rel. Slope`,
                 `Mean Abs. Slope`, `SD Abs. Slope`),
     decimals = 2
-  ) %>%
-  fmt_number(columns = N, decimals = 0, use_seps = FALSE) %>%
-  cols_align(align = "left", columns = c(Strategy)) %>%
-  cols_align(align = "center", columns = c(N)) %>%
-  cols_align(align = "right", columns = where(is.numeric)) %>%
+  ) |>
+  fmt_number(columns = N, decimals = 0, use_seps = FALSE) |>
+  cols_align(align = "left", columns = c(Strategy)) |>
+  cols_align(align = "center", columns = c(N)) |>
+  cols_align(align = "right", columns = where(is.numeric)) |>
   cols_width(
     Strategy ~ px(160),
     N        ~ px(40),
     everything() ~ px(65)
-  ) %>%
-  tab_spanner(label = "Ability",         columns = c(`Mean Ability`, `SD Ability`)) %>%
-  tab_spanner(label = "Relative Slope",  columns = c(`Mean Rel. Slope`, `SD Rel. Slope`)) %>%
-  tab_spanner(label = "Absolute Slope",  columns = c(`Mean Abs. Slope`, `SD Abs. Slope`)) %>%
-  cols_label_with(fn = \(x) str_extract(x, "^[A-z]+")) %>%
+  ) |>
+  tab_spanner(label = "Ability",         columns = c(`Mean Ability`, `SD Ability`)) |>
+  tab_spanner(label = "Relative Slope",  columns = c(`Mean Rel. Slope`, `SD Rel. Slope`)) |>
+  tab_spanner(label = "Absolute Slope",  columns = c(`Mean Abs. Slope`, `SD Abs. Slope`)) |>
+  cols_label_with(fn = \(x) str_extract(x, "^[A-z]+")) |>
   tab_options(
     table.width = pct(100),
     data_row.padding = px(3)
@@ -2556,11 +2516,11 @@ grid.arrange(p_elbow, p_sil, nrow = 1)
 #| fig-cap: "**RT–angle functions for the k = 2 solution.** The higher-ability cluster displays an inverted-U RT curve consistent with a mix of Rotation and Matching/Flipping/Other engagement profiles, suggesting that k = 2 collapses two distinguishable effective profiles into a single region."
 
 # Set up Input (same features as main analysis)
-analysis_data_k2 <- rich_features_final %>%
+analysis_data_k2 <- rich_features_final |>
   filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, Instability, Learning_Rate), is.finite))
 
-global_input_k2 <- analysis_data_k2 %>%
-  select(Baseline_Speed, Rel_Slope, Instability, Abs_Slope, Learning_Rate) %>%
+global_input_k2 <- analysis_data_k2 |>
+  select(Baseline_Speed, Rel_Slope, Instability, Abs_Slope, Learning_Rate) |>
   scale()
 
 # Run K-Means with k = 2 
@@ -2570,19 +2530,19 @@ analysis_data_k2$Global_Cluster <- as.factor(k_global_2$cluster)
 
 # Label the 2 Clusters 
 # We define them simply by Ability (Low vs High) since we can't split by slope yet
-cluster_stats_k2 <- analysis_data_k2 %>%
-  group_by(Global_Cluster) %>%
+cluster_stats_k2 <- analysis_data_k2 |>
+  group_by(Global_Cluster) |>
   summarise(
     mean_ability = mean(ability), 
     .groups = "drop"
   )
 
 # Identify Lower Ability Cluster
-low_eff_id <- cluster_stats_k2 %>% arrange(mean_ability) %>% slice(1) %>% pull(Global_Cluster)
+low_eff_id <- cluster_stats_k2 |> arrange(mean_ability) |> slice(1) |> pull(Global_Cluster)
 # The other one is High Efficiency
-high_eff_id <- cluster_stats_k2 %>% arrange(desc(mean_ability)) %>% slice(1) %>% pull(Global_Cluster)
+high_eff_id <- cluster_stats_k2 |> arrange(desc(mean_ability)) |> slice(1) |> pull(Global_Cluster)
 
-analysis_data_k2 <- analysis_data_k2 %>%
+analysis_data_k2 <- analysis_data_k2 |>
   mutate(Strategy_Label = case_when(
     Global_Cluster == low_eff_id ~ "Low Efficacy (Cluster 2)",
     Global_Cluster == high_eff_id ~ "High Efficacy (Cluster 1)"
@@ -2595,21 +2555,21 @@ k2_colors <- c(
 
 # Plot the Curves (Visual Check)
 # Join labels to raw data
-rt_by_strategy_k2 <- mrot_rich_data %>%
+rt_by_strategy_k2 <- mrot_rich_data |>
   left_join(
-    analysis_data_k2 %>% select(run_id, Strategy_Label),
+    analysis_data_k2 |> select(run_id, Strategy_Label),
     by = c("run_id")
-  ) %>%
+  ) |>
   filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle))
 
 # Calculate User Means
-rt_user_angle_k2 <- rt_by_strategy_k2 %>%
-  group_by(Strategy_Label, run_id, angle) %>%
+rt_user_angle_k2 <- rt_by_strategy_k2 |>
+  group_by(Strategy_Label, run_id, angle) |>
   summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
 
 # Calculate Group Means
-rt_summary_k2 <- rt_user_angle_k2 %>%
-  group_by(Strategy_Label, angle) %>%
+rt_summary_k2 <- rt_user_angle_k2 |>
+  group_by(Strategy_Label, angle) |>
   summarise(
     n_users     = n_distinct(run_id),
     mean_log_rt = mean(user_mean_log_rt, na.rm = TRUE),
@@ -2682,23 +2642,23 @@ p_slope
 #| fig-align: "center"
 #| fig-cap: "**Participant-weighted accuracy-angle functions by engagement profile.** Shaded bands show 95% CIs. The Ineffective group shows steeply declining accuracy with angle, corroborating the interpretation that their near-zero RT slope reflects disengagement from the spatial demands of the task rather than a systematic processing strategy. By contrast, the two effective profiles maintain comparable accuracy throughout despite differing markedly in their RT–angle functions."
 
-acc_by_strategy <- mrot_rich_data %>%
+acc_by_strategy <- mrot_rich_data |>
   left_join(
-    analysis_data %>% select(Site, run_id, Strategy_Label),
+    analysis_data |> select(Site, run_id, Strategy_Label),
     by = c("run_id")
-  ) %>%
-  filter(!is.na(Strategy_Label), is.finite(angle)) %>%
+  ) |>
+  filter(!is.na(Strategy_Label), is.finite(angle)) |>
   mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
 
-acc_run_angle <- acc_by_strategy %>%
-  group_by(Strategy_Label, run_id, angle) %>%
+acc_run_angle <- acc_by_strategy |>
+  group_by(Strategy_Label, run_id, angle) |>
   summarise(
     user_mean_acc = mean(correct, na.rm = TRUE),
     .groups = "drop"
   )
 
-acc_summary <- acc_run_angle %>%
-  group_by(Strategy_Label, angle) %>%
+acc_summary <- acc_run_angle |>
+  group_by(Strategy_Label, angle) |>
   summarise(
     n_runs    = n_distinct(run_id),
     mean_acc  = mean(user_mean_acc, na.rm = TRUE),
@@ -2774,7 +2734,7 @@ We examined whether the distribution of engagement profiles varied across age gr
 #| fig-height: 4
 #| fig-cap: "**Strategy profile proportions by age group.**"
 
-strategy_by_age %>%
+strategy_by_age |>
   ggplot(aes(x = age_group, y = prop, fill = fct_rev(Strategy_Label))) +
   geom_col(position = "stack", width = 0.8) +
   scale_fill_manual(values = strategy_colors) +
@@ -2802,20 +2762,20 @@ Inspection of the PCA loadings offered interpretive support for the feature set.
 #| fig-height: 6
 #| fig-cap: "**t-SNE visualization of engagement profiles.** The Ineffective group forms a distinct region, while the Rotation and Matching/Flipping/Other profiles show considerable overlap, suggesting softer boundaries between the two effective engagement profiles."
 
-tsne_input <- analysis_data %>%
-    select(run_id, Learning_Rate, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) %>%
-    distinct() %>% 
+tsne_input <- analysis_data |>
+    select(run_id, Learning_Rate, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) |>
+    distinct() |> 
     na.omit()
 
 set.seed(42) 
 tsne_result <- Rtsne(
-    as.matrix(tsne_input %>% select(-run_id)), 
+    as.matrix(tsne_input |> select(-run_id)), 
     dims = 2, perplexity = 30, verbose = FALSE, max_iter = 500
 )
 
-tsne_plot_data <- tsne_input %>%
-    mutate(tSNE_1 = tsne_result$Y[,1], tSNE_2 = tsne_result$Y[,2]) %>%
-    left_join(analysis_data %>% select(run_id, Strategy_Label), by = "run_id")
+tsne_plot_data <- tsne_input |>
+    mutate(tSNE_1 = tsne_result$Y[,1], tSNE_2 = tsne_result$Y[,2]) |>
+    left_join(analysis_data |> select(run_id, Strategy_Label), by = "run_id")
 
 ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
   # coord_fixed() +
@@ -2832,11 +2792,11 @@ ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
 #| fig-height: 6
 #| fig-cap: "**PCA projection of the five clustering features colored by engagement profile.** The Ineffective group separates clearly along PC1, while the Rotation and Matching/Flipping/Other profiles overlap along both components."
 
-pca_result <- prcomp(tsne_input %>% select(-run_id), center = TRUE, scale. = TRUE)
+pca_result <- prcomp(tsne_input |> select(-run_id), center = TRUE, scale. = TRUE)
 
-pca_plot_data <- tsne_input %>%
-    mutate(PC1 = pca_result$x[,1], PC2 = pca_result$x[,2]) %>%
-    left_join(analysis_data %>% select(run_id, Strategy_Label), by = "run_id")
+pca_plot_data <- tsne_input |>
+    mutate(PC1 = pca_result$x[,1], PC2 = pca_result$x[,2]) |>
+    left_join(analysis_data |> select(run_id, Strategy_Label), by = "run_id")
 
 ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Strategy_Label)) +
     geom_point(alpha = 0.7, size = 1) +
@@ -2852,11 +2812,11 @@ ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Strategy_Label)) +
 #| fig-height: 3
 #| fig-cap: "**PCA loadings for PC1 and PC2.** PC1 contrasts inefficient, variable engagement (positive: Instability, Relative Slope) with efficient, consistent processing (negative: Baseline Speed, Absolute Slope, Learning Rate). PC2 reflects a rotation cost dimension driven primarily by Relative and Absolute Slope, largely independent of general processing speed."
 
-loadings_df <- as.data.frame(pca_result$rotation) %>%
+loadings_df <- as.data.frame(pca_result$rotation) |>
   rownames_to_column(var = "Angle_Condition")
 
-loadings_long <- loadings_df %>%
-  select(Angle_Condition, PC1, PC2) %>%
+loadings_long <- loadings_df |>
+  select(Angle_Condition, PC1, PC2) |>
   pivot_longer(
     cols = c(PC1, PC2), 
     names_to = "Principal_Component", 
@@ -2894,11 +2854,11 @@ ggplot(loadings_long, aes(
 #| fig-cap: "**UMAP projection of the five clustering features colored by engagement profile.** The Ineffective group forms a distinct region, while the Rotation and Matching/Flipping/Other profiles show substantial overlap, consistent with the continuum interpretation."
 
 set.seed(42)
-umap_result <- umap(as.matrix(tsne_input %>% select(-run_id)))
+umap_result <- umap(as.matrix(tsne_input |> select(-run_id)))
 
-umap_plot_data <- tsne_input %>%
-    mutate(UMAP_1 = umap_result$layout[,1], UMAP_2 = umap_result$layout[,2]) %>%
-    left_join(analysis_data %>% select(run_id, Strategy_Label), by = "run_id")
+umap_plot_data <- tsne_input |>
+    mutate(UMAP_1 = umap_result$layout[,1], UMAP_2 = umap_result$layout[,2]) |>
+    left_join(analysis_data |> select(run_id, Strategy_Label), by = "run_id")
 
 ggplot(umap_plot_data, aes(x = UMAP_1, y = UMAP_2, color = Strategy_Label)) +
     geom_point(alpha = 0.7, size = 1) +
@@ -2923,9 +2883,9 @@ The Rotation profile showed the steeper and higher RT function throughout, risin
 # NOTE: all objects in this and subsequent 360° chunks use _360 suffixes to avoid overwriting main analysis objects. These chunks must remain the
 # last substantive analysis chunks in the document.
 
-mrot_rich_data_360 <- mrot_rt_trial %>%
+mrot_rich_data_360 <- mrot_rt_trial |>
   rename(ang_disparity = angle,
-         angle = angle_full) %>%
+         angle = angle_full) |>
   mutate(
     stimulus = as.factor(stimulus),
     angle_s  = as.numeric(scale(ang_disparity)),
@@ -2942,8 +2902,8 @@ m_rich_360 <- lmer(
   control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
 )
 
-ran_effs_360 <- ranef(m_rich_360)$run_id %>%
-  tibble::rownames_to_column("run_id") %>%
+ran_effs_360 <- ranef(m_rich_360)$run_id |>
+  tibble::rownames_to_column("run_id") |>
   rename(
     int_dev   = `(Intercept)`,
     slope_dev = angle_s,
@@ -2954,7 +2914,7 @@ fix_int_360 <- fixef(m_rich_360)["(Intercept)"]
 fix_ang_360 <- fixef(m_rich_360)["angle_s"]
 fix_tri_360 <- fixef(m_rich_360)["trial_s"]
 
-rich_features_raw_360 <- ran_effs_360 %>%
+rich_features_raw_360 <- ran_effs_360 |>
   mutate(
     Baseline_Speed = fix_int_360 + int_dev,
     Abs_Slope      = fix_ang_360 + slope_dev,
@@ -2964,27 +2924,27 @@ rich_features_raw_360 <- ran_effs_360 %>%
 
 mrot_rich_data_360$resid <- residuals(m_rich_360)
 
-instability_data_360 <- mrot_rich_data_360 %>%
-  group_by(run_id) %>%
+instability_data_360 <- mrot_rich_data_360 |>
+  group_by(run_id) |>
   summarise(
     Instability = sd(resid, na.rm = TRUE),
     .groups = "drop"
   )
 
-rich_features_final_360 <- rich_features_raw_360 %>%
-  left_join(instability_data_360, by = "run_id") %>%
-  left_join(ability_run, by = "run_id") %>%
-  mutate(Site = site_label) %>%
+rich_features_final_360 <- rich_features_raw_360 |>
+  left_join(instability_data_360, by = "run_id") |>
+  left_join(ability_run, by = "run_id") |>
+  mutate(Site = site_label) |>
   filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
 
 # Check: ang_disparity should never exceed 180
 summary(mrot_rich_data_360$ang_disparity)
 
 # Spot check a few items
-mrot_rich_data_360 %>%
-  select(item, item_original, angle, ang_disparity) %>%
-  distinct() %>%
-  arrange(item_original) %>%
+mrot_rich_data_360 |>
+  select(item, item_original, angle, ang_disparity) |>
+  distinct() |>
+  arrange(item_original) |>
   head(20)
   
 ```
@@ -2999,38 +2959,38 @@ mrot_rich_data_360 %>%
 #   "Rotation" = RColorBrewer::brewer.pal(3, "Set1")[3]  
 # )
 
-analysis_data_360 <- rich_features_final_360 %>%
+analysis_data_360 <- rich_features_final_360 |>
   filter(if_all(c(ability, Baseline_Speed, Rel_Slope, Abs_Slope, 
                   Instability, Learning_Rate), is.finite))
 
-global_input_360 <- analysis_data_360 %>%
+global_input_360 <- analysis_data_360 |>
   select(Baseline_Speed, Rel_Slope, Abs_Slope, 
-         Instability, Learning_Rate) %>%
+         Instability, Learning_Rate) |>
   scale()
 
 set.seed(123)
 k_global_360 <- kmeans(global_input_360, centers = 3, nstart = 25)
 analysis_data_360$Global_Cluster <- as.factor(k_global_360$cluster)
 
-cluster_stats_360 <- analysis_data_360 %>%
-  group_by(Global_Cluster) %>%
+cluster_stats_360 <- analysis_data_360 |>
+  group_by(Global_Cluster) |>
   summarise(
     mean_ability = mean(ability),
     mean_slope   = mean(Rel_Slope), 
     .groups = "drop"
   )
 
-low_eff_id_360 <- cluster_stats_360 %>%
-  arrange(mean_ability) %>% slice(1) %>% pull(Global_Cluster)
+low_eff_id_360 <- cluster_stats_360 |>
+  arrange(mean_ability) |> slice(1) |> pull(Global_Cluster)
 
-effective_clusters_360 <- cluster_stats_360 %>%
-  filter(Global_Cluster != low_eff_id_360) %>%
+effective_clusters_360 <- cluster_stats_360 |>
+  filter(Global_Cluster != low_eff_id_360) |>
   arrange(mean_slope)
 
-analytical_id_360 <- effective_clusters_360 %>% slice(1) %>% pull(Global_Cluster)
-holistic_id_360   <- effective_clusters_360 %>% slice(2) %>% pull(Global_Cluster)
+analytical_id_360 <- effective_clusters_360 |> slice(1) |> pull(Global_Cluster)
+holistic_id_360   <- effective_clusters_360 |> slice(2) |> pull(Global_Cluster)
 
-analysis_data_360 <- analysis_data_360 %>%
+analysis_data_360 <- analysis_data_360 |>
   mutate(Strategy_Label = case_when(
     Global_Cluster == low_eff_id_360    ~ "Ineffective",
     Global_Cluster == analytical_id_360 ~ "Matching/Flipping/Other",
@@ -3052,20 +3012,20 @@ ggplot(analysis_data_360, aes(x = ability, y = Rel_Slope, color = Strategy_Label
 #| fig-height: 5
 #| fig-cap: "Participant-weighted RT–angle functions by strategy profile (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs)."
 
-rt_by_strategy_360 <- mrot_rich_data_360 %>%
+rt_by_strategy_360 <- mrot_rich_data_360 |>
   left_join(
-    analysis_data_360 %>% select(run_id, Strategy_Label),
+    analysis_data_360 |> select(run_id, Strategy_Label),
     by = "run_id"
-  ) %>%
-  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) %>%
+  ) |>
+  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) |>
   mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
 
-rt_user_angle_360 <- rt_by_strategy_360 %>%
-  group_by(Strategy_Label, run_id, angle) %>%
+rt_user_angle_360 <- rt_by_strategy_360 |>
+  group_by(Strategy_Label, run_id, angle) |>
   summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
 
-rt_angle_person_summary_360 <- rt_user_angle_360 %>%
-  group_by(Strategy_Label, angle) %>%
+rt_angle_person_summary_360 <- rt_user_angle_360 |>
+  group_by(Strategy_Label, angle) |>
   summarise(
     n_users     = n_distinct(run_id),
     mean_log_rt = mean(user_mean_log_rt, na.rm = TRUE),
@@ -3109,20 +3069,20 @@ ggplot(rt_angle_person_summary_360, aes(x = angle, y = mean_log_rt, colour = Str
 #| fig-height: 5
 #| fig-cap: "Participant-weighted accuracy-angle functions by strategy profile."
 
-acc_by_strategy_360 <- mrot_rich_data_360 %>%
+acc_by_strategy_360 <- mrot_rich_data_360 |>
   left_join(
-    analysis_data_360 %>% select(run_id, Strategy_Label),
+    analysis_data_360 |> select(run_id, Strategy_Label),
     by = "run_id"
-  ) %>%
-  filter(!is.na(Strategy_Label), is.finite(angle)) %>%
+  ) |>
+  filter(!is.na(Strategy_Label), is.finite(angle)) |>
   mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
 
-acc_user_angle_360 <- acc_by_strategy_360 %>%
-  group_by(Strategy_Label, run_id, angle) %>%
+acc_user_angle_360 <- acc_by_strategy_360 |>
+  group_by(Strategy_Label, run_id, angle) |>
   summarise(user_mean_acc = mean(correct, na.rm = TRUE), .groups = "drop")
 
-acc_summary_360 <- acc_user_angle_360 %>%
-  group_by(Strategy_Label, angle) %>%
+acc_summary_360 <- acc_user_angle_360 |>
+  group_by(Strategy_Label, angle) |>
   summarise(
     n_users  = n_distinct(run_id),
     mean_acc = mean(user_mean_acc, na.rm = TRUE),
@@ -3159,4 +3119,4 @@ ggplot(acc_summary_360, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
 
 
 \clearpage
-Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (`{r} effect_str(coef_3d_base)`), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (`{r} effect_str(coef_2d_base)`). No main effect of sex was detected (`{r} sex_effect("sex1")`). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
+Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (). No main effect of sex was detected (). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
