@@ -1,0 +1,175 @@
+```{r}
+#| label: rt-angle-data
+
+# set up data for modeling
+
+deg <- 40 # angle unit size
+yrs <- 2  # age unit size
+
+# filter to non-CAT, add age group, stimulus, angle
+mrot_lme_data <- mrot_rt_trial |>
+  filter(!adaptive,            # exclude CAT runs
+         correct == 1,         # exclude incorrect responses
+         trial_number != 1) |> # exclude each run's first trial
+  mutate(
+    item_group = factor(item_group),
+    stimulus   = factor(stimulus),
+    site_label = factor(site_label),
+    angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
+    age_sc     = (age - mean(age)) / yrs # scale to 2 units = sd
+  ) |>
+  select(site_label, user_id, run_id,  matches("age"), trial_number,
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt)
+
+# effects code all factors
+contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
+contrasts(mrot_lme_data$item_group) <- contr.sum(levels(mrot_lme_data$item_group))
+contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
+```
+
+```{r}
+#| label: rt-angle-model
+
+full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
+                   (1 + angle_sc | user_id),
+                 data = mrot_lme_data,
+                 REML = FALSE,
+                 control = lmerControl(optimizer = "bobyqa"))
+full_mod_stats <- model_performance(full_mod, estimator = "ML")
+```
+
+```{r}
+#| label: rt-angle-fits
+
+# extract stimuli predictors for later joining
+stim_map <- mrot_lme_data |> distinct(angle, angle_sc, item_group, stimulus)
+
+# create angle level as correctly spaced factor
+angle_levels <- mrot_lme_data |>
+  distinct(angle) |>
+  arrange(angle) |>
+  mutate(angle_level = factor(angle, levels = as.character(seq(20, 160, 20)),
+                              ordered = TRUE))
+
+# create data-spanning grid points for prediction
+age_seq <- seq(min(mrot_lme_data$age_sc), max(mrot_lme_data$age_sc), length.out = 100)
+pred_grid <- datagrid(angle_sc = unique,        # each angle
+                      stimulus = unique,        # each stimulus
+                      site_label = unique,            # each site
+                      age_sc = age_seq,         # 100 equally spaced values of age
+                      newdata = mrot_lme_data) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc) |>
+  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
+         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
+         age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot") |>
+  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
+  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
+  left_join(angle_levels)
+
+# get model predictions at grid, average age by age_group
+grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group")
+avg_preds <- avg_predictions(full_mod,
+                             newdata = pred_grid,
+                             re.form = NA,
+                             by = grid_preds) |>
+  as_tibble() |>
+  left_join(angle_levels)
+```
+
+```{r}
+#| label: rt-angle-slopes
+
+# extract angle slopes for each predictor
+slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group")
+get_pred_slopes <- \(pred) {
+  slopes(full_mod,
+         newdata = pred_grid,
+         re.form = NA,
+         variables = "angle_sc",
+         by = pred) |> as_tibble() |>
+    rename(value = !!pred) |>
+    mutate(predictor = pred, .before = value)
+}
+pred_slopes <- map(slope_preds, get_pred_slopes) |> list_rbind()
+
+pred_slopes_tbl <- pred_slopes |>
+  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         interpretation = paste(interpretation, glue("per {deg}°")),
+         p.value = map_chr(p.value, fmt_p)) |>
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+```
+
+```{r}
+#| label: rt-angle-slope-tests
+
+get_pred_slope_test <- \(pred) {
+  slopes(full_mod,
+         newdata = pred_grid,
+         re.form = NA,
+         variables = "angle_sc",
+         by = pred,
+         hypothesis = difference ~ pairwise) |>
+    mutate(predictor = pred, .before = everything())
+}
+pred_slope_tests <- map(slope_preds[-1], get_pred_slope_test) |> list_rbind()
+
+pred_slope_tests_tbl <- pred_slope_tests |> as_tibble() |>
+  select(predictor, hypothesis, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
+         p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: rt-plot-prep
+
+# data points to plot - cut off RT tails
+mrot_lme_data_plot <- mrot_lme_data |>
+  mutate(z_rt = scale(log_rt)[,1]) |>
+  filter(abs(z_rt) <= 2) |>
+  left_join(angle_levels)
+
+# empirical means and CIs
+rt_summary <- mrot_lme_data |>
+  group_by(across(all_of(grid_preds))) |>
+  summarise(
+    mean_rt = mean(log_rt),
+    se_rt = sd(log_rt) / sqrt(n()),
+    ci_lower = mean_rt - 1.96 * se_rt,
+    ci_upper = mean_rt + 1.96 * se_rt,
+    .groups = "drop"
+  ) |>
+  ungroup() |>
+  left_join(angle_levels)
+```
+
+```{r}
+#| label: rt-angle-results
+
+# set up various lists and functions for reporting model results in text
+
+angle_stats <- mrot_lme_data |>
+  summarise(age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age),
+            n_trials = n(),
+            n_runs = n_distinct(run_id)) |>
+  mutate(across(everything(), \(x) round(x, 2)))
+
+mod_stats_tbl <- full_mod_stats |>
+  select(R2_conditional, R2_marginal, RMSE) |>
+  mutate(RMSE_exp = exp(RMSE)) |>
+  mutate(across(everything(), \(x) round(x, 2)))
+
+slope_str <- \(s) glue("β = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p {s$p.value}")
+slope <- \(v) pred_slopes_tbl |> filter(value == v)
+interp_str <- \(s) glue("β = {round(s$estimate, 2)}, {s$interpretation}")
+
+slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
+slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
+```

@@ -20,16 +20,10 @@ bibliography: library_mrot.bib
 
 floatsintext: false
 numbered-lines: true
-# draft: false
 mask: false
 
-# appendix
 number-sections: false
 appendix-style: default
-
-# figurelist: no
-# tablelist: no
-# footnotelist: no
 
 format:
   apaquarto-pdf:
@@ -52,6 +46,29 @@ execute:
   error: false
   cache: true
 ---
+
+```{r libraries}
+#| cache: false
+
+library(tidyverse)
+library(glue)
+library(here)
+library(tidytext)
+
+library(patchwork)
+library(ggpubr)
+library(ggrepel)
+library(ggforce)
+library(gt)
+
+library(factoextra)
+library(gridExtra)
+library(umap)
+library(lme4)
+library(Rtsne)
+library(performance)
+library(marginaleffects)
+```
 
 # Introduction
 
@@ -81,298 +98,27 @@ The limited cross-cultural evidence that does exist spans different populations,
 
 In sum, review of the existing work on mental rotation suggests three gaps. First, we have limited data on whether mental rotation tasks developed and validated in well-resourced contexts measure the same underlying construct when administered to children from different cultural and socioeconomic backgrounds. Second, even where cross-cultural comparisons have been made, they have rarely examined whether performance shows the same characteristic patterns across contexts. The linear relationship between reaction time and angular disparity has been demonstrated repeatedly in middle-to-high-income Western samples of children and adults [@kaltner2016developmental; @jansen2015role], but its replication across varied international sites remains largely untested. Third, whether and when sex differences in mental rotation emerge in primary school children remains unclear, with findings varying substantially across studies and tasks — making it a natural question to examine in a cross-cultural dataset. Beyond these three gaps, relatively little is known about the cognitive strategies children employ when solving mental rotation problems, and whether these vary across cultural contexts — a question we explore tentatively here. We address these gaps with four sets of analyses, corresponding to four research questions, each building toward a broader understanding of how and why children's spatial reasoning varies across cultures.
 
-## The Present Study
+## Present study
 
 The present study uses data from the Learning Variability Network Exchange (LEVANTE), an international research collaboration designed to capture how children's learning and development vary across ages and cultural contexts. LEVANTE's central aim is to build a large, openly shared dataset of children's cognitive development across diverse settings, with a particular focus on individual variability — what differs across children, and why. Data were collected from three geographically and culturally diverse pilot sites: the Universidad de los Andes in Bogotá and nearby rural areas, Colombia (uniandes-co); the Max Planck Institute for Evolutionary Anthropology in Leipzig, Germany (mpieva-de); and the University of Western Ontario in London, Canada (western-ca). Here we use data from a single task in the LEVANTE battery: a mental rotation task designed and scored using an item response theory measurement approach, which allows directly comparable ability estimates to be derived across children who completed different subsets of items [@Kachergis2025LEVANTEcoretasks]. LEVANTE is not designed to support site-level performance comparisons — sites vary substantially in sampling, recruitment, and test administration in ways that heavily confound absolute comparisons. Differences in overall scores across sites should therefore not be interpreted as reflecting population differences. However, examining the consistency of patterns within each site can still be informative, and this is the approach we take here.
 
-Our first research question asks whether the LEVANTE mental rotation task achieves measurement invariance across three international study sites — that is, whether the task captures the same underlying construct regardless of where it is administered. Our second asks whether reaction time performance is sensitive to the spatial properties of the stimuli, as originally demonstrated by @shepard1971mental, using the angular disparity effect as the key benchmark: as the angular difference between two objects increases, so too should the time required to judge whether they match. If children across three culturally diverse sites show this same systematic pattern, this constitutes good evidence that the task is engaging the spatial demands it was designed to capture. Our third research question asks whether a sex difference in mental rotation is detectable in this sample, and whether it interacts with age. Alongside these three primary research questions, we tentatively explore a fourth: whether children draw on different cognitive strategies when solving mental rotation problems, and whether their strategies vary across contexts. These four questions move from psychometric structure (*Cross-Site Invariance*), to process-level validity (*Angular Sensitivity*), to individual variation (*Sex Differences*), to profiles of engagement (*Strategy Variation*) — building a layered case for the task's cross-cultural validity.
+Our first research question asks whether the LEVANTE mental rotation task achieves measurement invariance across three international study sites — that is, whether the task captures the same underlying construct regardless of where it is administered. Our second asks whether reaction time performance is sensitive to the spatial properties of the stimuli, as originally demonstrated by @shepard1971mental, using the angular disparity effect as the key benchmark: as the angular difference between two objects increases, so too should the time required to judge whether they match. If children across three culturally diverse sites show this same systematic pattern, this constitutes good evidence that the task is engaging the spatial demands it was designed to capture. Our third research question asks whether a sex difference in mental rotation is detectable in this sample, and whether it interacts with age. Alongside these three primary research questions, we tentatively explore a fourth: whether children draw on different cognitive strategies when solving mental rotation problems, and whether their strategies vary across contexts. These four questions move from psychometric structure (*Cross-site invariance*), to process-level validity (*Angular sensitivity*), to individual variation (*Sex differences*), to profiles of engagement (*Strategy variation*) — building a layered case for the task's cross-cultural validity.
 
-```{r}
-#| include: false
-#| cache: false
-
-# packages
-library(tidyverse)
-library(stringr)
-library(glue)
-library(here)
-library(tidytext)
-
-library(ggeffects)
-library(patchwork)
-library(ggpubr)
-library(ggrepel)
-
-library(factoextra)
-library(gridExtra)
-library(umap)
-library(gt)
-library(kableExtra)
-library(brms)
-library(lme4)
-library(lmerTest) # p-values via satterthwaite
-library(Rtsne)
-library(ggforce)
-library(broom.mixed)
-library(performance)
-library(marginaleffects)
-```
-
-```{r}
-#| label: setup
-#| cache: false
-
-source(here("helper", "plot_settings.R"))
-source(here("helper", "explore_helper.R"))
-
-# p-value formatter
-fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
-
-# convert multiplicative factor to percentage increase/decrease
-mult_to_pct <- \(x, more, less) {
-  if_else(x > 1,
-          glue("{round((x - 1) * 100, 1)}% {more}"),
-          glue("{round((1 - x) * 100, 1)}% {less}"))
-}
-
-# # stringify one row of an output of tidy.lm()
-# effect_str <- \(coefs) glue('β = {round(coefs$estimate, 2)}, SE = {round(coefs$std.error, 2)}, p {fmt_p(coefs$p.value)}')
-# 
-# # stringify one row of an output of tidy.anova()
-# anova_str <- \(av) glue("χ²({av$df}) = {round(av$statistic, 2)}, p {fmt_p(av$p.value)}")
-```
-
-```{r}
-#| label: site-info
-
-# site_labels <- c("uniandes-co" = "pilot_uniandes_co",
-#                  "mpieva-de" = "pilot_mpieva_de",
-#                  "western-ca" = "pilot_western_ca")
-
-# # site_pal is keyed by pilot_* names
-# # site_labels is keyed by readable names, values are pilot_* names
-# # index site_pal by the pilot_* values, then assign readable names
-# site_pal_labelled <- setNames(
-#   site_pal[unname(site_labels)],
-#   names(site_labels)
-# )
-
-site_labels <- c("uniandes-co-bogota" = "pilot_uniandes_co_bogota",
-                 "uniandes-co-rural" = "pilot_uniandes_co_rural",
-                 "mpieva-de" = "pilot_mpieva_de_main",
-                 "western-ca" = "pilot_western_ca_main")
-
-site_pal <- ptol_pal()(length(site_labels)) |>
-  rlang::set_names(names(site_labels))
-```
-
-```{r}
-#| label: load-data
-
-# run data
-run_data <- read_rds(here("data/runs_mrot.rds"))
-
-# RT data
-task_data <- read_rds(here("data/task_data_nested.rds"))
-
-# IRT data
-mrot_scores <- read_rds(here("models/mrot_scores.rds")) |>
-  filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
-
-# coefficients
-mrot_coefs <- read_rds(here("models/mrot_coef.rds"))
-
-# sex info for sex differences analyses
-sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))
-```
-
-```{r}
-#| label: filter-runs
-
-# apply filters to runs for use in all subsequent analyses
-min_trials <- 10
-min_gap_months <- 3
-run_data_filtered <- run_data |>
-  filter(num_attempted >= min_trials) |>
-  filter(!is.na(age), age >= 5, age <= 14) |>
-  arrange(user_id, age) |>
-  group_by(user_id) |>
-  mutate(run_number = row_number(),
-         age_gap = age - lag(age)) |>
-  ungroup() |>
-  filter_out(age_gap < min_gap_months / 12) |>
-  select(site, dataset, user_id, run_id, age, adaptive)
-
-# create age groups based on roughly equal sample sizes
-ages <- run_data_filtered |> pull(age)
-# n_groups <- 3
-# age_breaks <- quantile(ages, probs = seq(0, 1, length.out = n_groups + 1))
-age_breaks <- c(5, 8, 11, 14)
-
-# add age groups and site labels
-runs_filtered <- run_data_filtered |>
-  mutate(age_group = cut(age, breaks = age_breaks,
-                         include.lowest = TRUE, right = FALSE),
-         site_label = dataset |>
-           recode_values(from = site_labels, to = names(site_labels)))
-```
-
-```{r}
-#| label: sample-counts
-
-# overall
-site_n_df <- run_data |>
-  group_by(dataset) |>
-  summarise(n_users = n_distinct(user_id),
-            n_runs = n_distinct(run_id)) |>
-  mutate(site_label = dataset |>
-           recode_values(from = site_labels, to = names(site_labels)))
-
-site_n <- site_n_df |> nest(ns = -site_label) |> deframe()
-# n_uniandes <- site_n |> filter(site_label == "uniandes-co") |> pull(n_users)
-# n_mpieva <- site_n |> filter(site_label == "mpieva-de")  |> pull(n_users)
-# n_western <- site_n |> filter(site_label == "western-ca") |> pull(n_users)
-
-mrot_df <- mrot_scores |>
-  inner_join(runs_filtered)
-
-n_excluded <- mrot_scores |>
-  anti_join(mrot_df) |>
-  summarise(n_users = n_distinct(user_id),
-            n_runs = n_distinct(run_id))
-
-n_final <- mrot_df |>
-  summarise(n_users = n_distinct(user_id),
-            n_runs = n_distinct(run_id))
-
-n_repeat_users <- runs_filtered |>
-  group_by(user_id) |>
-  summarise(n_assessments = n_distinct(run_id)) |>
-  filter(n_assessments > 1) |>
-  nrow()
-```
-
-```{r}
-#| label: trial-level-rts
-
-mrot_trials <- task_data |>
-  select(data) |>
-  unnest(data) |>
-  inner_join(runs_filtered)
-
-mrot_rt_trial <- mrot_trials |>
-  select(site_label, user_id, run_id, adaptive,
-         age, age_group, trial_id, trial_number, item_uid, item_group, item,
-         item_original, correct, rt_numeric) |>
-  mutate(
-    correct    = as.integer(correct),
-    rt_s       = as.numeric(rt_numeric) / 1000,
-    log_rt     = log(rt_s),
-    angle      = as.integer(stringr::str_extract(item, "(?<=_)\\d+")),
-    angle_full = as.integer(stringr::str_extract(item_original, "\\d{3}$")),
-    stimulus   = str_extract(item, "^[a-z]+")
-  ) |>
-  filter(is.finite(rt_s), rt_s > 0)
-# write_rds(mrot_rt_trial, "data/mrot_rt_trial.rds", compress = "gz")
-```
-
-```{r}
-#| label: sex-data-coverage
-
-mrot_trial_sex <- mrot_rt_trial |>
-  left_join(sex_data_cleaned) |>
-  distinct(user_id, site_label, sex)
-
-site_sex_counts <- mrot_trial_sex |>
-  count(site_label, sex) |>
-  mutate(sex = sex |> replace_na("Unknown")) |>
-  pivot_wider(names_from = sex, values_from = n)
-
-overall_sex_counts <- mrot_trial_sex |>
-  count(sex) |>
-  mutate(sex = sex |> replace_na("Unknown")) |>
-  pivot_wider(names_from = sex, values_from = n)
-```
-
-```{r}
-#| label: site-timespans
-
-site_spans <- mrot_trials |>
-  group_by(site_label) |>
-  summarise(earliest = min(timestamp),
-            latest = max(timestamp)) |>
-  mutate(across(-site_label, as_date)) |>
-  nest(range = -site_label) |>
-  deframe()
-```
-
-```{r}
-#| label: cat-exclusion-counts
-
-cat_counts <- mrot_rt_trial |>
-  group_by(adaptive) |>
-  summarise(trials = n(), runs = n_distinct(run_id)) |>
-  mutate(adaptive = if_else(adaptive, "n_cat", "n_non_cat")) |>
-  pivot_longer(cols = c(trials, runs), names_to = "count") |>
-  pivot_wider(names_from = adaptive, values_from = value) |>
-  mutate(n_total = n_cat + n_non_cat,
-         pct_cat = round(n_cat / n_total * 100, 1)) |>
-  nest(counts = -count) |>
-  deframe()
-```
+{{< include _data_prep.qmd >}}
 
 ```{r}
 #| label: tbl-participants
 #| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
 
-trials_per_run <- mrot_rt_trial |>
-  group_by(site_label, user_id, run_id) |>
-  summarise(n_trials = n()) |>
-  group_by(site_label) |>
-  summarise(
-    trials_mean = mean(n_trials),
-    trials_sd   = sd(n_trials),
-    trials_min  = min(n_trials),
-    trials_max  = max(n_trials),
-    .groups = "drop"
-  ) |>
-  mutate(trials_summary = sprintf("%.0f (%.1f) [%d–%d]", trials_mean, trials_sd,
-                                  trials_min, trials_max)) |>
-  select(site_label, trials_summary)
-
-site_features <- tribble(
-  ~site_label, ~area, ~location, ~setting, ~device,
-  "mpieva-de", "Leipzig, Germany", "remote (home-based)", "individual", "family device",
-  "uniandes-co-bogota", "Bogotá, Colombia", "in school", "group", "tablet (researcher-provided)",
-  "uniandes-co-rural", "Caquetá and Boyacá, Colombia", "in school", "group", "tablet (researcher-provided)",
-  "western-ca", "London, Ontario, Canada", "on-campus", "individual", "tablet (researcher-provided)"
-)
-
-site_info <- mrot_df |>
-  group_by(site_label) |>
-  summarise(
-    n_run    = n(),
-    n_user   = n_distinct(user_id),
-    age_mean = mean(age),
-    age_sd   = sd(age),
-    age_min  = min(age),
-    age_max  = max(age),
-    .groups  = "drop"
-  ) |>
-  mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
-                               age_mean, age_sd, age_min, age_max)) |>
-  left_join(trials_per_run) |>
-  left_join(site_features) |>
-  mutate(testing_format = glue("Location: {location}\nSetting: {setting}\nDevice: {device}")) |>
-  select(Site = site_label,
-         Area = area,
-         `N assessments` = n_run,
-         `N participants` = n_user,
-         `Age: M (SD) [range]` = age_summary,
-         `Trials per assessment: M [range]` = trials_summary,
-         `Testing format` = testing_format)
-
-site_info |> gt()
+site_info |>
+  gt() |>
+  cols_label(site_label = "Site",
+             area = "Area",
+             n_run = "N assessments",
+             n_user = "N participants",
+             age_summary = "Age: M (SD) [range]",
+             trials_summary = "Trials per assessment: M [range]",
+             testing_format = "Testing format")
 ```
 
 # Methods
@@ -400,82 +146,42 @@ Data and analysis code for this paper are available at <https://anonymous.4open.
 
 The nine core tasks in the LEVANTE battery, including mental rotation, were initially designed in English and then subsequently adapted for Spanish and German following a set of internationalization procedures in collaboration with researchers at the uniandes-co and mpieva-de sites, respectively. The LEVANTE mental rotation task [originally based on @frick2013development] is administered digitally on a tablet or computer as part of a battery of nine core tasks. It employs two stimulus categories of increasing difficulty: 2D animal figures (ducks and rabbits), and 3D block configurations from the @shepard1971mental set (see [Appendix A (Example items)](#sec-apx-mrot-example-items)). On each trial, a target image is displayed alongside two alternatives: one shows the same object rotated to a different angle, and the other is a mirror-reversed version that cannot be matched to the target by rotation alone. Children select whichever alternative they judge to correspond to the target by tapping or clicking on their device. The angular disparity between target and correct alternative varies systematically across trials (ranging from 20° to 320°), enabling examination of how increasing rotation demands affect both accuracy and response latency.
 
-### Computer-Adaptive Testing Format
+### Computer-adaptive testing format
 The LEVANTE team has implemented the mental rotation task in a computer-adaptive testing (CAT) format. In the adaptive version, participant ability is summarized by a latent proficiency estimate (θ) that is re-estimated after each response. The updated θ then guides selection of the next item so that it is appropriately challenging for each individual child. This trial-by-trial targeting typically makes the task more engaging and increases measurement efficiency, enabling reliable ability estimation with fewer administered items. In the present sample, `r cat_counts$runs$pct_cat`% of administrations (`r cat_counts$runs$n_cat` of `r cat_counts$runs$n_total`) used the CAT format. In the fixed format, testing stopped after either six consecutive incorrect responses or a maximum of 10 minutes, whichever came first. Refer to @Kachergis2025LEVANTEcoretasks for more information on the internationalization procedures and CAT versions of all LEVANTE tasks.
 
 ## Analysis
 
-### Item Screening
+### Item screening
 Prior to fitting psychometric models, we examined item-level performance within each site to identify poorly functioning items. Items were screened for having average accuracy near or below chance, low item–total correlations, high missingness, or other anomalous patterns – as a result no items were identified as warranting exclusion from further analysis for this task. For full details of the item screening procedure, see @Kachergis2025LEVANTEcoretasks.
 
-### Item Response Theory Models
+### Item response theory models
 Item response theory (IRT) is a psychometric framework that models the relationship between a latent trait and performance on individual task items. Unlike classical test theory, which relies on total scores and treats all items as equivalent contributors to measurement, IRT estimates item-level parameters independently of the specific sample tested, providing more precise measurement across the ability range. All models assumed a single underlying factor, following standard practice in psychometric analyses of mental rotation tasks and consistent with the task's design as a measure of a single spatial ability.
 
 We compared two types of IRT models. The Rasch model (1-parameter logistic; 1PL) estimates only item difficulty, holding discrimination constant across items — that is, it assumes all items are equally good at differentiating children of higher versus lower ability. The two-parameter logistic model (2PL) relaxes this constraint, additionally estimating each item's discrimination parameter. A better-fitting 2PL therefore indicates that items vary meaningfully in how well they distinguish between ability levels. For both types of models, we additionally used a fixed guessing parameter set to chance level (0.5).
 
 All IRT models were estimated in R using the `mirt` package [@chalmers2012mirt] via marginal maximum likelihood with 61 quadrature points. We specified a Gaussian prior on item difficulty ($\mathcal{N}(0,3)$) for both Rasch and 2PL models, as well as a Gaussian prior on item discrimination ($\mathcal{N}(1,0.3)$) for 2PL models. We extracted ability scores (θ) using expected a posteriori (EAP) scoring.
 
-### Analysis 1: Cross-Site Invariance
+### Analysis 1: Cross-site invariance
 To assess cross-site measurement invariance, we fitted both types of models with varying constraints across the three sites: configural invariance (all parameters free to vary), metric invariance (item discriminations are constrained to be equal -- only relevant for 2PL), and scalar invariance (both discriminations and difficulties are constrained to be equal). We compared models using BIC (Bayesian information criterion) as the selection criterion [@putnick2016measurement], and also examined their marginal reliability.
 <!-- Overlapping items across sites served as anchors to establish a common scale, with non-overlapping items freely estimated within the same multigroup model. -->
 <!-- MB: removed above sentence because all items overlap in this task -->
 
-### Analysis 2: Angular Sensitivity
+### Analysis 2: Angular sensitivity
 To investigate whether performance was sensitive to rotation angle as originally demonstrated by @shepard1971mental, we fitted linear mixed-effects models (in R using the `lme4` package, @lme4) predicting log response time (RT) from rotation angle, with participant level intercepts and slopes for angle. Warm-up trials (20°) were excluded, leaving rotation angles ranging from 40° to 320°.
 For analysis, rotation angles were recoded to their shortest-path equivalents, collapsing the full 0–360° range to angular disparities of 0–180° (e.g., a 320° rotation was treated as a 40° disparity), on the assumption that participants take the most efficient rotational path. This recoding was verified in a robustness check using full 0–360° angles reported in [Appendix E (Full 0–360° angle check)](#sec-apx-e). Rotation angle was standardized (M = 0, SD = 1) prior to analysis. We fitted separate models for 2D and 3D stimuli. For each, we additionally tested site as a moderator of the angle slope by including a site × angle interaction. A combined model including both stimulus types was used to test whether the angle slope differed between 2D and 3D items. Only correct trials were included in RT analyses. CAT trials were excluded from RT models because adaptive item selection produces non-random angle exposure: higher-ability children disproportionately receive high-angle items and lower-ability children receive low-angle items. This correlation between ability and angle makes it impossible to obtain unbiased estimates of the RT–angle relationship, regardless of whether angular sensitivity itself varies with ability. Of `r cat_counts$trials$n_total` trials from all assessments, `r cat_counts$trials$n_cat` (`r cat_counts$trials$pct_cat`%) were administered in CAT format and excluded, leaving `r cat_counts$trials$n_non_cat` trials for this analysis. 
 
-### Analysis 3: Sex Differences
+### Analysis 3: Sex differences
 To examine whether IRT-based ability scores differed by sex, we fitted a linear mixed-effects model (in R using the `lme4` package) predicting ability scores from sex, age, and their interaction, with fixed effects for site and random intercepts for participant. Fixed rather than random site effects were used given the small number of sites (k = 3). Sex at birth was reported by caregivers as part of the LEVANTE background survey.
 
-### Analysis 4: Strategy Variation
+### Analysis 4: Strategy variation
 To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model (in R using the `lme4` package) predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here and both correct and incorrect trials were included: the strategy analysis extracts relative person-level features rather than estimating the angle effect at the population level, and including all available trials (correct and incorrect) yields more reliable individual-level estimates.
 
 From this model, we extracted five person-level features for each child. Baseline response speed (`Baseline_Speed`) reflects general processing efficiency independent of rotation demands. Angular sensitivity was captured two ways: as the absolute RT–angle slope (the time added per degree of rotation; `Abs_Slope`), and as that slope expressed relative to each child's baseline speed (`Rel_Slope`), capturing the degree to which rotation demands slow a child down proportional to their typical pace — a relative measure better suited to a developmental sample where baseline processing speed varies substantially with age. The trial-by-trial RT trend (`Learning_Rate`) indexes within-session learning or fatigue. Finally, response instability (`Instability`) captures trial-to-trial variability that cannot be attributed to angle or trial position — children who disengage from the task's spatial demands or shift inconsistently between approaches are expected to show greater residual variability than those applying a consistent strategy; this was operationalized as the standard deviation of model residuals. Each feature was retained on the basis that it captures a distinct and interpretable aspect of how children engage with the task's spatial demands. These five features were submitted to k-means clustering as a descriptive tool to identify broad patterns of engagement.
 
 # Results
 
-## Analysis 1: Cross-Site Invariance
-```{r}
-#| label: irt-anova
-
-task_anova <- read_rds(here("models/mrot_anova.rds"))
-mrot_models <- task_anova |> filter(model_set == "multigroup_dataset")
-```
-
-```{r}
-#| label: irt-rxx
-
-task_rxx <- read_rds(here("models/mrot_rxx.rds"))
-site_rxx <- task_rxx |>
-  filter(model_set == "multigroup_dataset") |>
-  rename(dataset = group) |>
-  mutate(site_label = dataset |>
-           recode_values(from = site_labels, to = names(site_labels))) |>
-  select(itemtype, site_label, rxx)
-
-rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
-  nest(data = -itemtype) |> deframe() |> map(deframe) |>
-  map(\(vals) imap(vals, paste) |> paste(collapse = ", "))
-```
-
-```{r}
-#| label: mrot-irt-values
-
-mrot_2pl_scalar <- mrot_models |>
-  filter(task == "mrot", itemtype == "2pl", invariance == "scalar")
-
-mrot_2pl_configural <- mrot_models |>
-  filter(task == "mrot", itemtype == "2pl", invariance == "configural")
-
-mrot_rasch_scalar <- mrot_models |>
-  filter(task == "mrot", itemtype == "rasch", invariance == "scalar")
-
-delta_bic_rasch <- round(mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC, 1)
-delta_bic_configural <- round(mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC, 1)
-bic_2pl_scalar  <- round(mrot_2pl_scalar$BIC, 2)
-aic_2pl_scalar  <- round(mrot_2pl_scalar$AIC, 2)
-npar_2pl_scalar <- mrot_2pl_scalar$df
-```
+{{< include _irt.qmd >}}
+## Analysis 1: Cross-site invariance
 
 Our first research question asked whether the task measured the mental rotation construct in the same way across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`, *k* = `r npar_2pl_scalar`), outperforming the 2PL configural invariance model by `r delta_bic_configural` BIC points and the Rasch scalar invariance model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt).
 
@@ -491,16 +197,7 @@ Scalar invariance is a psychometric property of the instrument: it establishes t
 
 best_row <- which.min(mrot_models$BIC)
 
-invar_table <- mrot_models |>
-  # transmute(
-  #   Model       = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl"),
-  #   Invariance  = invariance,
-  #   `Log-likelihood` = logLik,
-  #   AIC         = AIC,
-  #   BIC         = BIC,
-  #   Parameters  = df,
-  #   model_order = model_order
-  # ) |>
+mrot_models |>
   mutate(itemtype = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl")) |>
   mutate(dBIC = BIC - lag(BIC)) |>
   select(itemtype, invariance, logLik, AIC, BIC, dBIC, df, model_order) |>
@@ -516,458 +213,20 @@ invar_table <- mrot_models |>
   fmt_number(columns = df, decimals = 0, use_seps = FALSE) |>
   cols_align(align = "center", columns = c(itemtype, invariance, df)) |>
   cols_align(align = "right",  columns = c(logLik, AIC, BIC)) |>
-  tab_style(
-    style = list(
-      cell_text(weight = "bold"),
-      cell_fill(color = "#f0f7ff")
-    ),
-    locations = cells_body(rows = best_row)
-  ) |>
-  # tab_footnote(
-  #   footnote = "Degrees of freedom not computed for the baseline configural model.",
-  #   locations = cells_body(columns = df, 
-  #                          rows = itemtype == "Rasch" & itemtype == "configural")
-  # ) |>
-  tab_footnote(
-    footnote = "Computed relative to the previous model in the sequence.",
-    locations = cells_column_labels(columns = c(dBIC, df))
-  ) |>
+  tab_style(style = list(cell_text(weight = "bold"),
+                         cell_fill(color = "#f0f7ff")),
+            locations = cells_body(rows = best_row)) |>
+  tab_footnote(footnote = "Computed relative to the previous model in the sequence.",
+               locations = cells_column_labels(columns = c(dBIC, df))) |>
   tab_row_group(label = "2PL",   rows = model_order %in% 3:5) |>
   tab_row_group(label = "Rasch", rows = model_order %in% 1:2) |>
-  tab_options(
-    table.width = pct(100),
-    data_row.padding = px(3),
-    row_group.font.weight = "bold"
-  )
-invar_table
+  tab_options(table.width = pct(100), data_row.padding = px(3),
+              row_group.font.weight = "bold")
 ```
 
-```{r}
-# load configural parameters
-mrot_configural <- mrot_coefs |>
-  filter(task == "mrot",
-         itemtype == "2pl",
-         invariance == "configural",
-         model_set == "multigroup_dataset") |>
-  mutate(site_label = group |>
-           recode_values(from = site_labels, to = names(site_labels))) |>
-  select(item, site_label, difficulty, discrimination = a1)
-
-# pivot wide
-mrot_wide_d <- mrot_configural |>
-  pivot_wider(names_from = site_label, values_from = c(difficulty, discrimination)) |>
-  separate_wider_delim(item, delim = "_",
-                       names = c("task", "group", "stimulus", "angle")) |>
-  mutate(angle = as.integer(angle),
-         item_label = glue("{stimulus} {angle}°"))
-
-param_ranges <- list(
-  "difficulty" = range(mrot_configural$difficulty),
-  "discrimination" = range(mrot_configural$discrimination)
-)
-coef_scatter <- function(param, x_site, y_site) {
-  x_var <- paste(param, x_site, sep = "_")
-  y_var <- paste(param, y_site, sep = "_")
-  x_lab <- glue("{str_to_sentence(param)} ({x_site})")
-  y_lab <- glue("{str_to_sentence(param)} ({y_site})")
-  ggplot(mrot_wide_d, aes(x = .data[[x_var]], y = .data[[y_var]])) +
-    coord_equal(xlim = param_ranges[[param]], ylim = param_ranges[[param]]) +
-    geom_abline(intercept = 0, slope = 1,
-                linetype = "dashed", colour = pal$grey) +
-    geom_point(aes(colour = stimulus), size = 2.5, na.rm = TRUE) +
-    geom_text_repel(aes(label = item_label), size = 2.8, family = .font,
-                    max.overlaps = Inf, box.padding = 0.5, point.padding = 0.3) +
-    .scale_colour_stimulus(guide = "none") +
-    labs(x = x_lab, y = y_lab)
-}
-
-sites <- names(site_labels)
-site_pairs <- expand_grid(s1 = 1:4, s2 = 1:4) |>
-  filter(s2 > s1) |>
-  mutate(s1 = sites[s1], s2 = sites[s2])
-```
-
-```{r}
-#| label: fig-item-diff
-#| fig-cap: "**Item difficulty parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across sites."
-#| fig-width: 12
-#| fig-height: 8
-
-pair_plots_d <- map2(site_pairs$s1, site_pairs$s2,
-                     partial(coef_scatter, param = "difficulty"))
-wrap_plots(pair_plots_d)
-```
-
-```{r}
-#| label: fig-item-disc
-#| fig-cap: "**Item discrimination parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item discrimination parameters are consistent across sites."
-#| fig-width: 12
-#| fig-height: 8
-
-pair_plots_a <- map2(site_pairs$s1, site_pairs$s2,
-                     partial(coef_scatter, param = "discrimination"))
-wrap_plots(pair_plots_a)
-```
-
-```{r}
-#| label: fig-co-theta-comparison
-#| include: false
-
-# # Re-read without the model_set filter
-# mrot_scores_all <- read_rds(here("models/mrot_scores.rds"))
-# 
-# co_labels <- c(
-#   "pilot_uniandes_co_rural"  = "uniandes-co-rural",
-#   "pilot_uniandes_co_bogota" = "uniandes-co-bogota",
-#   "pilot_uniandes_co"        = "uniandes-co"
-# )
-# 
-# co_theta <- mrot_scores_all |>
-#   filter(
-#     invariance == "scalar",
-#     dataset %in% names(co_labels)
-#   ) |>
-#   mutate(
-#     dataset_label = co_labels[dataset],
-#     model_label = case_when(
-#       model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)",
-#       model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)"
-#     )
-#   )
-# 
-# co_pal <- c("uniandes-co-bogota" = pal$red,
-#             "uniandes-co-rural" = pal$blue,
-#             "uniandes-co" = pal$grey)
-# 
-# # p_co_theta <- ggplot(co_theta, 
-# #                      aes(x = metric_value, fill = dataset_label, 
-# #                          colour = dataset_label)) +
-# #   geom_density(alpha = 0.3) +
-# #   facet_wrap(~model_label, ncol = 2) +
-# #   scale_fill_manual(values = co_pal) +
-# #   scale_colour_manual(values = co_pal) +
-# #   labs(
-# #     x = "Estimated θ",
-# #     y = "Density",
-# #     fill = "Site", colour = "Site"
-# #   ) +
-# #   theme(legend.position = "bottom")
-# # p_co_theta
-# 
-# co_theta_wide <- co_theta |>
-#   select(run_id, dataset, dataset_label, model_set, metric_value) |>
-#   pivot_wider(names_from = model_set, values_from = metric_value)
-# 
-# p_co_theta <- ggplot(co_theta_wide, aes(y = multigroup_dataset, x = multigroup_site)) +
-#   coord_fixed() +
-#   geom_abline(color = "lightgrey", linetype = "dotted") +
-#   geom_point(aes(colour = dataset_label), size = 0.8, alpha = 0.5) +
-#   scale_colour_manual(values = co_pal) +
-#   labs(y = "Ability (θ) from by dataset model (samples split)",
-#        x = "Ability (θ) from by site model (samples pooled)",
-#        colour = "Sub-sample") +
-#   theme(legend.position = "bottom")
-# p_co_theta
-```
-
-```{r}
-#| label: fig-co-item-difficulty-comparison
-#| include: false
-
-# co_groups <- c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota", "pilot_uniandes_co")
-# 
-# co_coefs <- mrot_coefs |>
-#   filter(
-#     invariance == "configural",
-#     itemtype == "2pl",
-#     group %in% co_groups
-#   ) |>
-#   select(model_set, group, item, difficulty, discrimination = a1) |>
-#   mutate(
-#     group_label = co_labels[group],
-#     model_label = case_when(
-#       model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)",  
-#       model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)"
-#     )
-#   ) |>
-#   separate_wider_delim(item, delim = "_", cols_remove = FALSE,
-#                        names = c("task", "item_group", "stimulus", "angle")) |>
-#   mutate(item_group = item_group |> str_to_upper(),
-#          stimulus = stimulus |> fct_relevel("rabbit"),
-#          angle = angle |> as.integer(),
-#          item_label = glue("{item_group} {stimulus} ({angle}°)")) |>
-#   arrange(item_group, angle, stimulus) |>
-#   mutate(item_label = item_label |> fct_inorder() |> fct_rev())
-# 
-# # co_pal_3 <- c("uniandes-co-bogota" = pal$red, 
-# #               "uniandes-co-rural"  = pal$blue, 
-# #               "uniandes-co" = pal$grey)
-# 
-# p_co_items_d <- ggplot(co_coefs,
-#                      aes(x = difficulty, y = item_label, colour = group_label)) +
-#   geom_crossbar(aes(xmin = difficulty, xmax = difficulty),
-#                 width = 0.5, middle.linewidth = 0.2) +
-#   scale_colour_manual(values = co_pal) +
-#   labs(x = "Item difficulty", y = "Item", colour = "Group") +
-#   theme(#axis.text.y = element_text(size = 7),
-#         legend.position = "bottom")
-#         # legend.direction = "vertical")
-# p_co_items_d
-# 
-# p_co_items_a1 <- ggplot(co_coefs,
-#                      aes(x = discrimination, y = item_label, colour = group_label)) +
-#   geom_crossbar(aes(xmin = discrimination, xmax = discrimination),
-#                 width = 0.5, middle.linewidth = 0.2) +
-#   scale_colour_manual(values = co_pal) +
-#   labs(x = "Item discrimination", y = "Item", colour = "Group") +
-#   theme(axis.text.y = element_text(size = 7),
-#         legend.position = "bottom")
-# p_co_items_a1
-# 
-# # co_coefs |>
-# #   select(item, model_set, group, difficulty, discrimination = a1) |>
-# #   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
-# #   mutate(model_set = model_set |> str_remove("multigroup_"),
-# #          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
-# #   filter(item == "mrot_2d_rabbit_020")
-# # 
-# co_coefs_wide <- co_coefs |>
-#   select(item, model_set, group, difficulty, discrimination) |>
-#   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
-#   mutate(model_set = model_set |> str_remove("multigroup_"),
-#          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
-#   unite("set", model_set, group) |>
-#   pivot_wider(names_from = set, values_from = value)
-# 
-# p_co_items_scatter <- ggplot(co_coefs_wide, aes(x = dataset_bogota, y = dataset_rural)) +
-#   facet_wrap(vars(parameter), scales = "free") +
-#   geom_abline(linetype = "dashed", colour = "lightgrey") +
-#   geom_point()
-# 
-# # co_coefs_wide |> filter(parameter == "difficulty") |>
-# #   select(where(is.double)) |>
-# #   GGally::ggpairs()
-```
-
-```{r}
-#| label: co-followup-data
-#| include: false
-
-# # shared lookup: map user_id → rural/bogota 
-# co_dataset_lookup <- mrot_scores_all |>
-#   filter(dataset %in% c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota")) |>
-#   distinct(user_id, dataset) |>
-#   mutate(co_site = co_labels[dataset])
-# 
-# co_age <- runs_filtered |>
-#   inner_join(co_dataset_lookup, by = "user_id")
-# 
-# co_age_summary <- co_age |>
-#   group_by(co_site) |>
-#   summarise(
-#     n        = n_distinct(user_id),
-#     age_mean = mean(age, na.rm = TRUE),
-#     age_sd   = sd(age, na.rm = TRUE),
-#     age_min  = min(age, na.rm = TRUE),
-#     age_max  = max(age, na.rm = TRUE),
-#     .groups  = "drop"
-#   )
-# 
-# co_adaptive <- co_age |>
-#   group_by(co_site, adaptive) |>
-#   summarise(n = n_distinct(user_id), .groups = "drop") |>
-#   group_by(co_site) |>
-#   mutate(pct = round(100 * n / sum(n), 1))
-# 
-# co_trials <- mrot_rt_trial |>
-#   inner_join(co_dataset_lookup, by = "user_id") |>
-#   group_by(co_site, item_group) |>
-#   summarise(
-#     n_trials = n(),
-#     n_users  = n_distinct(user_id),
-#     .groups  = "drop"
-#   )
-# 
-# task_anova_both <- read_rds(here("models/mrot_anova.rds")) |>
-#   filter(task == "mrot", itemtype == "2pl")
-```
-
-```{r}
-#| label: co-rural-urban-values
-#| include: false
-
-# # sample sizes and age
-# co_bogota_n    <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(n)
-# co_rural_n     <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(n)
-# co_bogota_age_mean <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_mean) |> round(1)
-# co_bogota_age_sd   <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_sd)   |> round(1)
-# co_rural_age_mean  <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_mean) |> round(1)
-# co_rural_age_sd    <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_sd)   |> round(1)
-# 
-# # best-fitting model BIC for by-dataset model
-# co_dataset_best_bic <- task_anova_both |>
-#   filter(model_set == "multigroup_dataset") |>
-#   slice_min(BIC) |>
-#   pull(BIC) |>
-#   round(2)
-# 
-# co_dataset_bic <- task_anova_both |>
-#   filter(model_set == "multigroup_dataset") |>
-#   select(invariance, BIC) |>
-#   deframe()
-# 
-# co_dataset_best_invariance <- task_anova_both |>
-#   filter(model_set == "multigroup_dataset") |>
-#   slice_min(BIC) |>
-#   pull(invariance)
-# 
-# # adaptive split
-# co_bogota_pct_nonadaptive <- co_adaptive |> 
-#   filter(co_site == "uniandes-co-bogota", adaptive == FALSE) |> 
-#   pull(pct)
-# 
-# co_rural_pct_adaptive <- co_adaptive |>
-#   filter(co_site == "uniandes-co-rural", adaptive == TRUE) |>
-#   pull(pct)
-```
-
-```{r}
-# ### Analysis 1a: Within-site grouping
-# The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (uniandes-co-bogota, n = `r co_bogota_n`; uniandes-co-rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across uniandes-co-bogota and uniandes-co-rural for both 2D and 3D items, with the exception of the estimate for one 3D item at the highest rotation angle in uniandes-co-bogota, which likely reflects estimation instability rather than a genuine difference
-# (see [Appendix B (Uniandes-co rural and urban sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (uniandes-co-bogota: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; uniandes-co-rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
-# indicating that the invariance result is not driven by age composition differences.
-# These results support treating uniandes-co as a single group in the main analysis.
-```
-
-### Analysis 1b: Age Sensitivity
 Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
-```{r}
-#| label: rt-angle-data
-
-# set up data for modeling
-
-deg <- 40 # angle unit size
-yrs <- 2  # age unit size
-
-# filter to non-CAT, add age group, stimulus, angle
-mrot_lme_data <- mrot_rt_trial |>
-  filter(!adaptive,            # exclude CAT runs
-         correct == 1,         # exclude incorrect responses
-         trial_number != 1) |> # exclude each run's first trial
-  mutate(
-    item_group = factor(item_group),
-    stimulus   = factor(stimulus),
-    site_label = factor(site_label),
-    angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
-    age_sc     = (age - mean(age)) / yrs # scale to 2 units = sd
-  ) |>
-  select(site_label, user_id, run_id,  matches("age"), trial_number,
-         item_group, stimulus, angle, angle_sc, rt_s, log_rt)
-
-# effects code all factors
-contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
-contrasts(mrot_lme_data$item_group) <- contr.sum(levels(mrot_lme_data$item_group))
-contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
-```
-
-```{r}
-#| label: rt-angle-model
-
-full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
-                   (1 + angle_sc | user_id),
-                 data = mrot_lme_data,
-                 REML = FALSE,
-                 control = lmerControl(optimizer = "bobyqa"))
-full_mod_stats <- model_performance(full_mod, estimator = "ML")
-```
-
-```{r}
-#| label: rt-angle-fits
-
-# extract stimuli predictors for later joining
-stim_map <- mrot_lme_data |> distinct(angle, angle_sc, item_group, stimulus)
-
-# create angle level as correctly spaced factor
-angle_levels <- mrot_lme_data |>
-  distinct(angle) |>
-  arrange(angle) |>
-  mutate(angle_level = factor(angle, levels = as.character(seq(20, 160, 20)),
-                              ordered = TRUE))
-
-# create data-spanning grid points for prediction
-age_seq <- seq(min(mrot_lme_data$age_sc), max(mrot_lme_data$age_sc), length.out = 100)
-pred_grid <- datagrid(angle_sc = unique,        # each angle
-                      stimulus = unique,        # each stimulus
-                      site_label = unique,            # each site
-                      age_sc = age_seq,         # 100 equally spaced values of age
-                      newdata = mrot_lme_data) |>
-  select(rowid, angle_sc, stimulus, site_label, age_sc) |>
-  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
-         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
-         age_group = cut(age, breaks = age_breaks,
-                         include.lowest = TRUE, right = FALSE),
-         task = "mrot") |>
-  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
-  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
-  left_join(angle_levels)
-
-# get model predictions at grid, average age by age_group
-grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group")
-avg_preds <- avg_predictions(full_mod,
-                             newdata = pred_grid,
-                             re.form = NA,
-                             by = grid_preds) |>
-  as_tibble() |>
-  left_join(angle_levels)
-```
-
-```{r}
-#| label: rt-angle-slopes
-
-# extract angle slopes for each predictor
-slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group")
-get_pred_slopes <- \(pred) {
-  slopes(full_mod,
-         newdata = pred_grid,
-         re.form = NA,
-         variables = "angle_sc",
-         by = pred) |> as_tibble() |>
-    rename(value = !!pred) |>
-    mutate(predictor = pred, .before = value)
-}
-pred_slopes <- map(slope_preds, get_pred_slopes) |> list_rbind()
-
-pred_slopes_tbl <- pred_slopes |>
-  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
-  mutate(estimate_rt = exp(estimate)) |>
-  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
-         interpretation = paste(interpretation, glue("per {deg}°")),
-         p.value = map_chr(p.value, fmt_p)) |>
-  mutate(across(where(is.numeric), \(x) round(x, 2)))
-```
-
-```{r}
-#| label: rt-angle-slope-tests
-
-get_pred_slope_test <- \(pred) {
-  slopes(full_mod,
-         newdata = pred_grid,
-         re.form = NA,
-         variables = "angle_sc",
-         by = pred,
-         hypothesis = difference ~ pairwise) |>
-    mutate(predictor = pred, .before = everything())
-}
-pred_slope_tests <- map(slope_preds[-1], get_pred_slope_test) |> list_rbind()
-
-pred_slope_tests_tbl <- pred_slope_tests |> as_tibble() |>
-  select(predictor, hypothesis, estimate, std.error, p.value) |>
-  mutate(estimate_rt = exp(estimate)) |>
-  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
-         p.value = map_chr(p.value, fmt_p))
-```
-
+{{< include _angle_sensitivity.qmd >}}
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
 #| fig-cap: "**Reaction time by angle within age groups ±95% CI.** Note. Cells with fewer than 10 observations are excluded. Lines reflect descriptive means; statistical models were fit separately for 2D and 3D stimuli. Age groups shown for visualization only; age was modeled as a continuous predictor."
@@ -975,25 +234,6 @@ pred_slope_tests_tbl <- pred_slope_tests |> as_tibble() |>
 #| include: true
 #| fig-width: 9
 #| fig-height: 7
-
-# data points to plot - cut off RT tails
-mrot_lme_data_plot <- mrot_lme_data |>
-  mutate(z_rt = scale(log_rt)[,1]) |>
-  filter(abs(z_rt) <= 2) |>
-  left_join(angle_levels)
-
-# empirical means and CIs
-rt_summary <- mrot_lme_data |>
-  group_by(across(all_of(grid_preds))) |>
-  summarise(
-    mean_rt = mean(log_rt),
-    se_rt = sd(log_rt) / sqrt(n()),
-    ci_lower = mean_rt - 1.96 * se_rt,
-    ci_upper = mean_rt + 1.96 * se_rt,
-    .groups = "drop"
-  ) |>
-  ungroup() |>
-  left_join(angle_levels)
 
 # RT axis breaks and labels
 rt_labels <- c(0.25, 0.5, 1, 2, 4, 8)
@@ -1033,34 +273,7 @@ ggplot(avg_preds, aes(x = angle_level)) +
   theme(legend.position = "bottom")
 ```
 
-```{r}
-#| label: rt-angle-results
-
-# set up various lists and functions for reporting model results in text
-
-angle_stats <- mrot_lme_data |>
-  summarise(age_mean = mean(age),
-            age_sd = sd(age),
-            age_min = min(age),
-            age_max = max(age),
-            n_trials = n(),
-            n_runs = n_distinct(run_id)) |>
-  mutate(across(everything(), \(x) round(x, 2)))
-
-mod_stats_tbl <- full_mod_stats |>
-  select(R2_conditional, R2_marginal, RMSE) |>
-  mutate(RMSE_exp = exp(RMSE)) |>
-  mutate(across(everything(), \(x) round(x, 2)))
-
-slope_str <- \(s) glue("β = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p {s$p.value}")
-slope <- \(v) pred_slopes_tbl |> filter(value == v)
-interp_str <- \(s) glue("β = {round(s$estimate, 2)}, {s$interpretation}")
-
-slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
-slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
-```
-
-## Analysis 2: Angular Sensitivity
+## Analysis 2: Angular sensitivity
 
 Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites.
 After exclusion of adaptive assessments and incorrect trials, a total of `r angle_stats$n_runs` assessments contributed `r format(angle_stats$n_trials, big.mark = ",")` trials to the analysis (M age = `r angle_stats$age_mean`, SD = `r format(angle_stats$age_sd, nsmall = 1)`).
@@ -1079,364 +292,13 @@ The angle effect increased considerably over age, being smallest for 5--7 year o
 
 Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
 
-```{r}
-#| label: sex-models-rt
-
-mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |>
-  filter(!is.na(sex)) |>
-  mutate(sex = factor(sex))
-
-contrasts(mrot_lme_data_sex$sex) <- contr.sum(levels(mrot_lme_data_sex$sex))
-
-sex_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
-                  (1 + angle_sc | user_id),
-                data = mrot_lme_data_sex,
-                REML = FALSE,
-                control = lmerControl(optimizer = "bobyqa"))
-perf_sex_mod <- model_performance(sex_mod, estimator = "ML")
-
-sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
-                          stimulus = unique,        # each stimulus
-                          site_label = unique,      # each site
-                          sex = unique,             # each sex
-                          age_sc = age_seq,         # 100 equally spaced values of age
-                          newdata = mrot_lme_data_sex) |>
-  select(rowid, angle_sc, stimulus, site_label, age_sc, sex) |>
-  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
-         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
-         age_group = cut(age, breaks = age_breaks,
-                         include.lowest = TRUE, right = FALSE),
-         task = "mrot") |>
-  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
-  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
-  left_join(angle_levels)
-
-get_sex_comp <- \(pred) {
-  avg_comparisons(sex_mod,
-                  newdata = sex_pred_grid,
-                  re.form = NA,
-                  variables = "sex",
-                  by = pred) |>
-    as_tibble() |>
-    rename(value = !!pred) |>
-    mutate(predictor = pred, .before = value)
-}
-
-sex_comps <- map(slope_preds, get_sex_comp) |> list_rbind()
-
-sex_comps_tbl <- sex_comps |>
-  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
-  mutate(estimate_rt = exp(estimate)) |>
-  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
-         p.value = map_chr(p.value, fmt_p))
-
-sex_slopes <- slopes(sex_mod,
-                     newdata = sex_pred_grid,
-                     re.form = NA,
-                     variables = "angle_sc",
-                     by = "sex") |> as_tibble() |>
-  mutate(predictor = "sex") |>
-  select(term, contrast, predictor, value = sex, estimate, std.error, p.value) |>
-  mutate(estimate_rt = exp(estimate)) |>
-  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
-         interpretation = paste(interpretation, glue("per {deg}°")),
-         p.value = map_chr(p.value, fmt_p))
-
-sex_slope_diffs <- slopes(sex_mod,
-                          newdata = sex_pred_grid,
-                          re.form = NA,
-                          variables = "angle_sc",
-                          by = "sex",
-                          hypothesis = difference ~ pairwise) |> as_tibble() |>
-  mutate(predictor = "sex") |>
-  select(predictor, hypothesis, estimate, std.error, p.value) |>
-  mutate(estimate_rt = exp(estimate)) |>
-  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
-         p.value = map_chr(p.value, fmt_p))
-```
-
-```{r}
-#| label: sex-models-ability
-
-mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
-  filter(!is.na(sex)) |>
-  mutate(sex = factor(sex),
-         site_label = factor(site_label)
-         # age_sc = (age - mean(age)) / yrs
-  ) |>
-  rename(ability = metric_value) |>
-  select(site_label, user_id, run_id, age_group, age, sex, ability)
-
-contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
-
-ability_sex_mod <- lmer(ability ~ age * sex * site_label +
-                          (1 | user_id), data = mrot_df_sex)
-
-perf_ability_sex_mod <- model_performance(ability_sex_mod)
-```
-
-```{r}
-age_seq_yrs <- seq(min(mrot_df_sex$age), max(mrot_df_sex$age), length.out = 100)
-ability_grid <- datagrid(site_label = unique,
-                         sex = unique,
-                         age = age_seq_yrs,
-                         newdata = mrot_df_sex) |>
-  select(rowid, site_label, sex, age) |>
-  mutate(age_group = cut(age, breaks = age_breaks,
-                         include.lowest = TRUE, right = FALSE),
-         task = "mrot")
-
-ability_preds <- avg_predictions(ability_sex_mod,
-                                 newdata = ability_grid,
-                                 re.form = NA,
-                                 by = c("site_label", "age_group", "age", "sex")) |>
-  as_tibble()
-
-sd_ability <- sd(mrot_df_sex$ability)
-ability_comps <- comparisons(
-  ability_sex_mod,
-  newdata = ability_grid,
-  re.form = NA,
-  variables = list(site_label = "pairwise", sex = "pairwise", age = 1),
-  by = "task"
-) |> as_tibble() |>
-  select(term, contrast, estimate, std.error, p.value) |>
-  mutate(p.value = map_chr(p.value, fmt_p),
-         estimate_sd = estimate / sd_ability)
-```
-
-## Analysis 3: Sex Differences 
+{{< include _sex_diffs.qmd >}}
+## Analysis 3: Sex differences 
 
 Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (), with no evidence for a main effect of sex () or an age-by-sex interaction (). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
 
-```{r}
-#| label: strategy-analysis-prep
-#| results: "hide"
-
-# ability
-ability_run <- mrot_df |>
-  group_by(site_label, user_id, run_id, age, age_group) |>
-  summarise(
-    ability = mean(metric_value, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# prep trial-level data for the rich model
-mrot_rich_data <- mrot_rt_trial |>
-  # filter(!adaptive) |> # note: added by Fionnuala, april 12
-  mutate(
-    stimulus = as.factor(stimulus),
-    angle_s  = as.numeric(scale(angle)),
-    trial_s  = as.numeric(scale(trial_number))
-  )
-
-# set sum-to-zero contrasts - by default, R uses treatment contrasts (Duck = reference). 
-# This makes the "Angle" slope represent only Ducks (which is flat for everyone).
-# Setting sum contrasts ensures the "Angle" slope represents the grand mean slope across all stimuli.
-contrasts(mrot_rich_data$stimulus) <- contr.sum(levels(mrot_rich_data$stimulus))
-m_rich <- lmer(
-  log_rt ~ angle_s * stimulus + trial_s +
-    (1 + angle_s + trial_s | run_id) +
-    (1 | item),
-  data = mrot_rich_data,
-  control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
-)
-
-# extract subject-level random effects
-ran_effs <- ranef(m_rich)$run_id |>
-  tibble::rownames_to_column("run_id") |>
-  as_tibble() |>
-  rename(
-    int_dev   = `(Intercept)`,
-    slope_dev = angle_s,
-    trial_dev = trial_s
-  )
-
-# fixed effects (global averages)
-fix_int <- fixef(m_rich)["(Intercept)"]
-fix_ang <- fixef(m_rich)["angle_s"]
-fix_tri <- fixef(m_rich)["trial_s"]
-
-# compute cognitive features (on log-RT scale)
-rich_features_raw <- ran_effs |>
-  mutate(
-    # Baseline Speed: Speed at angle 0 (Intercept)
-    Baseline_Speed = fix_int + int_dev,
-    # Absolute Slope: Time added per degree of rotation (Rotation Cost)
-    Abs_Slope = fix_ang + slope_dev,
-    # Relative Slope (Per Mike's suggestion)
-    # "Is rotation expensive relative to their normal speed?"
-    Rel_Slope = Abs_Slope / Baseline_Speed,
-    # Learning Rate 
-    Learning_Rate  = fix_tri + trial_dev
-  )
-# compute instability (Residual SD)
-# We calculate SD of the *residuals* (not raw RT) to remove the "Task Difficulty" confound.
-# This isolates internal inconsistency from the fact that some kids saw harder items.
-mrot_rich_data$resid <- residuals(m_rich)
-
-instability_data <- mrot_rich_data |>
-  group_by(run_id) |>
-  summarise(
-    # Instability = SD of residuals (pure internal noise)
-    Instability = sd(resid, na.rm = TRUE), 
-    .groups = "drop"
-  )
-
-# join
-rich_features_final <- rich_features_raw |>
-  left_join(instability_data, by = c("run_id")) |> 
-  left_join(ability_run,  by = c("run_id")) |>
-  mutate(Site = site_label) |>
-  # filter to ensure all needed features
-  filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
-```
-
-```{r}
-#| label: clustering-execution
-
-strategy_pal <- ptol_pal()(3)
-strategy_colors <- c(
-  "Rotation" = strategy_pal[1],
-  "Matching/Flipping/Other" = strategy_pal[2],
-  "Ineffective" = strategy_pal[3]
-)
-
-analysis_data <- rich_features_final |>
-  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, 
-                  Instability, Learning_Rate), is.finite)) 
-
-global_input <- analysis_data |>
-  select(Baseline_Speed, Rel_Slope, Abs_Slope, 
-         Instability, Learning_Rate) |>
-  scale()
-
-set.seed(123)
-k_global <- kmeans(global_input, centers = 3, nstart = 25)
-analysis_data$Global_Cluster <- as.factor(k_global$cluster)
-
-cluster_stats <- analysis_data |>
-  group_by(Global_Cluster) |>
-  summarise(
-    mean_ability = mean(ability),
-    mean_slope   = mean(Rel_Slope), 
-    .groups = "drop"
-  )
-
-# as.character() on all pull() calls
-low_eff_id <- cluster_stats |>
-  arrange(mean_ability) |> 
-  slice(1) |> 
-  pull(Global_Cluster) |>
-  as.character()
-
-effective_clusters <- cluster_stats |>
-  filter(as.character(Global_Cluster) != low_eff_id) |>
-  arrange(mean_slope) 
-
-analytical_id <- effective_clusters |>
-  slice(1) |> 
-  pull(Global_Cluster) |>
-  as.character()
-
-holistic_id <- effective_clusters |>
-  slice(2) |> 
-  pull(Global_Cluster) |>
-  as.character()
-
-analysis_data <- analysis_data |>
-  mutate(Strategy_Label = case_when(
-    as.character(Global_Cluster) == low_eff_id ~ "Ineffective",
-    as.character(Global_Cluster) == analytical_id ~ "Matching/Flipping/Other",
-    as.character(Global_Cluster) == holistic_id ~ "Rotation"
-  ),
-  Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
-
-# ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
-#   geom_point(alpha = 0.6) +
-#   scale_color_manual(values = strategy_colors) +
-#   labs(title = "Cluster Result: Ability vs. Relative Slope")
-```
-
-```{r}
-#| label: strategy-reporting-objects
-#| include: false
-
-# helper functions needed for formatting
-fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
-fmt_pct <- function(x, d = 1) paste0(formatC(100*x, format = "f", digits = d), "%")
-
-ineff <- analysis_data |>
-  filter(Strategy_Label == "Ineffective") |>
-  summarise(
-    N              = n(),
-    Mean_Ability   = mean(ability, na.rm = TRUE),
-    SD_Ability     = sd(ability, na.rm = TRUE),
-    Mean_Slope     = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope       = sd(Rel_Slope, na.rm = TRUE),
-    Mean_Abs_Slope = mean(Abs_Slope, na.rm = TRUE),
-    SD_Abs_Slope   = sd(Abs_Slope, na.rm = TRUE),
-    Mean_Baseline  = mean(Baseline_Speed, na.rm = TRUE),
-    Mean_Instab    = mean(Instability, na.rm = TRUE)
-  )
-
-flip <- analysis_data |>
-  filter(Strategy_Label == "Matching/Flipping/Other") |>
-  summarise(
-    N              = n(),
-    Mean_Ability   = mean(ability, na.rm = TRUE),
-    SD_Ability     = sd(ability, na.rm = TRUE),
-    Mean_Slope     = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope       = sd(Rel_Slope, na.rm = TRUE),
-    Mean_Abs_Slope = mean(Abs_Slope, na.rm = TRUE),
-    SD_Abs_Slope   = sd(Abs_Slope, na.rm = TRUE),
-    Mean_Baseline  = mean(Baseline_Speed, na.rm = TRUE),
-    Mean_Instab    = mean(Instability, na.rm = TRUE)
-  )
-
-mrot_strat <- analysis_data |>
-  filter(Strategy_Label == "Rotation") |>
-  summarise(
-    N              = n(),
-    Mean_Ability   = mean(ability, na.rm = TRUE),
-    SD_Ability     = sd(ability, na.rm = TRUE),
-    Mean_Slope     = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope       = sd(Rel_Slope, na.rm = TRUE),
-    Mean_Abs_Slope = mean(Abs_Slope, na.rm = TRUE),
-    SD_Abs_Slope   = sd(Abs_Slope, na.rm = TRUE),
-    Mean_Baseline  = mean(Baseline_Speed, na.rm = TRUE),
-    Mean_Instab    = mean(Instability, na.rm = TRUE)
-  )
-
-# pre-computed scalars for inline R in results and discussion
-ineff_n              <- ineff$N
-ineff_pct            <- round(ineff$N / nrow(analysis_data) * 100)
-ineff_mean_ability   <- round(ineff$Mean_Ability, 2)
-ineff_sd_ability     <- round(ineff$SD_Ability, 2)
-ineff_mean_slope     <- round(ineff$Mean_Slope, 2)
-ineff_mean_abs_slope <- round(ineff$Mean_Abs_Slope, 2)
-ineff_mean_baseline  <- round(ineff$Mean_Baseline, 2)
-ineff_mean_instab    <- round(ineff$Mean_Instab, 2)
-
-flip_n            <- flip$N
-flip_pct          <- round(flip$N / nrow(analysis_data) * 100)
-flip_mean_ability <- round(flip$Mean_Ability, 2)
-flip_sd_ability   <- round(flip$SD_Ability, 2)
-flip_mean_slope   <- round(flip$Mean_Slope, 2)
-
-mrot_n              <- mrot_strat$N
-mrot_pct            <- round(mrot_strat$N / nrow(analysis_data) * 100)
-mrot_mean_ability   <- round(mrot_strat$Mean_Ability, 2)
-mrot_sd_ability     <- round(mrot_strat$SD_Ability, 2)
-mrot_mean_slope     <- round(mrot_strat$Mean_Slope, 2)
-mrot_sd_slope       <- round(mrot_strat$SD_Slope, 2)
-mrot_mean_abs_slope <- round(mrot_strat$Mean_Abs_Slope, 2)
-mrot_sd_abs_slope   <- round(mrot_strat$SD_Abs_Slope, 2)
-ability_diff        <- round(flip$Mean_Ability - mrot_strat$Mean_Ability, 2)
-
-```
-
-## Analysis 4: Strategy Variation
+{{< include _strategies.qmd >}}
+## Analysis 4: Strategy variation
 
 Our fourth research question asked, exploratorily, whether individual differences in children's RT profiles capture meaningful variation in strategy use, and whether strategy groupings differ across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. All analyses in this section are exploratory and descriptive; findings should be treated as hypothesis-generating rather than confirmatory.
 
@@ -1444,16 +306,16 @@ To select the number of clusters, we evaluated solutions from k = 1–8 using th
 
 The k = 3 solution identified three distinguishable regions of the engagement continuum. Regions were labeled based on their trial-level RT patterns: trial patterns whose RT profiles showed no systematic angular sensitivity and high response instability were labeled "Ineffective"; those whose RT–angle functions peaked before declining at high disparities — consistent with exploiting reflective symmetry rather than full rotation — were labeled "Matching/Flipping/Other"; and those showing a monotonically increasing RT–angle function consistent with analog rotation were labeled "Rotation". Inspection of the RT–angle functions (@fig-rt-by-disparity) reveals meaningfully distinct patterns across the three groups.
 
-The Ineffective group (n = `r ineff_n`, `r ineff_pct`%) is characterized by lower ability (M = `r ineff_mean_ability`, SD = `r ineff_sd_ability`), the lowest absolute RT–angle slope of the three profiles (M = `r ineff_mean_abs_slope`), and high response instability (M = `r ineff_mean_instab`). Although this group's relative slope (M = `r ineff_mean_slope`) appears elevated relative to the two effective profiles, this reflects their faster baseline processing speed (M = `r ineff_mean_baseline`) rather than genuine angular sensitivity — dividing a small absolute slope by a fast baseline inflates the ratio without implying any rotation cost. The absence of angular sensitivity, 
+The Ineffective group (n = `r strats$ineff$n`, `r strats$ineff$pct`%) is characterized by lower ability (M = `r strats$ineff$mean_ability`, SD = `r strats$ineff$sd_ability`), the lowest absolute RT–angle slope of the three profiles (M = `r strats$ineff$mean_abs_slope`), and high response instability (M = `r strats$ineff$mean_instab`). Although this group's relative slope (M = `r strats$ineff$mean_slope`) appears elevated relative to the two effective profiles, this reflects their faster baseline processing speed (M = `r strats$ineff$mean_baseline`) rather than genuine angular sensitivity — dividing a small absolute slope by a fast baseline inflates the ratio without implying any rotation cost. The absence of angular sensitivity, 
 combined with steeply declining accuracy (see [Appendix D (Accuracy-angle functions by engagement profile)](#sec-apx-accuracy-by-angle)),
 represents a different pattern from simply being slow. The label 'Ineffective' captures a behaviorally heterogeneous group united by the absence of angular sensitivity rather than any shared approach to the task: children assigned here may include those who disengage entirely at higher angular disparities, those who rely on non-spatial heuristics such as position-based responding, and those who attempt rotation but abandon it before completion — the RT signature alone cannot distinguish between these possibilities.
 
-The Matching/Flipping/Other group (n = `r flip_n`, `r flip_pct`%) is the second largest profile and shows the highest mean ability (M = `r flip_mean_ability`, SD = `r flip_sd_ability`). Their RT–angle function rises to a peak around 120° before declining at 160°; as items approach 180°, mirror images become easier to distinguish perceptually without requiring full rotation.
+The Matching/Flipping/Other group (n = `r strats$flip$n`, `r strats$flip$pct`%) is the second largest profile and shows the highest mean ability (M = `r strats$flip$mean_ability`, SD = `r strats$flip$sd_ability`). Their RT–angle function rises to a peak around 120° before declining at 160°; as items approach 180°, mirror images become easier to distinguish perceptually without requiring full rotation.
 
-The Rotation group (n = `r mrot_n`, `r mrot_pct`%) shows the classic monotonically increasing RT–angle function consistent with @shepard1971mental, with the steepest absolute slope (M = `r mrot_mean_abs_slope`, SD = `r mrot_sd_abs_slope`) and steepest relative slope (M = `r mrot_mean_slope`, SD = `r mrot_sd_slope`) among the two effective profiles. We note that flipping and feature matching are theoretically distinct processes [@mckee2025malleability; @hegarty2018ability], but are treated as a single profile here on pragmatic grounds that both tend to produce a weaker or less systematic angular disparity effect than analog rotation.
+The Rotation group (n = `r strats$mrot$n`, `r strats$mrot$pct`%) shows the classic monotonically increasing RT–angle function consistent with @shepard1971mental, with the steepest absolute slope (M = `r strats$mrot$mean_abs_slope`, SD = `r strats$mrot$sd_abs_slope`) and steepest relative slope (M = `r strats$mrot$mean_slope`, SD = `r strats$mrot$sd_slope`) among the two effective profiles. We note that flipping and feature matching are theoretically distinct processes [@mckee2025malleability; @hegarty2018ability], but are treated as a single profile here on pragmatic grounds that both tend to produce a weaker or less systematic angular disparity effect than analog rotation.
 
 To validate the cluster solution against variables not used in its construction, we examined whether profiles differed in IRT-derived ability estimates. Ability differed across all pairwise comparisons (all *p*s < .0001; @fig-ability-boxplot), 
-with the Ineffective group showing lower ability (M = `r ineff_mean_ability`, SD = `r ineff_sd_ability`) than both the Matching/Flipping/Other (M = `r flip_mean_ability`, SD = `r flip_sd_ability`) and Rotation (M = `r mrot_mean_ability`, SD = `r mrot_sd_ability`) groups. Interestingly, despite being the most common profile globally, the Rotation group has lower mean ability than the Matching/Flipping/Other group, even though it shows the RT signature the task was designed to elicit. This may reflect the greater cognitive cost of analog rotation relative to feature-matching strategies, particularly for the 2D stimuli where rotational demands are lower. Among the two effective profiles, relative RT slopes also differed significantly (p < .001; see [Appendix D (Relative RT slope by engagement profile)](#sec-apx-slope-boxplot), with the Rotation profile showing a steeper relative slope (M = `r mrot_mean_slope`) than the Matching/Flipping/Other profile (M = `r flip_mean_slope`), consistent with rotation cost scaling more strongly with angular disparity relative to baseline speed. Accuracy-angle functions by profile are reported in [Appendix D (Accuracy-angle functions by engagement profile)](#sec-apx-accuracy-by-angle) and corroborate the RT-based interpretation: the Ineffective group shows steeply declining accuracy with angle, while the two effective profiles maintain comparable accuracy throughout.
+with the Ineffective group showing lower ability (M = `r strats$ineff$mean_ability`, SD = `r strats$ineff$sd_ability`) than both the Matching/Flipping/Other (M = `r strats$flip$mean_ability`, SD = `r strats$flip$sd_ability`) and Rotation (M = `r strats$mrot$mean_ability`, SD = `r strats$mrot$sd_ability`) groups. Interestingly, despite being the most common profile globally, the Rotation group has lower mean ability than the Matching/Flipping/Other group, even though it shows the RT signature the task was designed to elicit. This may reflect the greater cognitive cost of analog rotation relative to feature-matching strategies, particularly for the 2D stimuli where rotational demands are lower. Among the two effective profiles, relative RT slopes also differed significantly (p < .001; see [Appendix D (Relative RT slope by engagement profile)](#sec-apx-slope-boxplot), with the Rotation profile showing a steeper relative slope (M = `r strats$mrot$mean_slope`) than the Matching/Flipping/Other profile (M = `r strats$flip$mean_slope`), consistent with rotation cost scaling more strongly with angular disparity relative to baseline speed. Accuracy-angle functions by profile are reported in [Appendix D (Accuracy-angle functions by engagement profile)](#sec-apx-accuracy-by-angle) and corroborate the RT-based interpretation: the Ineffective group shows steeply declining accuracy with angle, while the two effective profiles maintain comparable accuracy throughout.
 
 ```{r}
 #| label: fig-ability-boxplot
@@ -1470,25 +332,13 @@ strategy_comparisons <- list(
 
 count_labels <- analysis_data |>
   count(Strategy_Label) |>
-  mutate(
-    pct = round(n / sum(n) * 100),
-    count_label = glue("{Strategy_Label}\n(n = {n}, {pct}%)")
-    # label = case_when(
-    #   Strategy_Label == "Ineffective" ~ 
-    #     glue::glue("Ineffective\n(n = {n}, {pct}%)"),
-    #   Strategy_Label == "Matching/Flipping/Other" ~ 
-    #     glue::glue("Matching/Flipping/Other\n(n = {n}, {pct}%)"),
-    #   Strategy_Label == "Rotation" ~ 
-    #     glue::glue("Rotation\n(n = {n}, {pct}%)")
-    # )
-  ) |>
-  select(Strategy_Label, count_label) #|>
-  # deframe()
+  mutate(pct = round(n / sum(n) * 100),
+         count_label = glue("{Strategy_Label}\n(n = {n}, {pct}%)")) |>
+  select(Strategy_Label, count_label)
 
-p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
+ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = Strategy_Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_sina(alpha = 0.3, size = 1) +
-  # geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
   scale_fill_manual(values = strategy_colors) +
   scale_x_discrete(breaks = count_labels$Strategy_Label,
                    labels = count_labels$count_label) +
@@ -1501,11 +351,6 @@ p_ability <- ggplot(analysis_data, aes(x = Strategy_Label, y = ability, fill = S
   labs(y = "Ability (θ)", x = NULL) +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 0, hjust = 0.5))
-
-p_ability
-
-# ggsave("fig_p_ability.png", plot = p_ability,
-#        width = 10, height = 6, dpi = 300)
 ```
 
 ```{r}
@@ -1516,58 +361,21 @@ p_ability
 #| include: true
 #| fig-cap: "**Participant-weighted mean log reaction time by rotation angle and strategy profile.** Shaded bands show 95% CIs. Note that raw means for the Ineffective group appear to decline slightly with angle; however, this reflects confounds with stimulus type, item difficulty, and trial position that are controlled in the mixed model. The model-adjusted relative slope for this group is near-zero positive, indicating absent rather than negative angular sensitivity."
 
-rt_run_disparity <- mrot_rich_data |>
-  left_join(
-    analysis_data |> select(Site, run_id, Strategy_Label),
-    by = c("run_id")
-  ) |>
-  filter(!is.na(Strategy_Label), is.finite(log_rt)) |>
-  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors))) |>
-  group_by(Strategy_Label, run_id, angle) |>      
-  summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
-
-rt_disparity_summary <- rt_run_disparity |>
-  group_by(Strategy_Label, angle) |>                 
-  summarise(
-    n_runs   = n_distinct(run_id),
-    mean_rt  = mean(user_mean_log_rt, na.rm = TRUE),
-    se       = sd(user_mean_log_rt, na.rm = TRUE) / sqrt(n_runs),
-    lwr      = mean_rt - 1.96 * se,
-    upr      = mean_rt + 1.96 * se,
-    .groups  = "drop"
-  )
-
-p_rt_disparity <- ggplot(rt_disparity_summary,
-                         aes(x = angle, y = mean_rt,
-                             colour = Strategy_Label, fill = Strategy_Label)) +
+ggplot(rt_disparity_summary,
+       aes(x = angle, y = mean_rt, colour = Strategy_Label, fill = Strategy_Label)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.15, colour = NA) +
   geom_line(linewidth = 0.8) +
   geom_point(size = 1.6) +
-  scale_colour_manual(
-    values = strategy_colors, 
-    drop = FALSE,
-    # labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_fill_manual(
-    values = strategy_colors, 
-    drop = FALSE,
-    # labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
+  scale_colour_manual(values = strategy_colors, drop = FALSE) +
+  scale_fill_manual(values = strategy_colors, drop = FALSE) +
   scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
-  labs(
-    x = "Rotation angle (°)",
-    y = "Mean log reaction time (s)",
-    colour = "Strategy profile",
-    fill = "Strategy profile"
-  ) +
+  labs(x = "Rotation angle (°)",
+       y = "Mean log reaction time (s)",
+       colour = "Strategy profile",
+       fill = "Strategy profile") +
   theme(legend.position = "bottom",
         plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt"))
-p_rt_disparity
-
-# ggsave("fig5_rt_by_angle_strategy.png", plot = p_rt_disparity,
-#        width = 7, height = 5, dpi = 300)
 ```
-
 
 ```{r}
 #| label: tbl-descriptive-validation
@@ -1575,270 +383,36 @@ p_rt_disparity
 #| include: false
 
 validation_table <- analysis_data |>
-  group_by(Strategy_Label) |>
+  rename(strategy = Strategy_Label) |>
   summarise(
-    N            = n(),
-    Mean_Ability = mean(ability, na.rm = TRUE),
-    SD_Ability   = sd(ability, na.rm = TRUE),
-    Mean_Slope   = mean(Rel_Slope, na.rm = TRUE),
-    SD_Slope     = sd(Rel_Slope, na.rm = TRUE),
-    Mean_Instab  = mean(Instability, na.rm = TRUE),
-    .groups = "drop"
-  )
+    .by = strategy,
+    n            = n(),
+    mean_ability = mean(ability, na.rm = TRUE),
+    sd_ability   = sd(ability, na.rm = TRUE),
+    mean_slope   = mean(Rel_Slope, na.rm = TRUE),
+    sd_slope     = sd(Rel_Slope, na.rm = TRUE),
+    mean_instab  = mean(Instability, na.rm = TRUE))
 
 validation_table |>
-  transmute(
-    Strategy      = Strategy_Label,
-    N             = N,
-    `Mean Ability`= Mean_Ability,
-    `SD Ability`  = SD_Ability,
-    `Mean Slope`  = Mean_Slope,
-    `SD Slope`    = SD_Slope,
-    `Instability` = Mean_Instab
-  ) |>
   gt() |>
-  tab_header(title = md("")) |> 
-  fmt_number(
-    columns = c(`Mean Ability`, `SD Ability`, `Mean Slope`, `SD Slope`, Instability), 
-    decimals = 2
-  ) |>
-  fmt_number(columns = c(N), decimals = 0, use_seps = FALSE) |>
-  cols_align(align = "center", columns = c(Strategy, N)) |>
-  cols_align(align = "right", columns = c(`Mean Ability`, `SD Ability`, `Mean Slope`, `SD Slope`, Instability)) |>
-  cols_width(
-    Strategy     ~ px(180),
-    N            ~ px(40),
-    everything() ~ px(75)
-  ) |>
-  tab_options(
-    table.width = pct(100),
-    data_row.padding = px(3)
-  )
+  cols_label(n = "N", strategy = "Strategy",
+             mean_ability = "Mean ability", sd_ability = "SD ability",
+             mean_slope = "Mean slope", sd_slope = "SD slope",
+             mean_instab = "Instability") |>
+  fmt_number(decimals = 2) |>
+  fmt_number(columns = n, decimals = 0, use_seps = FALSE) |>
+  cols_align(align = "right") |>
+  cols_align(align = "left", columns = strategy) |>
+  cols_width(strategy ~ px(180), n ~ px(40), everything() ~ px(75)) |>
+  tab_options(table.width = pct(100), data_row.padding = px(3))
 ```
 
 ### Robustness checks {#sec-robustness-checks}
 
 Three robustness checks are reported in full in the appendices. First, comparison of k = 2 and k = 3 solutions confirmed that k = 2 collapsed two distinguishable RT–angle profiles into a single region, justifying the three-profile solution (see [Appendix D (Profile summary statistics)](#sec-apx-cluster-summary-stats) and [Appendix D (Cluster solution validation)](#sec-apx-cluster)). Profile membership by age group is reported in [Appendix D (Strategy use across age groups)](#sec-apx-strategy-age-group). Second, dimensionality reduction via PCA, t-SNE, and UMAP consistently recovered the separation between the Ineffective group and the two effective engagement profiles, while the boundary between the Rotation and Matching/Flipping/Other profiles remained less clear — supporting the continuum interpretation see [Appendix D (Dimensionality reduction checks)](#sec-apx-dimreduc). Third, re-analysis using full 0–360° rotation angles replicated the main findings and provided direct support for shortest-path rotation, with both the Rotation and Matching/Flipping/Other profiles showing near-symmetric inverted-U RT functions peaking around 200–240°, with the Rotation profile showing the steeper rise consistent with the main analysis [Appendix E (Full 0–360° angle check)](#sec-apx-360-angle).
 
-```{r}
-#| label: local-clustering-agreement
-#| include: false
+### Cross-cultural consistency of strategy profiles
 
-cluster_vars <- c("Baseline_Speed", "Rel_Slope", "Abs_Slope", "Instability", "Learning_Rate")
-
-stopifnot(all(cluster_vars %in% names(analysis_data)))
-stopifnot(all(c("Site", "user_id", "run_id", "Strategy_Label") %in% names(analysis_data)))
-stopifnot(nrow(analysis_data) == nrow(distinct(analysis_data, Site, user_id, run_id)))
-
-# ARI function
-ARI <- function(a, b) {
-  a <- as.integer(factor(a))
-  b <- as.integer(factor(b))
-  tab <- table(a, b)
-  n <- sum(tab)
-  if (n <= 1) return(NA_real_)
-  comb2    <- function(x) x * (x - 1) / 2
-  sum_ij   <- sum(comb2(tab))
-  sum_i    <- sum(comb2(rowSums(tab)))
-  sum_j    <- sum(comb2(colSums(tab)))
-  expected <- (sum_i * sum_j) / comb2(n)
-  max_idx  <- 0.5 * (sum_i + sum_j)
-  denom    <- max_idx - expected
-  if (denom == 0) return(NA_real_)
-  (sum_ij - expected) / denom
-}
-
-get_local_strategy_labels <- function(df_site,
-                                      k = 3,
-                                      seed = 123,
-                                      nstart = 25,
-                                      min_n = 30) {
-
-  if (nrow(df_site) < min_n) return(NULL)
-  set.seed(seed)
-
-  X <- df_site |>
-    select(all_of(cluster_vars)) |>
-    scale() |>
-    as.matrix()
-
-  km <- kmeans(X, centers = k, nstart = nstart)
-
-  tmp <- df_site |>
-    mutate(Local_Cluster = factor(km$cluster))
-
-  local_stats <- tmp |>
-    group_by(Local_Cluster) |>
-    summarise(
-      mean_abil  = mean(ability,   na.rm = TRUE),
-      mean_slope = mean(Rel_Slope, na.rm = TRUE),
-      .groups = "drop"
-    ) |>
-    arrange(mean_abil)
-
-  ineff_id     <- local_stats |> slice(1) |> pull(Local_Cluster) |> as.character()
-  other_two    <- local_stats |> filter(as.character(Local_Cluster) != ineff_id) |> arrange(mean_slope)
-  other_eff_id <- other_two   |> slice(1) |> pull(Local_Cluster) |> as.character()
-  mrot_id      <- other_two   |> slice(2) |> pull(Local_Cluster) |> as.character()
-
-  tmp |>
-    mutate(
-      Strategy_Local = case_when(
-        as.character(Local_Cluster) == ineff_id ~ "Ineffective",
-        as.character(Local_Cluster) == other_eff_id ~ "Matching/Flipping/Other",
-        as.character(Local_Cluster) == mrot_id ~ "Rotation"
-      ),
-      Strategy_Local = factor(Strategy_Local, levels = levels(analysis_data$Strategy_Label))
-    ) |>
-    select(Site, user_id, run_id, Strategy_Local)
-}
-
-# fit local models independently within each site
-local_labels_all <- analysis_data |>
-  group_by(Site) |>
-  group_split() |>
-  purrr::map_dfr(get_local_strategy_labels)
-
-analysis_local <- analysis_data |>
-  select(-any_of("Strategy_Local")) |>
-  left_join(local_labels_all, by = c("Site", "user_id", "run_id"))
-
-# agreement (3-class)
-agreement_3class <- analysis_local |>
-  filter(!is.na(Strategy_Local)) |>
-  group_by(Site) |>
-  summarise(
-    n         = n(),
-    pct_agree = mean(Strategy_Local == Strategy_Label),
-    ARI       = ARI(Strategy_Label, Strategy_Local),
-    .groups   = "drop"
-  )
-
-agreement_3class
-
-# confusion matrices per site — save split first to avoid pipe . scoping issue
-site_splits <- analysis_local |>
-  filter(!is.na(Strategy_Local)) |>
-  group_split(Site)
-
-confusion_by_site <- site_splits |>
-  purrr::set_names(purrr::map_chr(site_splits, ~ unique(.x$Site))) |>
-  purrr::map(~ table(.x$Strategy_Local, .x$Strategy_Label))
-
-confusion_by_site
-
-# recall + purity
-recall_tbl <- analysis_local |>
-  filter(!is.na(Strategy_Local)) |>
-  count(Site, Strategy_Label, Strategy_Local) |>
-  group_by(Site, Strategy_Label) |>
-  mutate(recall = n / sum(n)) |>
-  ungroup()
-
-purity_tbl <- analysis_local |>
-  filter(!is.na(Strategy_Local)) |>
-  count(Site, Strategy_Local, Strategy_Label) |>
-  group_by(Site, Strategy_Local) |>
-  mutate(purity = n / sum(n)) |>
-  ungroup()
-
-diag_summary <- recall_tbl |>
-  filter(Strategy_Label == Strategy_Local) |>
-  transmute(Site, Strategy = Strategy_Label, recall) |>
-  left_join(
-    purity_tbl |>
-      filter(Strategy_Local == Strategy_Label) |>
-      transmute(Site, Strategy = Strategy_Local, purity),
-    by = c("Site", "Strategy")
-  )
-
-diag_summary
-```
-
-```{r}
-#| label: local-vs-pooled-reporting
-#| include: false
-
-get_row <- function(df, site) df[df$Site == site, , drop = FALSE]
-
-# sites
-s_mpi <- "mpieva-de"
-s_uni <- "uniandes-co"
-s_wes <- "western-ca"
-
-# agreement rows
-a_mpi <- get_row(agreement_3class, s_mpi)
-a_uni <- get_row(agreement_3class, s_uni)
-a_wes <- get_row(agreement_3class, s_wes)
-
-# label strings
-lab_ineff <- "Ineffective"
-lab_other <- "Matching/Flipping/Other"
-lab_mrot  <- "Rotation"
-
-get_diag <- function(site, label) {
-  out <- diag_summary[diag_summary$Site == site & diag_summary$Strategy == label, , drop = FALSE]
-  if (nrow(out) == 0) {
-    return(data.frame(Site = site, Strategy = label, recall = NA_real_, purity = NA_real_))
-  }
-  stopifnot(nrow(out) == 1)
-  out
-}
-
-d_mpi_ineff <- get_diag(s_mpi, lab_ineff)
-d_mpi_other <- get_diag(s_mpi, lab_other)
-d_mpi_mrot  <- get_diag(s_mpi, lab_mrot)
-
-d_uni_ineff <- get_diag(s_uni, lab_ineff)
-d_uni_other <- get_diag(s_uni, lab_other)
-d_uni_mrot  <- get_diag(s_uni, lab_mrot)
-
-d_wes_ineff <- get_diag(s_wes, lab_ineff)
-d_wes_other <- get_diag(s_wes, lab_other)
-d_wes_mrot  <- get_diag(s_wes, lab_mrot)
-
-# off-diagonal moves
-get_move <- function(tab, local_lab, global_lab) {
-  stopifnot(local_lab %in% rownames(tab), global_lab %in% colnames(tab))
-  n     <- tab[local_lab, global_lab]
-  denom <- sum(tab[, global_lab])
-  list(n = as.numeric(n), denom = as.numeric(denom), prop = as.numeric(n) / as.numeric(denom))
-}
-
-tab_mpi <- confusion_by_site[[s_mpi]]
-tab_uni <- confusion_by_site[[s_uni]]
-tab_wes <- confusion_by_site[[s_wes]]
-
-# Rotation globally assigned to Other Effective locally
-mpi_mrot2other <- get_move(tab_mpi, lab_other, lab_mrot)
-wes_mrot2other <- get_move(tab_wes, lab_other, lab_mrot)
-
-# Other Effective globally assigned to Rotation locally
-uni_other2mrot <- get_move(tab_uni, lab_mrot, lab_other)
-
-# pre-computed scalars for inline R
-wes_pct_agree  <- fmt_pct(a_wes$pct_agree)
-wes_ari        <- fmt_num(a_wes$ARI)
-wes_n          <- a_wes$n
-uni_pct_agree  <- fmt_pct(a_uni$pct_agree)
-uni_ari        <- fmt_num(a_uni$ARI)
-mpi_pct_agree  <- fmt_pct(a_mpi$pct_agree)
-mpi_ari        <- fmt_num(a_mpi$ARI)
-
-mpi_mrot_recall  <- round(d_mpi_mrot$recall, 2)
-mpi_mrot_purity  <- round(d_mpi_mrot$purity, 2)
-mpi_ineff_recall <- round(d_mpi_ineff$recall, 2)
-
-uni_mrot_recall  <- round(d_uni_mrot$recall, 2)
-uni_mrot_purity  <- round(d_uni_mrot$purity, 2)
-
-wes_mrot_recall  <- round(d_wes_mrot$recall, 2)
-wes_mrot_purity  <- round(d_wes_mrot$purity, 2)
-wes_ineff_recall <- round(d_wes_ineff$recall, 2)
-wes_flip_recall  <- round(d_wes_other$recall, 2)
-```
-
-### Cross-Cultural Consistency of Strategy Profiles
 We next examined whether the continuum structure is recoverable within each site independently by re-running the k-means procedure separately within each site and computing agreement between the local and global profile assignments for each participant, using percent agreement (the proportion of participants assigned to the same profile by both solutions) and the Adjusted Rand Index (ARI), alongside per-profile recall and purity.
 
 Uniandes-co showed the strongest overall recovery (percent agreement = `r uni_pct_agree`, ARI = `r uni_ari`), with high recall and purity across all three profiles — including the Rotation profile (recall = `r uni_mrot_recall`, purity = `r uni_mrot_purity`). This suggests the full continuum structure is locally recoverable when sample sizes are adequate and testing conditions are consistent.
@@ -1848,26 +422,27 @@ Mpieva-de showed moderate overall agreement (`r mpi_pct_agree`, ARI = `r mpi_ari
 Western-ca showed the lowest overall agreement (`r wes_pct_agree`, ARI = `r wes_ari`), but for a qualitatively different reason. The local solution assigned the large majority of children to a single group that mapped onto the global Rotation profile — producing near-perfect recall for that profile (`r wes_mrot_recall`) but low purity (`r wes_mrot_purity`), and near-zero recall for both the Ineffective (`r wes_ineff_recall`) and Matching/Flipping/Other (`r wes_flip_recall`) profiles. This pattern suggests the local solution in western-ca collapsed the full continuum into a single dominant region rather than failing to recover any particular profile. The smaller sample size at western-ca likely contributed to this instability.
 
 # Discussion
+
 The central aim of this study was to establish whether the LEVANTE mental rotation task measures the same underlying construct across three culturally diverse sites. The answer, across four distinct levels of analysis, is largely yes. The task achieves scalar measurement invariance — including across a low-to-middle-income site from the Global South — indicating that both the ordering and spacing of items on the latent scale are consistent across cultural contexts [@putnick2016measurement]. The angular disparity effect replicates robustly for 3D stimuli across all three sites, and is present though attenuated for 2D stimuli, providing process-level evidence that performance is driven by the spatial demands of the task in the way theory predicts [@shepard1971mental] — a form of evidence that is distinct from, and complementary to, the psychometric result. The absence of a main effect of sex or any age-by-sex interaction is consistent with the meta-analytic picture for child-friendly tasks in this age range [@lauer2019development], and its replication across all three international sites extends prior null findings beyond the Western convenience samples in which they have predominantly been documented [@hodgkiss2021developmental]. And at the level of individual behavioral profiles, the broad distinction between children who disengage from the task's spatial demands and those who engage effectively is recoverable within each site independently, even if the finer subdivision between engagement types shows more variable local recovery. That these convergent forms of evidence emerge across geographically and culturally diverse samples supports the interpretation that the task is capturing individual differences in a common/universal spatial reasoning construct rather than one that is specific to the cultural or educational contexts in which it was developed.
 
-## Cross-Site Invariance
+## Cross-site invariance
 Turning to our first research question, the demonstration of scalar invariance under a 2PL model establishes that the mental rotation task functions comparably across pilot sites — that items are ordered by difficulty and discrimination in the same way for children in Bogotá as for children in Leipzig or London, Ontario, and that ability estimates can be placed on a common latent scale [@putnick2016measurement]. This is a meaningful result: tasks developed in one context do not automatically achieve psychometric equivalence when administered elsewhere [@van2004bias], and the inclusion of a low-to-middle-income site from the Global South makes this a stronger test than studies conducted entirely within high-income North American and European samples. That said, scalar invariance establishes metric comparability rather than cultural equivalence in any deeper sense. With only one non-Western site — though one spanning both urban and rural schools, representing a meaningfully different cultural and socioeconomic context from the German and Canadian samples — the present findings should be treated as an encouraging foundation rather than evidence of broad cross-cultural portability. Further validation across more culturally and socioeconomically diverse sites will be needed before stronger claims can be made. The LEVANTE project is expanding to include additional sites in low- and middle-income countries in coming years, which will provide the opportunity to subject these findings to a more demanding cross-cultural test. Finally, given that LEVANTE sites differ substantially in sampling, recruitment, and testing format, site level performance differences are not interpreted here regardless of the invariance results; however, we believe the consistency of patterns within and across sites remains informative.
 
-## Angular Sensitivity
+## Angular sensitivity
 Our second research question asked whether performance is driven by the spatial properties of the stimuli. The key benchmark here is the angular disparity effect first reported by @shepard1971mental: as the rotational distance between a 3D target and its match increases, so too does the time required to judge whether they correspond. This relationship, among the most replicated findings in cognitive psychology [@cooper1973chronometric; @peters2008applications], has been demonstrated extensively in children and adults from middle-to-high-income Western convenience samples [@kaltner2016developmental; @jansen2015role], but had not previously been established in culturally diverse samples of children. Its consistent emergence here, across all three sites, suggests that the underlying cognitive process it indexes — the spatially continuous transformation of object orientation — is not specific to the cultural or educational contexts in which it was originally documented. This matters because psychometric equivalence and process-level validity are distinct forms of evidence. It is one thing to show that a task achieves comparable difficulty ordering across sites; it is another to show that performance is sensitive to the spatial structure of the stimuli in the way that mental rotation theory predicts [@borsboom2004concept]. The angular disparity effect provides the latter, and its cross-cultural replication substantially strengthens the case that the task is engaging spatial cognition specifically, rather than some culturally-variable combination of task-general skills. The shallower slope for 2D stimuli likely reflects the greater familiarity of duck and rabbit silhouettes relative to the 3D geometric shapes: when stimuli are easy to tell apart, children can make same/different judgments by comparing surface features rather than rotating, producing a weaker RT–angle relationship [@folk1987effects; @bethell1988mental].
 
 Children at mpieva-de showed both higher baseline response times and steeper absolute RT–angle slopes than the other two sites — a pattern consistent with a testing format explanation rather than a genuine cultural difference in angular sensitivity. Remote home-based testing on family devices, as used at mpieva-de, may introduce environmental variability that is likely to inflate both baseline RT and trial-to-trial noise; because absolute slopes scale with baseline speed, this would mechanically produce steeper slopes even without greater rotation sensitivity, a pattern visible in the wider raw RT distributions at mpieva-de (see [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age)).
 
-## Sex Differences
+## Sex differences
 Our third research question asked whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. The absence of a main effect of sex or an age-by-sex interaction replicates the pattern reported in several recent studies of primary school-aged children using child-friendly mental rotation tasks [@hodgkiss2021developmental; @lauer2019development], and is consistent with the meta-analytic picture: reliable sex differences in mental rotation are small and inconsistent in this age range, particularly for tasks using 2D stimuli and child-friendly formats of the kind used here [@lauer2019development]. The LEVANTE task's design — 2D animal silhouettes alongside 3D block figures — places it squarely in the category of tasks where the meta-analytic expectation for a gender difference is modest at best. Notably, the null finding held across all three international study sites, extending prior null results beyond the middle-to-high-income Western samples in which they have predominantly been documented [@hodgkiss2021developmental]. Taken together, the sex difference results are consistent with the broader argument of this paper: that the task captures a spatially-driven construct that is consistent across cultural contexts.
 
-## Strategy Variation
+## Strategy variation
 
 Our final research question asked whether meaningful variation in how children engage with the spatial demands of the task can be identified from trial-level behavioral signatures. Research with adults has established that solvers draw on a range of strategies when performing mental rotation tasks, spanning a holistic-analytic continuum [@gluck2003spatial], and that strategy selection varies across individuals and shifts with task demands [@nazareth2019strategy]. Crucially, such strategies can be identified from behavioral signatures in RT data even in the absence of direct observation [@geiser2006separating], providing the methodological basis for the present analysis.
 
 The clustering exercise identified three differentiable regions of this continuum, partly because the data resist clean separation and partly because, as discussed below, the continuum structure proves difficult to recover consistently within individual sites. At one end, a subset of children — labeled 'Ineffective' — show clear disengagement from the spatial structure of the task: the lowest absolute RT–angle slope of the three profiles, high response instability, and near-chance accuracy at high angular disparities. Although this group's relative slope appears elevated relative to the two effective profiles, this reflects their faster baseline processing speed inflating the ratio rather than genuine angular sensitivity — their absolute slope is the lowest of the three profiles, confirming the absence of rotation cost rather than its presence. 
 
-The two effective profiles — Matching/Flipping/Other and Rotation — are distinguished primarily by the shape of their RT–angle functions, but not by accuracy, which was higher for the Matching/Flipping/Other group. Importantly, the two profile-defining dimensions do different separating work: ability distinguishes the Ineffective group from both effective profiles, while relative RT slope distinguishes the two effective profiles from each other — and it is this complementary structure that justifies retaining three profiles rather than two. An interesting finding is that the Rotation profile is both the most common globally (n = `r mrot_n`, `r mrot_pct`%) and yet associated with lower mean ability than the Matching/Flipping/Other group — the reverse of what the broader literature might lead us to expect [@khooshabeh2013individual; @heil2008sex], though the effect is modest and the groups overlap considerably in ability. This could suggest that RT signatures consistent with full analog rotation carry a greater cognitive cost than feature-based engagement [@just1985cognitive; @khooshabeh2013individual], particularly for the 2D stimuli where rotational demands are lower. The overlap between these two profiles in the behavioral feature space — consistent across all three dimensionality reduction methods [Appendix D (Dimensionality reduction)](#sec-apx-dimreduc) — reinforces this picture: the distinction between them is gradient rather than categorical. 
+The two effective profiles — Matching/Flipping/Other and Rotation — are distinguished primarily by the shape of their RT–angle functions, but not by accuracy, which was higher for the Matching/Flipping/Other group. Importantly, the two profile-defining dimensions do different separating work: ability distinguishes the Ineffective group from both effective profiles, while relative RT slope distinguishes the two effective profiles from each other — and it is this complementary structure that justifies retaining three profiles rather than two. An interesting finding is that the Rotation profile is both the most common globally (n = `r strats$mrot$n`, `r strats$mrot$pct`%) and yet associated with lower mean ability than the Matching/Flipping/Other group — the reverse of what the broader literature might lead us to expect [@khooshabeh2013individual; @heil2008sex], though the effect is modest and the groups overlap considerably in ability. This could suggest that RT signatures consistent with full analog rotation carry a greater cognitive cost than feature-based engagement [@just1985cognitive; @khooshabeh2013individual], particularly for the 2D stimuli where rotational demands are lower. The overlap between these two profiles in the behavioral feature space — consistent across all three dimensionality reduction methods [Appendix D (Dimensionality reduction)](#sec-apx-dimreduc) — reinforces this picture: the distinction between them is gradient rather than categorical. 
 
 The recoverability of this continuum structure varies across sites in qualitatively different ways: uniandes-co recovered all three regions well, mpieva-de recovered the effective subdivision but showed poor recovery of the Ineffective profile — possibly reflecting the greater RT variability introduced by its remote, home-based testing format — and western-ca collapsed the full continuum into a single dominant region, likely reflecting its smaller sample size (n = `r wes_n`)` rather than a genuine absence of strategy variation. We retain the three-profile distinction in the global solution because collapsing to k = 2 obscures a theoretically meaningful difference in RT–angle profile shape, but treat it as a convenient descriptive marker rather than evidence for discrete strategy types. Taken together, the exploratory clustering exercise reveals a meaningful continuum of engagement — from children who appear to disengage from the task's spatial elements entirely, to those who solve it effectively through different spatial processes — but larger, more methodologically consistent samples will be needed before firm conclusions about cross-cultural variation in strategy profiles can be drawn.
 
@@ -1886,1082 +461,7 @@ Four research questions motivated this study, each asking in a different way whe
 ::: {#refs}
 :::
 
-# Task materials {.appendix #sec-apx-a}
-
-## Example items {#sec-apx-mrot-example-items}
-
-```{r}
-#| label: apx-mrot-example-items
-#| fig-cap: "Example items for 2D and 3D rotation."
-#| out-width: "100%"
-#| fig-align: "center"
-
-knitr::include_graphics("images/mrot_item_examples.pdf")
-
-# library(pdftools)
-# pdf_convert("mrot_item_examples.pdf", format = "png", dpi = 300,
-#             filenames = "mrot_item_examples.png")
-```
-
-# IRT models {.appendix #sec-apx-b}
-
-## Item information curves {#sec-apx-item-info}
-
-```{r}
-#| label: fig-item-info
-#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by rotation angle. Higher rotation angle items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
-#| fig-width: 8
-#| fig-height: 3.5
-
-mrot_info <- read_rds(here("models/mrot_info.rds"))
-
-info_2pl_scalar <- mrot_info |>
-  filter(model_set == "multigroup_dataset", itemtype == "2pl")
-
-angles <- sort(unique(info_2pl_scalar$angle))
-p_info_2pl <- ggplot(info_2pl_scalar, aes(x = theta, y = info)) +
-  facet_wrap(vars(item_type)) +
-  geom_line(aes(group = item, colour = angle), linewidth = 0.5) +
-  scale_colour_viridis_c(direction = -1,
-                         breaks = angles,
-                         labels = paste0(angles, "°"),
-                         guide = guide_legend()) +
-  labs(x = "Ability (θ)", y = "Item information", colour = "Rotation angle") +
-  theme(legend.position = "bottom")
-p_info_2pl
-```
-
-<!-- \clearpage -->
-<!-- ## Uniandes-co rural and urban sub-samples {#sec-apx-co-rural-urban} -->
-
-<!-- ```{r} -->
-<!-- #| label: fig-co-theta -->
-<!-- #| eval: true -->
-<!-- #| include: true -->
-<!-- #| fig-width: 5 -->
-<!-- #| fig-height: 5 -->
-<!-- #| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates." -->
-
-<!-- p_co_theta -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- #| label: fig-co-item-difficulty -->
-<!-- #| dependson: co-item-difficulty-comparison -->
-<!-- #| fig-width: 7 -->
-<!-- #| fig-height: 5 -->
-<!-- #| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for the uniandes-co-bogota sample (red) and uniandes-co-rural sample (blue) separated and both samples pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one estimate for the 3D shape (120°) item in the uniandes-co-bogota sample." -->
-
-<!-- p_co_items_d -->
-<!-- ``` -->
-
-\clearpage
-## Developmental trajectories {#sec-apx-ability-age}
-
-```{r}
-#| label: fig-ability-age
-#| fig-cap: "**Developmental trajectories of mental rotation ability across sites.** Points represent IRT-estimated ability (θ) from individual assessments, with line segments connecting assessments for a given child; curves are GAM-smoothed age trends with 95% confidence intervals. Scores are highest in the German site, and significantly lower in the Canadian and Colombian sites; however, site-level differences are heavily confounded with multiple variables (e.g., language, SES), especially differences in administration (e.g., computer vs. tablet; home vs. school; experimenter working with one child or multiple simultaneously), and thus are not interpretable."
-#| fig-align: "center"
-#| fig-width: 6.5
-#| fig-height: 5.5
-
-ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
-  geom_point(alpha = 0.35, size = 1.1, shape = 16) +
-  # geom_linerange(aes(ymin = metric_value - metric_se, ymax = metric_value + metric_se),
-  #                alpha = 0.35, size = 1.1) +
-  geom_line(aes(group = user_id), alpha = .3) + 
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE, fullrange = TRUE) +
-  scale_colour_manual(values = site_pal) +
-  scale_x_continuous(expand = expansion(mult = 0.02)) +
-  labs(
-    x      = "Age (years)",
-    y      = "Ability (θ)",
-    colour = "Site"
-  ) +
-  guides(color = guide_legend(override.aes = list(fill = NA))) +
-  theme(legend.position = "bottom")
-
-# ggsave("mrot_age.png", width = 7, height = 5, dpi = 300)
-# ggsave("fig2_age_plot.png", plot = age_plot,
-#        width = 7, height = 5, dpi = 300)
-```
-
-\clearpage
-## Sex differences {#sec-apx-sex-diff-plot}
-
-```{r}
-#| label: fig-sex-plot
-#| fig-cap: "Mental rotation ability (θ) as a function of age and sex assigned at birth across three sites."
-#| include: true
-#| fig-align: "center"
-#| fig-width: 7
-#| fig-height: 4.5
-
-site_n_labels <- mrot_df_sex |>
-  distinct(run_id, site_label) |>
-  count(site_label) |>
-  mutate(label = paste0(site_label, "\n(n = ", n, ")"))
-
-mrot_df_sex |>
-  left_join(site_n_labels) |>
-  ggplot(aes(x = age, y = ability, colour = sex)) +
-  facet_wrap(vars(site_label), nrow = 1) +
-  geom_point(alpha = 0.35, size = 1.1) +
-  geom_smooth(method = "lm", fullrange = TRUE) +
-  labs(
-    x = "Age (years)",
-    y = "Ability (θ)",
-    colour = "Sex"
-  ) +
-  scale_colour_brewer(palette = "Set1") +
-  scale_x_continuous(expand = expansion(mult = 0.02)) +
-  guides(color = guide_legend(override.aes = list(fill = NA))) +
-  theme(legend.position = "bottom")
-```
-
-
-# Angular sensitivity {.appendix #sec-apx-c}
-
-## Sample sizes per cell {#sec-apx-rt-angle-sample-sizes}
-
-```{r}
-#| label: tbl-rt-angle-sample-sizes
-#| tbl-cap: "Sample sizes at each cell (age group by item).\\vspace{1em}"
-#| eval: false
-
-n_table <- mrot_items_rt_agebin_ci |>
-  filter(angle != 20) |>
-  select(site_label, age_group, item_group, stimulus, angle, n) |>
-  mutate(
-    item_group = str_to_upper(item_group),
-    # cell = paste(str_to_upper(item_group), stimulus),
-    age_group = recode(as.character(age_group),
-      "[5,7]"  = "5–7",
-      "(7,9]"  = "7–9",
-      "(9,12]" = "9–12"
-    )
-  ) |>
-  # select(-stimulus, -item_group) |>
-  pivot_wider(names_from = angle, values_from = n) |>
-  arrange(site_label, desc(age_group), item_group, stimulus)
-
-n_table |> gt() |>
-  cols_label(site_label = "Site",
-             age_group = "Age group",
-             item_group = "Item type",
-             stimulus = "Stimulus",
-             `40` = "40°",
-             `80` = "80°",
-             `120` = "120°",
-             `160` = "160°") |>
-  sub_missing() |>
-  tab_options(table.layout = "auto", table.width = pct(80))
-# options(knitr.kable.NA = "–")
-# knitr::kable(
-#   n_table,
-#   col.names = c("Site", "Age group", "Item type", "Stimulus", "40°", "80°", "120°", "160°"),
-#   # caption = "Sample sizes (n) per cell.",
-#   linesep = "",
-#   booktabs = TRUE
-# ) #|>
-#   # kable_styling(
-#     # latex_options = c("hold_position") #, "scale_down")
-#   #   position = "center",
-#   #   full_width = FALSE
-#   # )
-```
-
-\clearpage
-## Raw RT by age and site {#sec-apx-irt-ability-age}
-
-```{r}
-#| label: fig-rt-angle_raw
-#| fig-cap: "Reaction time by angle within age groups with raw per-run data and ±95% CI. CAT trials excluded."
-#| fig-width: 8
-#| fig-height: 8
-#| fig-align: "center"
-#| eval: false
-
-# Add raw data underneath
-p_mrot_rt_angle_age_2 <- ggplot() +
-  # raw per-run medians
-  geom_point(
-    data = mrot_items_rt_runs,
-    aes(x = angle, y = rt_med,
-        colour = stimulus),
-    size = 0.4,
-    alpha = 0.25,
-    position = position_jitter(width = 3, height = 0)
-  ) +
-  # summary CI + lines
-  geom_errorbar(
-    data = mrot_items_rt_agebin_ci,
-    aes(x = angle, y = y, ymin = lwr, ymax = upr,
-        colour = stimulus, linetype = item_group,
-        group = interaction(item_group, stimulus)),
-    width = 2,
-    linewidth = 0.35,
-    alpha = 0.6
-  ) +
-  geom_point(
-    data = mrot_items_rt_agebin_ci,
-    aes(x = angle, y = y,
-        colour = stimulus,
-        group = interaction(item_group, stimulus)),
-    size = 1
-  ) +
-  geom_line(
-    data = mrot_items_rt_agebin_ci,
-    aes(x = angle, y = y,
-        colour = stimulus, linetype = item_group,
-        group = interaction(item_group, stimulus)),
-    alpha = 0.85
-  ) +
-  facet_grid(site_label ~ age_group) +
-  .scale_colour_stimulus() +
-  labs(
-    x = "Rotation angle (°)",
-    y = "Reaction time (s)",
-    colour = "Stimulus",
-    linetype = "Item type"
-  ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
-  theme(legend.position = "bottom")
-
-p_mrot_rt_angle_age_2
-```
-
-\clearpage
-## Within-person dynamics {#sec-apx-within-person-dynamics}
-Having established that 3D stimuli elicit a clear angular disparity effect while 2D stimuli do to a lesser extent, we next asked a complementary question: whether children show sensitivity to task demands as they unfold in real time — specifically, whether reaction times shift systematically at the transition from 2D to 3D stimuli, and whether practice effects are detectable within blocks. To isolate time-on-task effects from item-driven RT changes, we residualized log-RTs on angle, stimulus, and item type prior to analysis.
-
-```{r}
-#| label: fig-within-person-trials
-#| fig-cap: "**Trial-level reaction time dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Retest and CAT data removed."
-#| fig-align: "center"
-#| fig-width: 7
-#| fig-height: 5
-
-# # prep: remove CAT data
-# trial_resid_data <- mrot_rt_trial |>
-#   filter(!adaptive, correct == 1)
-# 
-# # residualize log_rt on angle + stimulus + item_group
-# resid_model <- lm(log_rt ~ angle + stimulus + item_group, 
-#                   data = trial_resid_data)
-# 
-# trial_resid_data <- trial_resid_data |>
-#   mutate(log_rt_resid = residuals(resid_model),
-#          block = item_group |> str_to_upper())
-
-trial_resid_data <- mrot_lme_data |>
-  mutate(log_rt_resid = residuals(full_mod),
-         block = item_group |> str_to_upper())
-
-trial_resid_data |>
-  group_by(run_id, item_group) |>
-  summarise(start = min(trial_number), end = max(trial_number)) |>
-  ungroup() |>
-  # filter(item_group == "3d") |>
-  count(item_group, start)
-
-transition_trial <- trial_resid_data |>
-  filter(item_group == "3d") |>
-  pull(trial_number) |>
-  min()
-
-# plot
-ggplot(trial_resid_data, 
-       aes(x = trial_number, y = log_rt_resid, 
-           color = site_label, fill = site_label)) +
-  stat_summary(fun = mean, geom = "point", size = 1.2, alpha = 0.5) +
-  geom_smooth(aes(group = interaction(site_label, block)),
-              method = "loess", span = 0.75, se = TRUE, alpha = 0.2) +
-  geom_vline(xintercept = transition_trial - 0.5, linetype = "dotted",
-             color = "lightgrey", linewidth = 0.7) +
-  annotate("text", x = transition_trial + 1, y = Inf,
-           label = "Start of 3D block", hjust = 0, vjust = 1.5, size = 3.5) +
-  scale_colour_manual(values = site_pal) +
-  scale_fill_manual(values = site_pal) +
-  labs(
-    x     = "Trial number",
-    y     = "Residual reaction time",
-    color = "Site",
-    fill  = "Site"
-  ) +
-  theme(legend.position = "bottom")
-```
-
-```{r}
-#| label: within-person-models
-#| include: false
-
-# center trial number within each block so the intercept at transition is interpretable
-within_person_data <- trial_resid_data |>
-  mutate(
-    block         = factor(block, levels = c("2D", "3D")),
-    # trial number centered within block
-    trial_c       = trial_number - transition_trial,
-    site_label          = factor(site_label)
-  ) |>
-  filter(!is.na(trial_number), !is.na(log_rt_resid))
-
-# Model 1: continuous trial slope only 
-m_wp_continuous <- lmer(
-  log_rt_resid ~ trial_c + (1 + trial_c | run_id),
-  data    = within_person_data,
-  REML    = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-# Model 2: add block as main effect — tests for discontinuous jump at transition
-m_wp_jump <- lmer(
-  log_rt_resid ~ trial_c + block + (1 + trial_c | run_id),
-  data    = within_person_data,
-  REML    = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-# Model 3: add trial × block interaction — tests whether slope changes after transition
-m_wp_slope <- lmer(
-  log_rt_resid ~ trial_c * block + (1 + trial_c | run_id),
-  data    = within_person_data,
-  REML    = FALSE,
-  control = lmerControl(optimizer = "bobyqa")
-)
-
-# model comparisons
-anova_wp_jump  <- anova(m_wp_continuous, m_wp_jump)   # is there a jump?
-anova_wp_slope <- anova(m_wp_jump, m_wp_slope)  
-
-# extract key numbers
-wp_coefs       <- coef(summary(m_wp_slope))
-
-# block jump (intercept shift at transition)
-beta_wp_block  <- wp_coefs["block3D", "Estimate"]
-se_wp_block    <- wp_coefs["block3D", "Std. Error"]
-p_wp_block     <- wp_coefs["block3D", "Pr(>|t|)"]
-
-# within-block trial slope (2D block)
-beta_wp_trial  <- wp_coefs["trial_c", "Estimate"]
-se_wp_trial    <- wp_coefs["trial_c", "Std. Error"]
-p_wp_trial     <- wp_coefs["trial_c", "Pr(>|t|)"]
-
-# interaction: does slope differ in 3D block?
-beta_wp_int    <- wp_coefs["trial_c:block3D", "Estimate"]
-se_wp_int      <- wp_coefs["trial_c:block3D", "Std. Error"]
-p_wp_int       <- wp_coefs["trial_c:block3D", "Pr(>|t|)"]
-
-# anova numbers for inline reporting
-wp_jump_chisq  <- anova_wp_jump$Chisq[2]
-wp_jump_df     <- anova_wp_jump$Df[2]
-wp_jump_p      <- anova_wp_jump[["Pr(>Chisq)"]][2]
-
-wp_slope_chisq <- anova_wp_slope$Chisq[2]
-wp_slope_df    <- anova_wp_slope$Df[2]
-wp_slope_p     <- anova_wp_slope[["Pr(>Chisq)"]][2]
-```
-
-
-@fig-within-person-trials plots mean residual log-RT across trials for each site. To test for a discontinuous shift in RT at the 2D→3D block transition and for within-block practice effects, we fitted a series of mixed-effects models predicting residual log-RT from trial number, with by-participant random intercepts and slopes.
-
-First, a model including a block indicator (2D vs 3D) significantly improved fit over a continuous trial-slope model (χ²(`r wp_jump_df`) = `r round(wp_jump_chisq, 2)`, p `r fmt_p(wp_jump_p)`), confirming that the increase in RT at the 2D→3D transition is discontinuous rather than a continuation of a gradual trend. The block coefficient indicates a sudden upward shift in residual RT at trial 48 (β = `r round(beta_wp_block, 2)`, SE = `r round(se_wp_block, 2)`, p `r fmt_p(p_wp_block)`), consistent with children recalibrating their processing demands at the block boundary rather than adapting incrementally.
-
-Second, within each block, RTs decreased across trials, indicating a practice effect operating independently of angular disparity (β = `r round(beta_wp_trial, 4)`, SE = `r round(se_wp_trial, 4)`, p `r fmt_p(p_wp_trial)`). Adding a trial × block interaction `r ifelse(wp_slope_p < .05, "significantly improved model fit", "did not significantly improve model fit")` (χ²(`r wp_slope_df`) = `r round(wp_slope_chisq, 2)`, p `r fmt_p(wp_slope_p)`) `r ifelse(wp_slope_p < .05, paste0(", with the within-block acceleration differing between the 2D and 3D blocks (β = ", round(beta_wp_int, 3), ", SE = ", round(se_wp_int, 3), ", p ", fmt_p(p_wp_int), ")"), "")`. Both patterns — the discontinuous block transition and the within-block acceleration — were qualitatively consistent across all three sites, further extending the cross-cultural consistency observed in the angular disparity analysis.
-
-# Strategy variation {.appendix #sec-apx-d}
-
-## Profile summary statistics {#sec-apx-cluster-summary-stats}
-```{r}
-#| label: tbl-cluster-summary
-#| fig-width: 6
-#| fig-height: 5
-#| tbl-cap: "**Profile summary statistics**. The Rotation profile shows the steepest absolute RT–angle slope but lower mean ability than the Matching/Flipping/Other profile. The Ineffective profile is characterized by near-zero slope and high response instability rather than slow or fast processing per se. Note that the Ineffective profile's elevated relative slope reflects a fast baseline speed rather than genuine angular sensitivity — its absolute slope is the lowest of the three profiles."
-
-analysis_data |>
-  group_by(Strategy_Label) |>
-  summarise(
-    n              = n(),
-    mean_ability   = mean(ability, na.rm = TRUE),
-    sd_ability     = sd(ability, na.rm = TRUE),
-    mean_rel_slope = mean(Rel_Slope, na.rm = TRUE),
-    sd_rel_slope   = sd(Rel_Slope, na.rm = TRUE),
-    mean_abs_slope = mean(Abs_Slope, na.rm = TRUE),
-    sd_abs_slope   = sd(Abs_Slope, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  # arrange(desc(mean_rel_slope)) |>
-  transmute(
-    Strategy       = Strategy_Label,
-    N              = n,
-    `Mean Ability` = mean_ability,
-    `SD Ability`   = sd_ability,
-    `Mean Rel. Slope` = mean_rel_slope,
-    `SD Rel. Slope`   = sd_rel_slope,
-    `Mean Abs. Slope` = mean_abs_slope,
-    `SD Abs. Slope`   = sd_abs_slope
-  ) |>
-  gt() |>
-  tab_header(title = md("")) |>
-  fmt_number(
-    columns = c(`Mean Ability`, `SD Ability`, 
-                `Mean Rel. Slope`, `SD Rel. Slope`,
-                `Mean Abs. Slope`, `SD Abs. Slope`),
-    decimals = 2
-  ) |>
-  fmt_number(columns = N, decimals = 0, use_seps = FALSE) |>
-  cols_align(align = "left", columns = c(Strategy)) |>
-  cols_align(align = "center", columns = c(N)) |>
-  cols_align(align = "right", columns = where(is.numeric)) |>
-  cols_width(
-    Strategy ~ px(160),
-    N        ~ px(40),
-    everything() ~ px(65)
-  ) |>
-  tab_spanner(label = "Ability",         columns = c(`Mean Ability`, `SD Ability`)) |>
-  tab_spanner(label = "Relative Slope",  columns = c(`Mean Rel. Slope`, `SD Rel. Slope`)) |>
-  tab_spanner(label = "Absolute Slope",  columns = c(`Mean Abs. Slope`, `SD Abs. Slope`)) |>
-  cols_label_with(fn = \(x) str_extract(x, "^[A-z]+")) |>
-  tab_options(
-    table.width = pct(100),
-    data_row.padding = px(3)
-  )
-```
-
-\clearpage
-## Cluster solution validation {#sec-apx-cluster}
-To assess the appropriateness of the three-profile solution, we evaluated cluster quality across k = 1–8 using two complementary metrics: total within-cluster sum of squares (the elbow method) and average silhouette width (@fig-k-sweep-validation). The silhouette analysis identified k = 2 as the statistically optimal solution, with average silhouette width peaking at 0.35 before declining steeply at k = 3 and remaining low thereafter. The elbow plot showed a moderate inflection at k = 3, after which additional clusters yielded diminishing reductions in within-cluster variance. To examine whether k = 2 was substantively adequate, we examined the RT–angle functions of the resulting two-cluster solution (@fig-k2-cluster-check). The higher-ability cluster displayed a characteristic inverted-U RT function, rising to a peak around 120° before declining at 160° — a pattern that, in the three-cluster solution, distinguishes the Matching/Flipping/Other and Rotation groups. This indicates that k = 2 collapses two distinguishable effective engagement profiles into a single region, obscuring a theoretically meaningful behavioral difference. We therefore adopted k = 3 on both empirical grounds (the elbow inflection) and theoretical grounds (the interpretability of the resulting RT profiles), noting that the three profiles are treated as convenient descriptive anchors along a continuum rather than evidence for discrete strategy types.
-
-```{r}
-#| label: fig-k-sweep-validation
-#| eval: true
-#| include: true
-#| fig-width: 6
-#| fig-height: 3
-#| fig-cap: "**Cluster validation metrics: Elbow Method (left) and Silhouette Analysis (right).** The elbow plot shows a bend at k = 3, and silhouette width peaks at k = 2 before declining, providing partial support for the 3-cluster solution."
-
-.theme <- theme_get()
-p_elbow <- fviz_nbclust(global_input, kmeans, method = "wss", k.max = 8, linecolor = pal$grey) +
-  geom_vline(xintercept = 3, linetype = 2, color = pal$grey) +
-  labs(title = NULL, subtitle = NULL, x = "Number of clusters (k)", y = "Total within sum of squares") +
-  .theme
-
-p_sil <- fviz_nbclust(global_input, kmeans, method = "silhouette", k.max = 8, linecolor = pal$grey) +
-  labs(title = NULL, subtitle = NULL, x = "Number of clusters (k)", y = "Average silhouette width") +
-  .theme
-
-grid.arrange(p_elbow, p_sil, nrow = 1)
-```
-
-```{r}
-#| label: fig-k2-cluster-check
-#| eval: true
-#| include: true
-#| fig-width: 7
-#| fig-height: 5
-#| fig-cap: "**RT–angle functions for the k = 2 solution.** The higher-ability cluster displays an inverted-U RT curve consistent with a mix of Rotation and Matching/Flipping/Other engagement profiles, suggesting that k = 2 collapses two distinguishable effective profiles into a single region."
-
-# Set up Input (same features as main analysis)
-analysis_data_k2 <- rich_features_final |>
-  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, Instability, Learning_Rate), is.finite))
-
-global_input_k2 <- analysis_data_k2 |>
-  select(Baseline_Speed, Rel_Slope, Instability, Abs_Slope, Learning_Rate) |>
-  scale()
-
-# Run K-Means with k = 2 
-set.seed(123)
-k_global_2 <- kmeans(global_input_k2, centers = 2, nstart = 25)
-analysis_data_k2$Global_Cluster <- as.factor(k_global_2$cluster)
-
-# Label the 2 Clusters 
-# We define them simply by Ability (Low vs High) since we can't split by slope yet
-cluster_stats_k2 <- analysis_data_k2 |>
-  group_by(Global_Cluster) |>
-  summarise(
-    mean_ability = mean(ability), 
-    .groups = "drop"
-  )
-
-# Identify Lower Ability Cluster
-low_eff_id <- cluster_stats_k2 |> arrange(mean_ability) |> slice(1) |> pull(Global_Cluster)
-# The other one is High Efficiency
-high_eff_id <- cluster_stats_k2 |> arrange(desc(mean_ability)) |> slice(1) |> pull(Global_Cluster)
-
-analysis_data_k2 <- analysis_data_k2 |>
-  mutate(Strategy_Label = case_when(
-    Global_Cluster == low_eff_id ~ "Low Efficacy (Cluster 2)",
-    Global_Cluster == high_eff_id ~ "High Efficacy (Cluster 1)"
-  ))
-
-k2_colors <- c(
-  "Low Efficacy (Cluster 2)"  = strategy_pal[1],
-  "High Efficacy (Cluster 1)" = strategy_pal[3]
-)
-
-# Plot the Curves (Visual Check)
-# Join labels to raw data
-rt_by_strategy_k2 <- mrot_rich_data |>
-  left_join(
-    analysis_data_k2 |> select(run_id, Strategy_Label),
-    by = c("run_id")
-  ) |>
-  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle))
-
-# Calculate User Means
-rt_user_angle_k2 <- rt_by_strategy_k2 |>
-  group_by(Strategy_Label, run_id, angle) |>
-  summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
-
-# Calculate Group Means
-rt_summary_k2 <- rt_user_angle_k2 |>
-  group_by(Strategy_Label, angle) |>
-  summarise(
-    n_users     = n_distinct(run_id),
-    mean_log_rt = mean(user_mean_log_rt, na.rm = TRUE),
-    se_log_rt   = sd(user_mean_log_rt, na.rm = TRUE) / sqrt(n_users),
-    .groups = "drop"
-  )
-
-# plot
-ggplot(rt_summary_k2, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  geom_ribbon(aes(ymin = mean_log_rt - 1.96*se_log_rt, 
-                  ymax = mean_log_rt + 1.96*se_log_rt, 
-                  fill = Strategy_Label), alpha = 0.2, colour = NA) +
-  scale_colour_manual(values = k2_colors) +
-  scale_fill_manual(values = k2_colors) +
-  labs(
-    title    = NULL,
-    subtitle = NULL,
-    y = "Mean log reaction time (s)",
-    # y = "Mean log(RT) (participant-weighted)", 
-    x = "Rotation angle (°)",
-    colour = "Strategy", fill = "Strategy"
-  ) +
-  theme(legend.position = "bottom")
-```
-
-
-\clearpage
-## Relative RT slope by engagement profile {#sec-apx-slope-boxplot}
-
-```{r fig-apx-slope-boxplot}
-#| fig-width: 5
-#| fig-height: 5
-#| fig-align: "center"
-#| fig-cap: "**Relative RT slope by engagement profile.** Significance bars show pairwise t-tests. Note: 7 outliers (all for Ineffective) are not shown to facilitate comparison."
-
-slope_range <- c(-0.4, 0.75)
-n_outliers <- analysis_data |> filter(Rel_Slope < slope_range[1] | Rel_Slope > slope_range[2]) |> nrow()
-
-p_slope <- analysis_data |>
-  filter_out(Rel_Slope < slope_range[1] | Rel_Slope > slope_range[2]) |>
-ggplot(aes(x = Strategy_Label, y = Rel_Slope, fill = Strategy_Label)) +
-  geom_sina(alpha = 0.3, size = 1) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  # geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
-  scale_fill_manual(values = strategy_colors) +
-  scale_x_discrete(breaks = count_labels$Strategy_Label,
-                   labels = count_labels$count_label) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = pal$grey) +
-  geom_signif(comparisons = strategy_comparisons,
-              map_signif_level = TRUE,
-              y_position = c(0.75, 0.85, 0.75),
-              extend_line = -0.005,
-              tip_length = 0.01,
-              size = 0.25) +
-  labs(y = "Relative slope", x = NULL) +
-  theme(legend.position = "none",
-        axis.text.x = element_text(angle = 0, hjust = 0.5))
-
-p_slope
-```
-
-\clearpage
-## Accuracy-angle functions by engagement profile {#sec-apx-accuracy-by-angle}
-```{r}
-#| label: fig-apx-accuracy-by-angle
-#| fig-width: 7
-#| fig-height: 5
-#| fig-align: "center"
-#| fig-cap: "**Participant-weighted accuracy-angle functions by engagement profile.** Shaded bands show 95% CIs. The Ineffective group shows steeply declining accuracy with angle, corroborating the interpretation that their near-zero RT slope reflects disengagement from the spatial demands of the task rather than a systematic processing strategy. By contrast, the two effective profiles maintain comparable accuracy throughout despite differing markedly in their RT–angle functions."
-
-acc_by_strategy <- mrot_rich_data |>
-  left_join(
-    analysis_data |> select(Site, run_id, Strategy_Label),
-    by = c("run_id")
-  ) |>
-  filter(!is.na(Strategy_Label), is.finite(angle)) |>
-  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
-
-acc_run_angle <- acc_by_strategy |>
-  group_by(Strategy_Label, run_id, angle) |>
-  summarise(
-    user_mean_acc = mean(correct, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-acc_summary <- acc_run_angle |>
-  group_by(Strategy_Label, angle) |>
-  summarise(
-    n_runs    = n_distinct(run_id),
-    mean_acc  = mean(user_mean_acc, na.rm = TRUE),
-    se_acc    = sd(user_mean_acc, na.rm = TRUE) / sqrt(n_runs),
-    .groups = "drop"
-  )
-
-ggplot(acc_summary, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
-  geom_line(linewidth = 0.8) +
-  geom_point(size = 1.6) +
-  geom_ribbon(
-    aes(ymin = mean_acc - 1.96 * se_acc, ymax = mean_acc + 1.96 * se_acc, fill = Strategy_Label),
-    alpha = 0.15, colour = NA
-  ) +
-  scale_colour_manual(
-    values = strategy_colors, 
-    drop = FALSE,
-    # labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_fill_manual(
-    values = strategy_colors, 
-    drop = FALSE,
-    # labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
-  theme(legend.position = "bottom",
-      plot.margin = margin(t = 5, r = 5, b = 5, l = 15, unit = "pt")) +
-  labs(
-    x = "Rotation angle (°)",
-    y = "Mean accuracy",
-    colour = "Strategy", fill = "Strategy"
-  )
-```
-
-\clearpage
-## Strategy use across age groups {#sec-apx-strategy-age-group}
-```{r}
-#| label: strategy-age-data
-#| include: false
-
-strategy_by_age <- analysis_data |>
-  count(age_group, Strategy_Label) |>
-  group_by(age_group) |>
-  mutate(prop = round(n / sum(n), 2)) |>
-  ungroup()
-
-get_prop <- function(age_grp, strategy) {
-  strategy_by_age[
-    strategy_by_age$age_group == age_grp & 
-    strategy_by_age$Strategy_Label == strategy, 
-    "prop"
-  ][[1]]
-}
-
-# pre-computed scalars for inline R
-ineff_pct_young <- get_prop("[5,8.3]", "Ineffective") * 100
-ineff_pct_mid   <- get_prop("(8.3,10.6]", "Ineffective") * 100
-ineff_pct_old   <- get_prop("(10.6,13.7]", "Ineffective") * 100
-flip_pct_young  <- get_prop("[5,8.3]", "Matching/Flipping/Other") * 100
-flip_pct_mid    <- get_prop("(8.3,10.6]", "Matching/Flipping/Other") * 100
-flip_pct_old    <- get_prop("(10.6,13.7]", "Matching/Flipping/Other") * 100
-mrot_pct_young  <- get_prop("[5,8.3]", "Rotation") * 100
-mrot_pct_mid    <- get_prop("(8.3,10.6]", "Rotation") * 100
-mrot_pct_old    <- get_prop("(10.6,13.7]", "Rotation") * 100
-```
-We examined whether the distribution of engagement profiles varied across age groups (@fig-strategy-by-age). This analysis is purely descriptive — formal inferential testing would be circular given that both the age groupings and profile assignments are derived from the data, and the profile solution itself carries the caveats described above. With those caveats in mind, a descriptive pattern is nonetheless visible. The proportion of children assigned to the Ineffective profile declined substantially with age, from `r ineff_pct_young`% in the youngest group (ages 5–8.3) to `r ineff_pct_mid`% (ages 8.3–10.6) and `r ineff_pct_old`% (ages 10.6–13.7). This was accompanied by a corresponding increase in the Matching/Flipping/Other profile, from `r flip_pct_young`% to `r flip_pct_mid`% and `r flip_pct_old`%. By contrast, the proportion assigned to the Rotation profile remained consistent across age groups (`r mrot_pct_young`%, `r mrot_pct_mid`%, `r mrot_pct_old`%). The primary developmental shift thus appears to be a move away from task disengagement toward effective feature-matching engagement profiles, with the proportion showing analog rotation signatures remaining comparatively stable across this age range.
-
-```{r}
-#| label: fig-strategy-by-age
-#| fig-align: "center"
-#| include: true
-#| fig-width: 4
-#| fig-height: 4
-#| fig-cap: "**Strategy profile proportions by age group.**"
-
-strategy_by_age |>
-  ggplot(aes(x = age_group, y = prop, fill = fct_rev(Strategy_Label))) +
-  geom_col(position = "stack", width = 0.8) +
-  scale_fill_manual(values = strategy_colors) +
-                    # labels = function(x) str_wrap(x, width = 25)) +
-  scale_y_continuous(labels = scales::percent, expand = expansion()) +
-  guides(fill = guide_legend(reverse = TRUE)) +
-  labs(x = "Age group (years)",
-       y = "Proportion in strategy profile",
-       fill = "Strategy") +
-  theme(legend.position = "bottom",
-        legend.direction = "vertical")
-```
-
-\clearpage
-## Dimensionality reduction checks {#sec-apx-dimreduc}
-To validate the continuum structure, we examined whether the three-profile solution was recoverable using alternative dimensionality reduction methods: PCA (@fig-pca-check), t-SNE (@fig-tsne-check), and UMAP (@fig-umap-check). PCA loadings were also inspected to characterize the underlying feature structure (@fig-pca-loadings).
-
-Results were consistent across all three methods in one key respect: the Ineffective group was clearly and reliably separated from the two effective engagement profiles, appearing as a distinct region in all three projections — the right end of PC1 in the PCA, and distinct regions in the t-SNE and UMAP projections. This convergent separation provides strong evidence that this group occupies a genuinely distinct region of the feature space. The boundary between the Rotation and Matching/Flipping/Other profiles was, however, substantially less clear. Green and blue points overlapped considerably across all three visualizations, suggesting these two profiles represent adjacent regions of a continuum rather than fully discrete groupings — a finding consistent with the silhouette analysis favoring k = 2.
-
-Inspection of the PCA loadings offered interpretive support for the feature set. PC1 loaded positively on Instability and Relative Slope, and negatively on Baseline Speed, Absolute Slope, and Learning Rate, reflecting a dimension that contrasts inefficient, variable engagement (high instability, elevated relative slope, slow baseline) with efficient, consistent processing (fast baseline, steeper absolute slope, stronger learning across trials). This dimension primarily separates the Ineffective group from the two effective profiles. PC2 loaded most strongly on Relative Slope and Absolute Slope — both positive — with Learning Rate loading negatively, reflecting a rotation cost dimension that captures angular sensitivity largely independent of general processing speed. This dimension provides the primary separation between the two effective profiles. The fact that these two components map onto theoretically meaningful and distinct dimensions provides confidence that the clustering features are not redundant.
-
-```{r}
-#| label: fig-tsne-check
-#| fig-width: 6
-#| fig-height: 6
-#| fig-cap: "**t-SNE visualization of engagement profiles.** The Ineffective group forms a distinct region, while the Rotation and Matching/Flipping/Other profiles show considerable overlap, suggesting softer boundaries between the two effective engagement profiles."
-
-tsne_input <- analysis_data |>
-    select(run_id, Learning_Rate, Baseline_Speed, Rel_Slope, Abs_Slope, Instability) |>
-    distinct() |> 
-    na.omit()
-
-set.seed(42) 
-tsne_result <- Rtsne(
-    as.matrix(tsne_input |> select(-run_id)), 
-    dims = 2, perplexity = 30, verbose = FALSE, max_iter = 500
-)
-
-tsne_plot_data <- tsne_input |>
-    mutate(tSNE_1 = tsne_result$Y[,1], tSNE_2 = tsne_result$Y[,2]) |>
-    left_join(analysis_data |> select(run_id, Strategy_Label), by = "run_id")
-
-ggplot(tsne_plot_data, aes(x = tSNE_1, y = tSNE_2, color = Strategy_Label)) +
-  # coord_fixed() +
-    geom_point(alpha = 0.7, size = 1) +
-    scale_color_manual(values = strategy_colors,
-                       labels = function(x) stringr::str_wrap(x, width = 25)) +
-    labs(title = NULL, x = "Dimension 1", y = "Dimension 2", color = "Strategy") +
-    theme(legend.position = "bottom")
-```
-
-```{r}
-#| label: fig-pca-check
-#| fig-width: 7
-#| fig-height: 6
-#| fig-cap: "**PCA projection of the five clustering features colored by engagement profile.** The Ineffective group separates clearly along PC1, while the Rotation and Matching/Flipping/Other profiles overlap along both components."
-
-pca_result <- prcomp(tsne_input |> select(-run_id), center = TRUE, scale. = TRUE)
-
-pca_plot_data <- tsne_input |>
-    mutate(PC1 = pca_result$x[,1], PC2 = pca_result$x[,2]) |>
-    left_join(analysis_data |> select(run_id, Strategy_Label), by = "run_id")
-
-ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Strategy_Label)) +
-    geom_point(alpha = 0.7, size = 1) +
-    scale_color_manual(values = strategy_colors,
-                       labels = function(x) stringr::str_wrap(x, width = 25)) +
-    labs(title = NULL, x = "PC1", y = "PC2", color = "Strategy") +
-    theme(legend.position = "bottom")
-```
-
-```{r}
-#| label: fig-pca-loadings
-#| fig-width: 7
-#| fig-height: 3
-#| fig-cap: "**PCA loadings for PC1 and PC2.** PC1 contrasts inefficient, variable engagement (positive: Instability, Relative Slope) with efficient, consistent processing (negative: Baseline Speed, Absolute Slope, Learning Rate). PC2 reflects a rotation cost dimension driven primarily by Relative and Absolute Slope, largely independent of general processing speed."
-
-loadings_df <- as.data.frame(pca_result$rotation) |>
-  rownames_to_column(var = "Angle_Condition")
-
-loadings_long <- loadings_df |>
-  select(Angle_Condition, PC1, PC2) |>
-  pivot_longer(
-    cols = c(PC1, PC2), 
-    names_to = "Principal_Component", 
-    values_to = "Loading"
-  )
-
-ggplot(loadings_long, aes(
-    x = Loading, 
-    y = reorder_within(Angle_Condition, Loading, Principal_Component), 
-    fill = Loading > 0
-  )) +
-  geom_vline(xintercept = 0, colour = "lightgrey") +
-  geom_col(show.legend = FALSE, width = 0.5) +
-  # geom_crossbar(aes(xmin = Loading, xmax = Loading, colour = Loading > 0)) +
-  facet_wrap(~ Principal_Component, scales = "free_y") +
-  scale_y_reordered() +
-  scale_fill_manual(values = c("TRUE" = pal$blue, "FALSE" = pal$red)) +
-  labs(
-    title    = NULL,
-    subtitle = NULL,
-    x = "Loading weight",
-    y = "Feature"
-  ) +
-  theme(
-    #strip.text = element_text(face = "bold", size = 12),
-    axis.text.y = element_text(size = 11),
-    #panel.grid.minor = element_blank()
-  )
-```
-
-```{r}
-#| label: fig-umap-check
-#| fig-width: 6
-#| fig-height: 6
-#| fig-cap: "**UMAP projection of the five clustering features colored by engagement profile.** The Ineffective group forms a distinct region, while the Rotation and Matching/Flipping/Other profiles show substantial overlap, consistent with the continuum interpretation."
-
-set.seed(42)
-umap_result <- umap(as.matrix(tsne_input |> select(-run_id)))
-
-umap_plot_data <- tsne_input |>
-    mutate(UMAP_1 = umap_result$layout[,1], UMAP_2 = umap_result$layout[,2]) |>
-    left_join(analysis_data |> select(run_id, Strategy_Label), by = "run_id")
-
-ggplot(umap_plot_data, aes(x = UMAP_1, y = UMAP_2, color = Strategy_Label)) +
-    geom_point(alpha = 0.7, size = 1) +
-    scale_color_manual(values = strategy_colors,
-                       labels = function(x) stringr::str_wrap(x, width = 25)) +
-    labs(x = "UMAP Dimension 1", y = "UMAP Dimension 2", color = "Strategy") +
-    theme(legend.position = "bottom")
-```
-
-
-# Full 0–360° angle check {#sec-apx-e}
-
-The primary analyses modeled angular disparity as the shortest path to upright, capped at 180°, on the assumption that participants take the most efficient route when rotating stimuli. To test this assumption, we re-ran the clustering using full 0–360° rotation angles and plotted RT and accuracy functions across the complete angular range (@fig-rt-angle-by-strategy-360, @fig-accuracy-angle-by-strategy-360). We verified that the angular disparity variable was correctly computed, confirming that full rotation angles were accurately recoded to their shortest-path equivalents (e.g., a 320° rotation has a disparity of 40°). The 360° clustering produced identical profile assignments to the main analysis (Ineffective: n = 228; Rotation: n = 511; Matching/Flipping/Other: n = 419), confirming that the robustness check is examining the same profiles under a different angle representation.
-
-The results were broadly consistent with the disparity-based analyses and provided direct support for the shortest-path assumption. Both the Rotation and Matching/Flipping/Other profiles showed RT functions that increased from 40° to a peak around 200–240°, then declined as angles approached 320°, forming the expected near-symmetric inverted-U around 180°. This pattern is what would be predicted if participants always rotate via the shorter available path, and would not be expected under a fixed-direction rotation strategy.
-
-The Rotation profile showed the steeper and higher RT function throughout, rising from a mean log RT of 1.02 at 40° to a peak of 1.85 at 240° before declining to 1.49 at 320°. The Matching/Flipping/Other profile rose more gradually, peaking at 1.46 at 240° — consistent with less angular sensitivity relative to baseline speed, as reflected in its shallower relative slope in the main analysis. Notably, the inverted-U shape of the Matching/Flipping/Other profile in the full 360° data is more symmetric than the 120° peak-and-decline pattern observed in the disparity-capped data, suggesting the apparent flipping signature in the main analysis may partly reflect the capping of angles at 180° rather than a pure reflective symmetry strategy. Accuracy for both effective profiles showed a corresponding U-shaped function, declining to a minimum around 160–200° before recovering at higher angles, with the Matching/Flipping/Other profile maintaining the highest accuracy throughout. The Ineffective profile again showed a broadly flat and declining RT function across the full angular range, with accuracy remaining low at peak angles and showing only a modest recovery above 240°, further supporting the interpretation that these children are not engaging with the spatial structure of the items.
-```{r}
-#| label: robustness-check-all-angles
-#| results: "hide"
-
-# NOTE: all objects in this and subsequent 360° chunks use _360 suffixes to avoid overwriting main analysis objects. These chunks must remain the
-# last substantive analysis chunks in the document.
-
-mrot_rich_data_360 <- mrot_rt_trial |>
-  rename(ang_disparity = angle,
-         angle = angle_full) |>
-  mutate(
-    stimulus = as.factor(stimulus),
-    angle_s  = as.numeric(scale(ang_disparity)),
-    trial_s  = as.numeric(scale(trial_number))
-  )
-
-contrasts(mrot_rich_data_360$stimulus) <- contr.sum(levels(mrot_rich_data_360$stimulus))
-
-m_rich_360 <- lmer(
-  log_rt ~ angle_s * stimulus + trial_s +
-    (1 + angle_s + trial_s | run_id) +
-    (1 | item),
-  data = mrot_rich_data_360,
-  control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
-)
-
-ran_effs_360 <- ranef(m_rich_360)$run_id |>
-  tibble::rownames_to_column("run_id") |>
-  rename(
-    int_dev   = `(Intercept)`,
-    slope_dev = angle_s,
-    trial_dev = trial_s
-  )
-
-fix_int_360 <- fixef(m_rich_360)["(Intercept)"]
-fix_ang_360 <- fixef(m_rich_360)["angle_s"]
-fix_tri_360 <- fixef(m_rich_360)["trial_s"]
-
-rich_features_raw_360 <- ran_effs_360 |>
-  mutate(
-    Baseline_Speed = fix_int_360 + int_dev,
-    Abs_Slope      = fix_ang_360 + slope_dev,
-    Rel_Slope      = Abs_Slope / Baseline_Speed,
-    Learning_Rate  = fix_tri_360 + trial_dev
-  )
-
-mrot_rich_data_360$resid <- residuals(m_rich_360)
-
-instability_data_360 <- mrot_rich_data_360 |>
-  group_by(run_id) |>
-  summarise(
-    Instability = sd(resid, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-rich_features_final_360 <- rich_features_raw_360 |>
-  left_join(instability_data_360, by = "run_id") |>
-  left_join(ability_run, by = "run_id") |>
-  mutate(Site = site_label) |>
-  filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
-
-# Check: ang_disparity should never exceed 180
-summary(mrot_rich_data_360$ang_disparity)
-
-# Spot check a few items
-mrot_rich_data_360 |>
-  select(item, item_original, angle, ang_disparity) |>
-  distinct() |>
-  arrange(item_original) |>
-  head(20)
-  
-```
-
-```{r}
-#| label: clustering-execution-360
-#| include: false
-
-# strategy_colors <- c(
-#   "Ineffective" = RColorBrewer::brewer.pal(3, "Set1")[1],
-#   "Matching/Flipping/Other" = RColorBrewer::brewer.pal(3, "Set1")[2], 
-#   "Rotation" = RColorBrewer::brewer.pal(3, "Set1")[3]  
-# )
-
-analysis_data_360 <- rich_features_final_360 |>
-  filter(if_all(c(ability, Baseline_Speed, Rel_Slope, Abs_Slope, 
-                  Instability, Learning_Rate), is.finite))
-
-global_input_360 <- analysis_data_360 |>
-  select(Baseline_Speed, Rel_Slope, Abs_Slope, 
-         Instability, Learning_Rate) |>
-  scale()
-
-set.seed(123)
-k_global_360 <- kmeans(global_input_360, centers = 3, nstart = 25)
-analysis_data_360$Global_Cluster <- as.factor(k_global_360$cluster)
-
-cluster_stats_360 <- analysis_data_360 |>
-  group_by(Global_Cluster) |>
-  summarise(
-    mean_ability = mean(ability),
-    mean_slope   = mean(Rel_Slope), 
-    .groups = "drop"
-  )
-
-low_eff_id_360 <- cluster_stats_360 |>
-  arrange(mean_ability) |> slice(1) |> pull(Global_Cluster)
-
-effective_clusters_360 <- cluster_stats_360 |>
-  filter(Global_Cluster != low_eff_id_360) |>
-  arrange(mean_slope)
-
-analytical_id_360 <- effective_clusters_360 |> slice(1) |> pull(Global_Cluster)
-holistic_id_360   <- effective_clusters_360 |> slice(2) |> pull(Global_Cluster)
-
-analysis_data_360 <- analysis_data_360 |>
-  mutate(Strategy_Label = case_when(
-    Global_Cluster == low_eff_id_360    ~ "Ineffective",
-    Global_Cluster == analytical_id_360 ~ "Matching/Flipping/Other",
-    Global_Cluster == holistic_id_360   ~ "Rotation"
-  ))
-
-ggplot(analysis_data_360, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
-  geom_point(alpha = 0.6) +
-  scale_color_manual(values = strategy_colors) +
-  labs(
-    title = "Cluster Result: Ability vs. Relative Slope (full 0-360° angles)",
-    x = "Ability", y = "Relative Slope"
-  )
-```
-
-```{r}
-#| label: fig-rt-angle-by-strategy-360
-#| fig-width: 7
-#| fig-height: 5
-#| fig-cap: "Participant-weighted RT–angle functions by strategy profile (numbers indicate unique participants contributing at each angle; shaded bands show 95% CIs)."
-
-rt_by_strategy_360 <- mrot_rich_data_360 |>
-  left_join(
-    analysis_data_360 |> select(run_id, Strategy_Label),
-    by = "run_id"
-  ) |>
-  filter(!is.na(Strategy_Label), is.finite(log_rt), is.finite(angle)) |>
-  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
-
-rt_user_angle_360 <- rt_by_strategy_360 |>
-  group_by(Strategy_Label, run_id, angle) |>
-  summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
-
-rt_angle_person_summary_360 <- rt_user_angle_360 |>
-  group_by(Strategy_Label, angle) |>
-  summarise(
-    n_users     = n_distinct(run_id),
-    mean_log_rt = mean(user_mean_log_rt, na.rm = TRUE),
-    se_log_rt   = sd(user_mean_log_rt, na.rm = TRUE) / sqrt(n_users),
-    .groups = "drop"
-  )
-
-missing_cols <- setdiff(levels(rt_angle_person_summary_360$Strategy_Label), names(strategy_colors))
-stopifnot(length(missing_cols) == 0)
-
-ggplot(rt_angle_person_summary_360, aes(x = angle, y = mean_log_rt, colour = Strategy_Label)) +
-  geom_line(linewidth = 0.8) +
-  geom_point(size = 1.6) +
-  geom_ribbon(
-    aes(ymin = mean_log_rt - 1.96 * se_log_rt,
-        ymax = mean_log_rt + 1.96 * se_log_rt,
-        fill = Strategy_Label),
-    alpha = 0.15, colour = NA
-  ) +
-  geom_text(aes(label = n_users), vjust = -0.8, size = 3, show.legend = FALSE) +
-  scale_colour_manual(
-    values = strategy_colors, drop = FALSE,
-    labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_fill_manual(
-    values = strategy_colors, drop = FALSE,
-    labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
-  theme(legend.position = "bottom") +
-  labs(
-    x = "Rotation angle (°)",
-    y = "Mean log reaction time (s)",
-    colour = "Strategy", fill = "Strategy"
-  )
-```
-
-```{r}
-#| label: fig-accuracy-angle-by-strategy-360
-#| fig-width: 7
-#| fig-height: 5
-#| fig-cap: "Participant-weighted accuracy-angle functions by strategy profile."
-
-acc_by_strategy_360 <- mrot_rich_data_360 |>
-  left_join(
-    analysis_data_360 |> select(run_id, Strategy_Label),
-    by = "run_id"
-  ) |>
-  filter(!is.na(Strategy_Label), is.finite(angle)) |>
-  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
-
-acc_user_angle_360 <- acc_by_strategy_360 |>
-  group_by(Strategy_Label, run_id, angle) |>
-  summarise(user_mean_acc = mean(correct, na.rm = TRUE), .groups = "drop")
-
-acc_summary_360 <- acc_user_angle_360 |>
-  group_by(Strategy_Label, angle) |>
-  summarise(
-    n_users  = n_distinct(run_id),
-    mean_acc = mean(user_mean_acc, na.rm = TRUE),
-    se_acc   = sd(user_mean_acc, na.rm = TRUE) / sqrt(n_users),
-    .groups  = "drop"
-  )
-
-ggplot(acc_summary_360, aes(x = angle, y = mean_acc, colour = Strategy_Label)) +
-  geom_line(linewidth = 0.8) +
-  geom_point(size = 1.6) +
-  geom_ribbon(
-    aes(ymin = mean_acc - 1.96 * se_acc,
-        ymax = mean_acc + 1.96 * se_acc,
-        fill = Strategy_Label),
-    alpha = 0.15, colour = NA
-  ) +
-  geom_text(aes(label = n_users), vjust = -0.8, size = 3, show.legend = FALSE) +
-  scale_colour_manual(
-    values = strategy_colors, drop = FALSE,
-    labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_fill_manual(
-    values = strategy_colors, drop = FALSE,
-    labels = function(x) stringr::str_wrap(x, width = 25)
-  ) +
-  scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
-  theme(legend.position = "bottom") +
-  labs(
-    x = "Rotation angle (°)",
-    y = "Mean accuracy",
-    colour = "Strategy", fill = "Strategy"
-  )
-```
-
+{{< include _appendix.qmd >}}
 
 \clearpage
 Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (). No main effect of sex was detected (). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.

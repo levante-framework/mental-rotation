@@ -1,0 +1,143 @@
+```{r}
+#| label: sex-rt-mods
+
+mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex)) |>
+  mutate(sex = factor(sex))
+
+contrasts(mrot_lme_data_sex$sex) <- contr.sum(levels(mrot_lme_data_sex$sex))
+
+sex_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
+                  (1 + angle_sc | user_id),
+                data = mrot_lme_data_sex,
+                REML = FALSE,
+                control = lmerControl(optimizer = "bobyqa"))
+perf_sex_mod <- model_performance(sex_mod, estimator = "ML")
+```
+
+```{r}
+#| label: sex-rt-preds
+
+sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
+                          stimulus = unique,        # each stimulus
+                          site_label = unique,      # each site
+                          sex = unique,             # each sex
+                          age_sc = age_seq,         # 100 equally spaced values of age
+                          newdata = mrot_lme_data_sex) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc, sex) |>
+  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
+         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
+         age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot") |>
+  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
+  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
+  left_join(angle_levels)
+```
+
+```{r}
+#| label: sex-rt-comps
+
+get_sex_comp <- \(pred) {
+  avg_comparisons(sex_mod,
+                  newdata = sex_pred_grid,
+                  re.form = NA,
+                  variables = "sex",
+                  by = pred) |>
+    as_tibble() |>
+    rename(value = !!pred) |>
+    mutate(predictor = pred, .before = value)
+}
+
+sex_comps <- map(slope_preds, get_sex_comp) |> list_rbind()
+
+sex_comps_tbl <- sex_comps |>
+  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: sex-rt-slopes
+
+sex_slopes <- slopes(sex_mod,
+                     newdata = sex_pred_grid,
+                     re.form = NA,
+                     variables = "angle_sc",
+                     by = "sex") |> as_tibble() |>
+  mutate(predictor = "sex") |>
+  select(term, contrast, predictor, value = sex, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         interpretation = paste(interpretation, glue("per {deg}°")),
+         p.value = map_chr(p.value, fmt_p))
+
+sex_slope_diffs <- slopes(sex_mod,
+                          newdata = sex_pred_grid,
+                          re.form = NA,
+                          variables = "angle_sc",
+                          by = "sex",
+                          hypothesis = difference ~ pairwise) |> as_tibble() |>
+  mutate(predictor = "sex") |>
+  select(predictor, hypothesis, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
+         p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: sex-ability-mods
+
+mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex)) |>
+  mutate(sex = factor(sex),
+         site_label = factor(site_label)
+         # age_sc = (age - mean(age)) / yrs
+  ) |>
+  rename(ability = metric_value) |>
+  select(site_label, user_id, run_id, age_group, age, sex, ability)
+
+contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
+
+ability_sex_mod <- lmer(ability ~ age * sex * site_label +
+                          (1 | user_id), data = mrot_df_sex)
+
+perf_ability_sex_mod <- model_performance(ability_sex_mod)
+```
+
+```{r}
+#| label: sex-ability-preds
+
+age_seq_yrs <- seq(min(mrot_df_sex$age), max(mrot_df_sex$age), length.out = 100)
+ability_grid <- datagrid(site_label = unique,
+                         sex = unique,
+                         age = age_seq_yrs,
+                         newdata = mrot_df_sex) |>
+  select(rowid, site_label, sex, age) |>
+  mutate(age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot")
+
+ability_preds <- avg_predictions(ability_sex_mod,
+                                 newdata = ability_grid,
+                                 re.form = NA,
+                                 by = c("site_label", "age_group", "age", "sex")) |>
+  as_tibble()
+```
+
+```{r}
+#| label: sex-ability-comps
+
+sd_ability <- sd(mrot_df_sex$ability)
+ability_comps <- comparisons(
+  ability_sex_mod,
+  newdata = ability_grid,
+  re.form = NA,
+  variables = list(site_label = "pairwise", sex = "pairwise", age = 1),
+  by = "task"
+) |> as_tibble() |>
+  select(term, contrast, estimate, std.error, p.value) |>
+  mutate(p.value = map_chr(p.value, fmt_p),
+         estimate_sd = estimate / sd_ability)
+```
