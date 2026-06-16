@@ -2,175 +2,8 @@
 title: "Mental rotation in children aged 5–13: a cross-site comparison across three populations"
 shorttitle: "LEVANTE Mental Rotation"
 
-author: 
-  - name: "Fionnuala O'Reilly"
-    orcid: 0000-0002-4355-9088
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - formal analysis
-      - investigation
-      - methodology
-      - project administration
-      - validation
-      - visualization
-      - writing – original draft
-      - writing – review & editing
-  - name: "Xingyao Xiao"
-    orcid: 0000-0001-8430-0438
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - formal analysis
-      - methodology
-      - visualization
-      - writing – review & editing
-  - name: "Rebecca Zhu"
-    orcid: 0000-0003-0957-5962
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - methodology
-      - writing – review & editing
-  - name: "Mika Braginsky"
-    orcid: 0000-0001-9039-3220
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - data curation
-      - methodology
-      - software
-      - writing – review & editing
-  - name: "George Kachergis"
-    orcid: 0000-0003-4153-4167
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - data curation
-      - methodology
-      - resources
-      - software
-      - writing – review & editing
-  - name: "Daniel Ansari"
-    orcid: 0000-0002-7625-618X
-    affiliations:
-      - ref: western
-    roles:
-      - data curation
-      - writing – review & editing
-  - name: "Manuel Bohn"
-    orcid: 0000-0001-6006-1348
-    affiliations:
-      - ref: mpieva 
-      - ref: leuphana
-    roles:
-      - investigation
-      - writing – review & editing
-  - name: "Daniel Haun"
-    orcid: 0000-0002-3262-645X
-    affiliations:
-      - ref: mpieva
-    roles:
-      - investigation
-      - writing – review & editing
-  - name: "Maria Camila Perfetti"
-    affiliations:
-      - ref: uniandes
-    roles:
-      - data curation
-      - writing – review & editing
-  - name: "Julián P. Mariño"
-    affiliations:
-      - ref: uniandes
-    roles:
-      - data curation
-      - writing – review & editing
-  - name: "Nilàm Ram"
-    orcid: 0000-0003-1671-5257
-    affiliations:
-      - ref: stanford
-    roles:
-      - methodology
-      - writing – review & editing
-  - name: "Benjamin W. Domingue"
-    orcid: 0000-0002-3894-9049
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - methodology
-      - supervision
-      - writing – review & editing
-  - name: "Michael C. Frank"
-    orcid: 0000-0002-7551-4378
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - funding acquisition
-      - investigation
-      - methodology
-      - project administration
-      - resources
-      - software
-      - supervision
-      - validation
-      - writing - original draft
-      - writing - review & editing
-    corresponding: true
-    email: mcfrank@stanford.edu
-
-roles:
-      - conceptualization
-      - data curation
-      - formal analysis
-      - funding acquisition
-      - investigation
-      - methodology
-      - project administration
-      - resources
-      - software
-      - supervision
-      - validation
-      - visualization
-      - writing – original draft
-      - writing – review & editing
-
-affiliations:
-  - id: stanford
-    name: Stanford University
-    department: Department of Psychology
-    address: 450 Jane Stanford Way
-    city: Stanford
-    region: CA
-    country: United States
-    postal-code: 94305
-  - id: western
-    name: University of Western Ontario
-    department: Department of Psychology
-    city: London
-    region: ON
-    country: Canada
-  - id: mpieva
-    name: Max Planck Institute for Evolutionary Anthropology
-    department: Department of Comparative Cultural Psychology
-    city: Leipzig
-    country: Germany
-  - id: leuphana
-    name: Leuphana University
-    department: Institute of Psychology
-    city: Lüneburg
-    country: Germany
-  - id: uniandes
-    name: Universidad de los Andes
-    department: School of Education
-    city: Bogotá
-    country: Colombia
+metadata-files:
+  - _authors.yml
 
 author-note:
   disclosures:
@@ -264,9 +97,12 @@ library(stringr)
 library(glue)
 library(here)
 library(tidytext)
+
 library(ggeffects)
 library(patchwork)
 library(ggpubr)
+library(ggrepel)
+
 library(factoextra)
 library(gridExtra)
 library(umap)
@@ -309,9 +145,9 @@ mult_to_pct <- \(x, more, less) {
 ```{r}
 #| label: site-info
 
-site_labels <- c("uniandes-co" = "pilot_uniandes_co",
-                 "mpieva-de" = "pilot_mpieva_de",
-                 "western-ca" = "pilot_western_ca")
+# site_labels <- c("uniandes-co" = "pilot_uniandes_co",
+#                  "mpieva-de" = "pilot_mpieva_de",
+#                  "western-ca" = "pilot_western_ca")
 
 # # site_pal is keyed by pilot_* names
 # # site_labels is keyed by readable names, values are pilot_* names
@@ -321,12 +157,13 @@ site_labels <- c("uniandes-co" = "pilot_uniandes_co",
 #   names(site_labels)
 # )
 
-dataset_labels <- c("uniandes-co-bogota" = "pilot_uniandes_co_bogota",
-                    "uniandes-co-rural" = "pilot_uniandes_co_rural",
-                    "mpieva-de" = "pilot_mpieva_de_main",
-                    "western-ca" = "pilot_western_ca_main")
+site_labels <- c("uniandes-co-bogota" = "pilot_uniandes_co_bogota",
+                 "uniandes-co-rural" = "pilot_uniandes_co_rural",
+                 "mpieva-de" = "pilot_mpieva_de_main",
+                 "western-ca" = "pilot_western_ca_main")
 
-dataset_pal <- solarized_pal()(length(dataset_labels)) |> rlang::set_names(names(dataset_labels))
+site_pal <- ptol_pal()(length(site_labels)) |>
+  rlang::set_names(names(site_labels))
 ```
 
 ```{r}
@@ -376,10 +213,8 @@ age_breaks <- c(5, 8, 11, 14)
 runs_filtered <- run_data_filtered |>
   mutate(age_group = cut(age, breaks = age_breaks,
                          include.lowest = TRUE, right = FALSE),
-         site_label = site |>
-           recode_values(from = site_labels, to = names(site_labels)),
-         dataset_label = dataset |>
-           recode_values(from = dataset_labels, to = names(dataset_labels)))
+         site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels)))
 ```
 
 ```{r}
@@ -390,10 +225,10 @@ site_n_df <- run_data |>
   group_by(dataset) |>
   summarise(n_users = n_distinct(user_id),
             n_runs = n_distinct(run_id)) |>
-  mutate(dataset = dataset |>
-           recode_values(from = dataset_labels, to = names(dataset_labels)))
+  mutate(site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels)))
 
-site_n <- site_n_df |> nest(ns = -dataset) |> deframe()
+site_n <- site_n_df |> nest(ns = -site_label) |> deframe()
 # n_uniandes <- site_n |> filter(site_label == "uniandes-co") |> pull(n_users)
 # n_mpieva <- site_n |> filter(site_label == "mpieva-de")  |> pull(n_users)
 # n_western <- site_n |> filter(site_label == "western-ca") |> pull(n_users)
@@ -426,7 +261,7 @@ mrot_trials <- task_data |>
   inner_join(runs_filtered)
 
 mrot_rt_trial <- mrot_trials |>
-  select(site_label, dataset_label, user_id, run_id, adaptive,
+  select(site_label, user_id, run_id, adaptive,
          age, age_group, trial_id, trial_number, item_uid, item_group, item,
          item_original, correct, rt_numeric) |>
   mutate(
@@ -446,10 +281,10 @@ mrot_rt_trial <- mrot_trials |>
 
 mrot_trial_sex <- mrot_rt_trial |>
   left_join(sex_data_cleaned) |>
-  distinct(user_id, site_label, dataset_label, sex)
+  distinct(user_id, site_label, sex)
 
 site_sex_counts <- mrot_trial_sex |>
-  count(dataset_label, sex) |>
+  count(site_label, sex) |>
   mutate(sex = sex |> replace_na("Unknown")) |>
   pivot_wider(names_from = sex, values_from = n)
 
@@ -463,11 +298,11 @@ overall_sex_counts <- mrot_trial_sex |>
 #| label: site-timespans
 
 site_spans <- mrot_trials |>
-  group_by(dataset_label) |>
+  group_by(site_label) |>
   summarise(earliest = min(timestamp),
             latest = max(timestamp)) |>
-  mutate(across(-dataset_label, as_date)) |>
-  nest(range = -dataset_label) |>
+  mutate(across(-site_label, as_date)) |>
+  nest(range = -site_label) |>
   deframe()
 ```
 
@@ -491,9 +326,9 @@ cat_counts <- mrot_rt_trial |>
 #| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
 
 trials_per_run <- mrot_rt_trial |>
-  group_by(dataset_label, user_id, run_id) |>
+  group_by(site_label, user_id, run_id) |>
   summarise(n_trials = n()) |>
-  group_by(dataset_label) |>
+  group_by(site_label) |>
   summarise(
     trials_mean = mean(n_trials),
     trials_sd   = sd(n_trials),
@@ -503,10 +338,10 @@ trials_per_run <- mrot_rt_trial |>
   ) |>
   mutate(trials_summary = sprintf("%.0f (%.1f) [%d–%d]", trials_mean, trials_sd,
                                   trials_min, trials_max)) |>
-  select(dataset_label, trials_summary)
+  select(site_label, trials_summary)
 
 site_features <- tribble(
-  ~dataset_label, ~area, ~location, ~setting, ~device,
+  ~site_label, ~area, ~location, ~setting, ~device,
   "mpieva-de", "Leipzig, Germany", "remote (home-based)", "individual", "family device",
   "uniandes-co-bogota", "Bogotá, Colombia", "in school", "group", "tablet (researcher-provided)",
   "uniandes-co-rural", "Caquetá and Boyacá, Colombia", "in school", "group", "tablet (researcher-provided)",
@@ -514,7 +349,7 @@ site_features <- tribble(
 )
 
 site_info <- mrot_df |>
-  group_by(dataset_label) |>
+  group_by(site_label) |>
   summarise(
     n_run    = n(),
     n_user   = n_distinct(user_id),
@@ -529,7 +364,7 @@ site_info <- mrot_df |>
   left_join(trials_per_run) |>
   left_join(site_features) |>
   mutate(testing_format = glue("Location: {location}\nSetting: {setting}\nDevice: {device}")) |>
-  select(Site = dataset_label,
+  select(Site = site_label,
          Area = area,
          `N assessments` = n_run,
          `N participants` = n_user,
@@ -614,9 +449,9 @@ task_rxx <- read_rds(here("models/mrot_rxx.rds"))
 site_rxx <- task_rxx |>
   filter(model_set == "multigroup_dataset") |>
   rename(dataset = group) |>
-  mutate(dataset_label = dataset |>
-           recode_values(from = dataset_labels, to = names(dataset_labels))) |>
-  select(itemtype, dataset_label, rxx)
+  mutate(site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels))) |>
+  select(itemtype, site_label, rxx)
 
 rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
   nest(data = -itemtype) |> deframe() |> map(deframe) |>
@@ -708,300 +543,301 @@ invar_table
 ```
 
 ```{r}
-#| label: fig-item-diff
-#| fig-cap: "**Item difficulty parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across cultural contexts."
-#| fig-width: 12
-#| fig-height: 8
-#| eval: false
-
-# Load configural parameters
+# load configural parameters
 mrot_configural <- mrot_coefs |>
   filter(task == "mrot",
-                itemtype == "2pl",
-                invariance == "configural",
-                model_set == "multigroup_site") |>
-  mutate(group = recode(group,
-                  "pilot_western_ca"  = "Canada",
-                  "pilot_mpieva_de"   = "Germany",
-                  "pilot_uniandes_co" = "Colombia"))
+         itemtype == "2pl",
+         invariance == "configural",
+         model_set == "multigroup_dataset") |>
+  mutate(site_label = group |>
+           recode_values(from = site_labels, to = names(site_labels))) |>
+  select(item, site_label, difficulty, discrimination = a1)
 
 # pivot wide
 mrot_wide_d <- mrot_configural |>
-  select(item, group, d) |>
-  pivot_wider(names_from = group, values_from = d) |>
+  pivot_wider(names_from = site_label, values_from = c(difficulty, discrimination)) |>
   separate_wider_delim(item, delim = "_",
                        names = c("task", "group", "stimulus", "angle")) |>
   mutate(angle = as.integer(angle),
          item_label = glue("{stimulus} {angle}°"))
-  # mutate(item_label = item |>
-  #                 stringr::str_remove("mrot_2d_") |>
-  #                 stringr::str_remove("mrot_3d_") |>
-  #                 stringr::str_replace("_", " ") |>
-  #                 stringr::str_replace("(\\d+)$", "\\1°"))
 
-plot_scatter <- function(data, x_var, y_var, x_lab, y_lab) {
-  ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]],
-                   label = item_label)) +
+param_ranges <- list(
+  "difficulty" = range(mrot_configural$difficulty),
+  "discrimination" = range(mrot_configural$discrimination)
+)
+coef_scatter <- function(param, x_site, y_site) {
+  x_var <- paste(param, x_site, sep = "_")
+  y_var <- paste(param, y_site, sep = "_")
+  x_lab <- glue("{str_to_sentence(param)} ({x_site})")
+  y_lab <- glue("{str_to_sentence(param)} ({y_site})")
+  ggplot(mrot_wide_d, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+    coord_equal(xlim = param_ranges[[param]], ylim = param_ranges[[param]]) +
     geom_abline(intercept = 0, slope = 1,
                 linetype = "dashed", colour = pal$grey) +
-    geom_point(size = 2.5, na.rm = TRUE) +
-    ggrepel::geom_text_repel(size = 2.8, family = .font,
-                    max.overlaps = Inf,
-                    box.padding = 0.5,
-                    point.padding = 0.3,
-                    na.rm = TRUE) +
-    # coord_equal(xlim = c(-2.5, 4), ylim = c(-2.5, 4)) +
-    coord_equal() +
+    geom_point(aes(colour = stimulus), size = 2.5, na.rm = TRUE) +
+    geom_text_repel(aes(label = item_label), size = 2.8, family = .font,
+                    max.overlaps = Inf, box.padding = 0.5, point.padding = 0.3) +
+    .scale_colour_stimulus(guide = "none") +
     labs(x = x_lab, y = y_lab)
 }
 
-p1 <- plot_scatter(mrot_wide_d, "Canada", "Germany",   "Canada", "Germany")
-p2 <- plot_scatter(mrot_wide_d, "Canada", "Colombia",  "Canada", "Colombia")
-p3 <- plot_scatter(mrot_wide_d, "Germany", "Colombia", "Germany", "Colombia")
+sites <- names(site_labels)
+site_pairs <- expand_grid(s1 = 1:4, s2 = 1:4) |>
+  filter(s2 > s1) |>
+  mutate(s1 = sites[s1], s2 = sites[s2])
+```
 
-(p1 | p2 | p3) +
-  plot_annotation(
-    title = "Item Difficulty Parameters Across Sites (Configural Model)",
-    theme = theme(plot.title = element_text(size = 12))
-  )
+```{r}
+#| label: fig-item-diff
+#| fig-cap: "**Item difficulty parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across sites."
+#| fig-width: 12
+#| fig-height: 8
 
-# checks
-coef_ns <- mrot_coefs |>
-  filter(task == "mrot", itemtype == "2pl", invariance == "configural") |>
-  count(model_set, subset, group)
+pair_plots_d <- map2(site_pairs$s1, site_pairs$s2,
+                     partial(coef_scatter, param = "difficulty"))
+wrap_plots(pair_plots_d)
+```
 
-# only 12 items appearing: multigroup IRT model was fitted only on the overlap items by design. The non-overlap items were either fitted in separate by-site models, or weren't included in the multigroup analysis at all.
+```{r}
+#| label: fig-item-disc
+#| fig-cap: "**Item discrimination parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item discrimination parameters are consistent across sites."
+#| fig-width: 12
+#| fig-height: 8
 
+pair_plots_a <- map2(site_pairs$s1, site_pairs$s2,
+                     partial(coef_scatter, param = "discrimination"))
+wrap_plots(pair_plots_a)
 ```
 
 ```{r}
 #| label: fig-co-theta-comparison
 #| include: false
 
-# Re-read without the model_set filter
-mrot_scores_all <- read_rds(here("models/mrot_scores.rds"))
-
-co_labels <- c(
-  "pilot_uniandes_co_rural"  = "uniandes-co-rural",
-  "pilot_uniandes_co_bogota" = "uniandes-co-bogota",
-  "pilot_uniandes_co"        = "uniandes-co"
-)
-
-co_theta <- mrot_scores_all |>
-  filter(
-    invariance == "scalar",
-    dataset %in% names(co_labels)
-  ) |>
-  mutate(
-    dataset_label = co_labels[dataset],
-    model_label = case_when(
-      model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)",
-      model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)"
-    )
-  )
-
-co_pal <- c("uniandes-co-bogota" = pal$red,
-            "uniandes-co-rural" = pal$blue,
-            "uniandes-co" = pal$grey)
-
-# p_co_theta <- ggplot(co_theta, 
-#                      aes(x = metric_value, fill = dataset_label, 
-#                          colour = dataset_label)) +
-#   geom_density(alpha = 0.3) +
-#   facet_wrap(~model_label, ncol = 2) +
-#   scale_fill_manual(values = co_pal) +
+# # Re-read without the model_set filter
+# mrot_scores_all <- read_rds(here("models/mrot_scores.rds"))
+# 
+# co_labels <- c(
+#   "pilot_uniandes_co_rural"  = "uniandes-co-rural",
+#   "pilot_uniandes_co_bogota" = "uniandes-co-bogota",
+#   "pilot_uniandes_co"        = "uniandes-co"
+# )
+# 
+# co_theta <- mrot_scores_all |>
+#   filter(
+#     invariance == "scalar",
+#     dataset %in% names(co_labels)
+#   ) |>
+#   mutate(
+#     dataset_label = co_labels[dataset],
+#     model_label = case_when(
+#       model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)",
+#       model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)"
+#     )
+#   )
+# 
+# co_pal <- c("uniandes-co-bogota" = pal$red,
+#             "uniandes-co-rural" = pal$blue,
+#             "uniandes-co" = pal$grey)
+# 
+# # p_co_theta <- ggplot(co_theta, 
+# #                      aes(x = metric_value, fill = dataset_label, 
+# #                          colour = dataset_label)) +
+# #   geom_density(alpha = 0.3) +
+# #   facet_wrap(~model_label, ncol = 2) +
+# #   scale_fill_manual(values = co_pal) +
+# #   scale_colour_manual(values = co_pal) +
+# #   labs(
+# #     x = "Estimated θ",
+# #     y = "Density",
+# #     fill = "Site", colour = "Site"
+# #   ) +
+# #   theme(legend.position = "bottom")
+# # p_co_theta
+# 
+# co_theta_wide <- co_theta |>
+#   select(run_id, dataset, dataset_label, model_set, metric_value) |>
+#   pivot_wider(names_from = model_set, values_from = metric_value)
+# 
+# p_co_theta <- ggplot(co_theta_wide, aes(y = multigroup_dataset, x = multigroup_site)) +
+#   coord_fixed() +
+#   geom_abline(color = "lightgrey", linetype = "dotted") +
+#   geom_point(aes(colour = dataset_label), size = 0.8, alpha = 0.5) +
 #   scale_colour_manual(values = co_pal) +
-#   labs(
-#     x = "Estimated θ",
-#     y = "Density",
-#     fill = "Site", colour = "Site"
-#   ) +
+#   labs(y = "Ability (θ) from by dataset model (samples split)",
+#        x = "Ability (θ) from by site model (samples pooled)",
+#        colour = "Sub-sample") +
 #   theme(legend.position = "bottom")
 # p_co_theta
-
-co_theta_wide <- co_theta |>
-  select(run_id, dataset, dataset_label, model_set, metric_value) |>
-  pivot_wider(names_from = model_set, values_from = metric_value)
-
-p_co_theta <- ggplot(co_theta_wide, aes(y = multigroup_dataset, x = multigroup_site)) +
-  coord_fixed() +
-  geom_abline(color = "lightgrey", linetype = "dotted") +
-  geom_point(aes(colour = dataset_label), size = 0.8, alpha = 0.5) +
-  scale_colour_manual(values = co_pal) +
-  labs(y = "Ability (θ) from by dataset model (samples split)",
-       x = "Ability (θ) from by site model (samples pooled)",
-       colour = "Sub-sample") +
-  theme(legend.position = "bottom")
-p_co_theta
 ```
 
 ```{r}
 #| label: fig-co-item-difficulty-comparison
 #| include: false
 
-co_groups <- c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota", "pilot_uniandes_co")
-
-co_coefs <- mrot_coefs |>
-  filter(
-    invariance == "configural",
-    itemtype == "2pl",
-    group %in% co_groups
-  ) |>
-  select(model_set, group, item, difficulty, discrimination = a1) |>
-  mutate(
-    group_label = co_labels[group],
-    model_label = case_when(
-      model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)",  
-      model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)"
-    )
-  ) |>
-  separate_wider_delim(item, delim = "_", cols_remove = FALSE,
-                       names = c("task", "item_group", "stimulus", "angle")) |>
-  mutate(item_group = item_group |> str_to_upper(),
-         stimulus = stimulus |> fct_relevel("rabbit"),
-         angle = angle |> as.integer(),
-         item_label = glue("{item_group} {stimulus} ({angle}°)")) |>
-  arrange(item_group, angle, stimulus) |>
-  mutate(item_label = item_label |> fct_inorder() |> fct_rev())
-
-# co_pal_3 <- c("uniandes-co-bogota" = pal$red, 
-#               "uniandes-co-rural"  = pal$blue, 
-#               "uniandes-co" = pal$grey)
-
-p_co_items_d <- ggplot(co_coefs,
-                     aes(x = difficulty, y = item_label, colour = group_label)) +
-  geom_crossbar(aes(xmin = difficulty, xmax = difficulty),
-                width = 0.5, middle.linewidth = 0.2) +
-  scale_colour_manual(values = co_pal) +
-  labs(x = "Item difficulty", y = "Item", colour = "Group") +
-  theme(#axis.text.y = element_text(size = 7),
-        legend.position = "bottom")
-        # legend.direction = "vertical")
-p_co_items_d
-
-p_co_items_a1 <- ggplot(co_coefs,
-                     aes(x = discrimination, y = item_label, colour = group_label)) +
-  geom_crossbar(aes(xmin = discrimination, xmax = discrimination),
-                width = 0.5, middle.linewidth = 0.2) +
-  scale_colour_manual(values = co_pal) +
-  labs(x = "Item discrimination", y = "Item", colour = "Group") +
-  theme(axis.text.y = element_text(size = 7),
-        legend.position = "bottom")
-p_co_items_a1
-
-# co_coefs |>
-#   select(item, model_set, group, difficulty, discrimination = a1) |>
+# co_groups <- c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota", "pilot_uniandes_co")
+# 
+# co_coefs <- mrot_coefs |>
+#   filter(
+#     invariance == "configural",
+#     itemtype == "2pl",
+#     group %in% co_groups
+#   ) |>
+#   select(model_set, group, item, difficulty, discrimination = a1) |>
+#   mutate(
+#     group_label = co_labels[group],
+#     model_label = case_when(
+#       model_set == "multigroup_dataset" ~ "By dataset (uniandes-co split)",  
+#       model_set == "multigroup_site"    ~ "By site (uniandes-co pooled)"
+#     )
+#   ) |>
+#   separate_wider_delim(item, delim = "_", cols_remove = FALSE,
+#                        names = c("task", "item_group", "stimulus", "angle")) |>
+#   mutate(item_group = item_group |> str_to_upper(),
+#          stimulus = stimulus |> fct_relevel("rabbit"),
+#          angle = angle |> as.integer(),
+#          item_label = glue("{item_group} {stimulus} ({angle}°)")) |>
+#   arrange(item_group, angle, stimulus) |>
+#   mutate(item_label = item_label |> fct_inorder() |> fct_rev())
+# 
+# # co_pal_3 <- c("uniandes-co-bogota" = pal$red, 
+# #               "uniandes-co-rural"  = pal$blue, 
+# #               "uniandes-co" = pal$grey)
+# 
+# p_co_items_d <- ggplot(co_coefs,
+#                      aes(x = difficulty, y = item_label, colour = group_label)) +
+#   geom_crossbar(aes(xmin = difficulty, xmax = difficulty),
+#                 width = 0.5, middle.linewidth = 0.2) +
+#   scale_colour_manual(values = co_pal) +
+#   labs(x = "Item difficulty", y = "Item", colour = "Group") +
+#   theme(#axis.text.y = element_text(size = 7),
+#         legend.position = "bottom")
+#         # legend.direction = "vertical")
+# p_co_items_d
+# 
+# p_co_items_a1 <- ggplot(co_coefs,
+#                      aes(x = discrimination, y = item_label, colour = group_label)) +
+#   geom_crossbar(aes(xmin = discrimination, xmax = discrimination),
+#                 width = 0.5, middle.linewidth = 0.2) +
+#   scale_colour_manual(values = co_pal) +
+#   labs(x = "Item discrimination", y = "Item", colour = "Group") +
+#   theme(axis.text.y = element_text(size = 7),
+#         legend.position = "bottom")
+# p_co_items_a1
+# 
+# # co_coefs |>
+# #   select(item, model_set, group, difficulty, discrimination = a1) |>
+# #   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
+# #   mutate(model_set = model_set |> str_remove("multigroup_"),
+# #          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
+# #   filter(item == "mrot_2d_rabbit_020")
+# # 
+# co_coefs_wide <- co_coefs |>
+#   select(item, model_set, group, difficulty, discrimination) |>
 #   pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
 #   mutate(model_set = model_set |> str_remove("multigroup_"),
 #          group = group |> str_extract("(?<=_)[a-z]*?$")) |>
-#   filter(item == "mrot_2d_rabbit_020")
+#   unite("set", model_set, group) |>
+#   pivot_wider(names_from = set, values_from = value)
 # 
-co_coefs_wide <- co_coefs |>
-  select(item, model_set, group, difficulty, discrimination) |>
-  pivot_longer(cols = c(difficulty, discrimination), names_to = "parameter") |>
-  mutate(model_set = model_set |> str_remove("multigroup_"),
-         group = group |> str_extract("(?<=_)[a-z]*?$")) |>
-  unite("set", model_set, group) |>
-  pivot_wider(names_from = set, values_from = value)
-
-p_co_items_scatter <- ggplot(co_coefs_wide, aes(x = dataset_bogota, y = dataset_rural)) +
-  facet_wrap(vars(parameter), scales = "free") +
-  geom_abline(linetype = "dashed", colour = "lightgrey") +
-  geom_point()
-
-# co_coefs_wide |> filter(parameter == "difficulty") |>
-#   select(where(is.double)) |>
-#   GGally::ggpairs()
+# p_co_items_scatter <- ggplot(co_coefs_wide, aes(x = dataset_bogota, y = dataset_rural)) +
+#   facet_wrap(vars(parameter), scales = "free") +
+#   geom_abline(linetype = "dashed", colour = "lightgrey") +
+#   geom_point()
+# 
+# # co_coefs_wide |> filter(parameter == "difficulty") |>
+# #   select(where(is.double)) |>
+# #   GGally::ggpairs()
 ```
 
 ```{r}
 #| label: co-followup-data
 #| include: false
 
-# shared lookup: map user_id → rural/bogota 
-co_dataset_lookup <- mrot_scores_all |>
-  filter(dataset %in% c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota")) |>
-  distinct(user_id, dataset) |>
-  mutate(co_site = co_labels[dataset])
-
-co_age <- runs_filtered |>
-  inner_join(co_dataset_lookup, by = "user_id")
-
-co_age_summary <- co_age |>
-  group_by(co_site) |>
-  summarise(
-    n        = n_distinct(user_id),
-    age_mean = mean(age, na.rm = TRUE),
-    age_sd   = sd(age, na.rm = TRUE),
-    age_min  = min(age, na.rm = TRUE),
-    age_max  = max(age, na.rm = TRUE),
-    .groups  = "drop"
-  )
-
-co_adaptive <- co_age |>
-  group_by(co_site, adaptive) |>
-  summarise(n = n_distinct(user_id), .groups = "drop") |>
-  group_by(co_site) |>
-  mutate(pct = round(100 * n / sum(n), 1))
-
-co_trials <- mrot_rt_trial |>
-  inner_join(co_dataset_lookup, by = "user_id") |>
-  group_by(co_site, item_group) |>
-  summarise(
-    n_trials = n(),
-    n_users  = n_distinct(user_id),
-    .groups  = "drop"
-  )
-
-task_anova_both <- read_rds(here("models/mrot_anova.rds")) |>
-  filter(task == "mrot", itemtype == "2pl")
+# # shared lookup: map user_id → rural/bogota 
+# co_dataset_lookup <- mrot_scores_all |>
+#   filter(dataset %in% c("pilot_uniandes_co_rural", "pilot_uniandes_co_bogota")) |>
+#   distinct(user_id, dataset) |>
+#   mutate(co_site = co_labels[dataset])
+# 
+# co_age <- runs_filtered |>
+#   inner_join(co_dataset_lookup, by = "user_id")
+# 
+# co_age_summary <- co_age |>
+#   group_by(co_site) |>
+#   summarise(
+#     n        = n_distinct(user_id),
+#     age_mean = mean(age, na.rm = TRUE),
+#     age_sd   = sd(age, na.rm = TRUE),
+#     age_min  = min(age, na.rm = TRUE),
+#     age_max  = max(age, na.rm = TRUE),
+#     .groups  = "drop"
+#   )
+# 
+# co_adaptive <- co_age |>
+#   group_by(co_site, adaptive) |>
+#   summarise(n = n_distinct(user_id), .groups = "drop") |>
+#   group_by(co_site) |>
+#   mutate(pct = round(100 * n / sum(n), 1))
+# 
+# co_trials <- mrot_rt_trial |>
+#   inner_join(co_dataset_lookup, by = "user_id") |>
+#   group_by(co_site, item_group) |>
+#   summarise(
+#     n_trials = n(),
+#     n_users  = n_distinct(user_id),
+#     .groups  = "drop"
+#   )
+# 
+# task_anova_both <- read_rds(here("models/mrot_anova.rds")) |>
+#   filter(task == "mrot", itemtype == "2pl")
 ```
 
 ```{r}
 #| label: co-rural-urban-values
 #| include: false
 
-# sample sizes and age
-co_bogota_n    <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(n)
-co_rural_n     <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(n)
-co_bogota_age_mean <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_mean) |> round(1)
-co_bogota_age_sd   <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_sd)   |> round(1)
-co_rural_age_mean  <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_mean) |> round(1)
-co_rural_age_sd    <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_sd)   |> round(1)
-
-# best-fitting model BIC for by-dataset model
-co_dataset_best_bic <- task_anova_both |>
-  filter(model_set == "multigroup_dataset") |>
-  slice_min(BIC) |>
-  pull(BIC) |>
-  round(2)
-
-co_dataset_bic <- task_anova_both |>
-  filter(model_set == "multigroup_dataset") |>
-  select(invariance, BIC) |>
-  deframe()
-
-co_dataset_best_invariance <- task_anova_both |>
-  filter(model_set == "multigroup_dataset") |>
-  slice_min(BIC) |>
-  pull(invariance)
-
-# adaptive split
-co_bogota_pct_nonadaptive <- co_adaptive |> 
-  filter(co_site == "uniandes-co-bogota", adaptive == FALSE) |> 
-  pull(pct)
-
-co_rural_pct_adaptive <- co_adaptive |>
-  filter(co_site == "uniandes-co-rural", adaptive == TRUE) |>
-  pull(pct)
+# # sample sizes and age
+# co_bogota_n    <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(n)
+# co_rural_n     <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(n)
+# co_bogota_age_mean <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_mean) |> round(1)
+# co_bogota_age_sd   <- co_age_summary |> filter(co_site == "uniandes-co-bogota") |> pull(age_sd)   |> round(1)
+# co_rural_age_mean  <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_mean) |> round(1)
+# co_rural_age_sd    <- co_age_summary |> filter(co_site == "uniandes-co-rural")  |> pull(age_sd)   |> round(1)
+# 
+# # best-fitting model BIC for by-dataset model
+# co_dataset_best_bic <- task_anova_both |>
+#   filter(model_set == "multigroup_dataset") |>
+#   slice_min(BIC) |>
+#   pull(BIC) |>
+#   round(2)
+# 
+# co_dataset_bic <- task_anova_both |>
+#   filter(model_set == "multigroup_dataset") |>
+#   select(invariance, BIC) |>
+#   deframe()
+# 
+# co_dataset_best_invariance <- task_anova_both |>
+#   filter(model_set == "multigroup_dataset") |>
+#   slice_min(BIC) |>
+#   pull(invariance)
+# 
+# # adaptive split
+# co_bogota_pct_nonadaptive <- co_adaptive |> 
+#   filter(co_site == "uniandes-co-bogota", adaptive == FALSE) |> 
+#   pull(pct)
+# 
+# co_rural_pct_adaptive <- co_adaptive |>
+#   filter(co_site == "uniandes-co-rural", adaptive == TRUE) |>
+#   pull(pct)
 ```
 
-
-### Analysis 1a: Within-site grouping
-The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (uniandes-co-bogota, n = `r co_bogota_n`; uniandes-co-rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across uniandes-co-bogota and uniandes-co-rural for both 2D and 3D items, with the exception of the estimate for one 3D item at the highest rotation angle in uniandes-co-bogota, which likely reflects estimation instability rather than a genuine difference 
-(see [Appendix B (Uniandes-co rural and urban sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (uniandes-co-bogota: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; uniandes-co-rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
-<!-- indicating that the invariance result is not driven by age composition differences. -->
-These results support treating uniandes-co as a single group in the main analysis.
+```{r}
+# ### Analysis 1a: Within-site grouping
+# The uniandes-co site recruited children across both urban schools in Bogotá and rural schools in Caquetá and Boyacá, raising the question of whether the scalar invariance result holds when these two sub-samples are treated as distinct groups. To examine this, we refit the multigroup IRT models with uniandes-co split into two datasets (uniandes-co-bogota, n = `r co_bogota_n`; uniandes-co-rural, n = `r co_rural_n`) rather than pooled as a single site. `r stringr::str_to_sentence(co_dataset_best_invariance)` invariance remained the best-fitting model by BIC (BIC = `r co_dataset_bic[["scalar"]]` for scalar, `r co_dataset_bic[["metric"]]` for metric, `r co_dataset_bic[["configural"]]` for configural), indicating that item parameters are consistent across the two uniandes-co sub-samples as well as across the three main sites. Item difficulty estimates under a configural model were largely consistent across uniandes-co-bogota and uniandes-co-rural for both 2D and 3D items, with the exception of the estimate for one 3D item at the highest rotation angle in uniandes-co-bogota, which likely reflects estimation instability rather than a genuine difference
+# (see [Appendix B (Uniandes-co rural and urban sub-samples)](#sec-apx-co-rural-urban)). Age distributions across the two uniandes-co sub-samples were also comparable (uniandes-co-bogota: M = `r co_bogota_age_mean`, SD = `r co_bogota_age_sd`; uniandes-co-rural: M = `r co_rural_age_mean`, SD = `r co_rural_age_sd`).
+# indicating that the invariance result is not driven by age composition differences.
+# These results support treating uniandes-co as a single group in the main analysis.
+```
 
 ### Analysis 1b: Age Sensitivity
 Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
@@ -1016,24 +852,21 @@ yrs <- 2  # age unit size
 
 # filter to non-CAT, add age group, stimulus, angle
 mrot_lme_data <- mrot_rt_trial |>
-  rename(site = site_label, dataset = dataset_label) |>
   filter(!adaptive,            # exclude CAT runs
          correct == 1,         # exclude incorrect responses
          trial_number != 1) |> # exclude each run's first trial
   mutate(
     item_group = factor(item_group),
     stimulus   = factor(stimulus),
-    site       = factor(site),
-    dataset    = factor(dataset),
+    site_label = factor(site_label),
     angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
     age_sc     = (age - mean(age)) / yrs # scale to 2 units = sd
   ) |>
-  select(site, dataset, user_id, run_id,  matches("age"), trial_number,
+  select(site_label, user_id, run_id,  matches("age"), trial_number,
          item_group, stimulus, angle, angle_sc, rt_s, log_rt)
 
 # effects code all factors
-contrasts(mrot_lme_data$site) <- contr.sum(levels(mrot_lme_data$site))
-contrasts(mrot_lme_data$dataset) <- contr.sum(levels(mrot_lme_data$dataset))
+contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
 contrasts(mrot_lme_data$item_group) <- contr.sum(levels(mrot_lme_data$item_group))
 contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
 ```
@@ -1041,7 +874,8 @@ contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
 ```{r}
 #| label: rt-angle-model
 
-full_mod <- lmer(log_rt ~ angle_sc * stimulus * dataset * age_sc + (1 + angle_sc | user_id),
+full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
+                   (1 + angle_sc | user_id),
                  data = mrot_lme_data,
                  REML = FALSE,
                  control = lmerControl(optimizer = "bobyqa"))
@@ -1065,10 +899,10 @@ angle_levels <- mrot_lme_data |>
 age_seq <- seq(min(mrot_lme_data$age_sc), max(mrot_lme_data$age_sc), length.out = 100)
 pred_grid <- datagrid(angle_sc = unique,        # each angle
                       stimulus = unique,        # each stimulus
-                      dataset = unique,         # each dataset
+                      site_label = unique,            # each site
                       age_sc = age_seq,         # 100 equally spaced values of age
                       newdata = mrot_lme_data) |>
-  select(rowid, angle_sc, stimulus, dataset, age_sc) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
          age_group = cut(age, breaks = age_breaks,
@@ -1079,7 +913,7 @@ pred_grid <- datagrid(angle_sc = unique,        # each angle
   left_join(angle_levels)
 
 # get model predictions at grid, average age by age_group
-grid_preds <- c("angle", "item_group", "stimulus", "dataset", "age_group")
+grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group")
 avg_preds <- avg_predictions(full_mod,
                              newdata = pred_grid,
                              re.form = NA,
@@ -1092,7 +926,7 @@ avg_preds <- avg_predictions(full_mod,
 #| label: rt-angle-slopes
 
 # extract angle slopes for each predictor
-slope_preds <- c("task", "item_group", "stimulus", "dataset", "age_group")
+slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group")
 get_pred_slopes <- \(pred) {
   slopes(full_mod,
          newdata = pred_grid,
@@ -1167,10 +1001,10 @@ rt_breaks <- log(rt_labels)
 
 # panel labellers
 age_labeller <- \(x) if_else(x == "", "", glue("Age (years): {x}"))
-dataset_labeller <- \(x) if_else(x == "", "", glue("Dataset: {x}"))
+dataset_labeller <- \(x) if_else(x == "", "", glue("Site: {x}"))
 
 ggplot(avg_preds, aes(x = angle_level)) +
-  facet_grid(vars(dataset), vars(age_group),
+  facet_grid(vars(site_label), vars(age_group),
              labeller = labeller(.cols = age_labeller, .rows = dataset_labeller)) +
   # fake points to make discrete x axis work
   geom_point(aes(y = -Inf), colour = "white", alpha = 0,
@@ -1254,7 +1088,8 @@ mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id")
 
 contrasts(mrot_lme_data_sex$sex) <- contr.sum(levels(mrot_lme_data_sex$sex))
 
-sex_mod <- lmer(log_rt ~ angle_sc * stimulus * dataset * age_sc * sex + (1 + angle_sc | user_id),
+sex_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
+                  (1 + angle_sc | user_id),
                 data = mrot_lme_data_sex,
                 REML = FALSE,
                 control = lmerControl(optimizer = "bobyqa"))
@@ -1262,11 +1097,11 @@ perf_sex_mod <- model_performance(sex_mod, estimator = "ML")
 
 sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
                           stimulus = unique,        # each stimulus
-                          dataset = unique,         # each dataset
+                          site_label = unique,      # each site
                           sex = unique,             # each sex
                           age_sc = age_seq,         # 100 equally spaced values of age
                           newdata = mrot_lme_data_sex) |>
-  select(rowid, angle_sc, stimulus, dataset, age_sc, sex) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc, sex) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
          age_group = cut(age, breaks = age_breaks,
@@ -1325,27 +1160,28 @@ sex_slope_diffs <- slopes(sex_mod,
 
 mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
   filter(!is.na(sex)) |>
-  mutate(sex    = factor(sex),
-         site   = factor(site)
+  mutate(sex = factor(sex),
+         site_label = factor(site_label)
          # age_sc = (age - mean(age)) / yrs
   ) |>
   rename(ability = metric_value) |>
-  select(dataset = dataset_label, user_id, run_id, age_group, age, sex, ability)
+  select(site_label, user_id, run_id, age_group, age, sex, ability)
 
 contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
 
-ability_sex_mod <- lmer(ability ~ age * sex * dataset + (1 | user_id), data = mrot_df_sex)
+ability_sex_mod <- lmer(ability ~ age * sex * site_label +
+                          (1 | user_id), data = mrot_df_sex)
 
 perf_ability_sex_mod <- model_performance(ability_sex_mod)
 ```
 
 ```{r}
 age_seq_yrs <- seq(min(mrot_df_sex$age), max(mrot_df_sex$age), length.out = 100)
-ability_grid <- datagrid(dataset = unique,
+ability_grid <- datagrid(site_label = unique,
                          sex = unique,
                          age = age_seq_yrs,
                          newdata = mrot_df_sex) |>
-  select(rowid, dataset, sex, age) |>
+  select(rowid, site_label, sex, age) |>
   mutate(age_group = cut(age, breaks = age_breaks,
                          include.lowest = TRUE, right = FALSE),
          task = "mrot")
@@ -1353,15 +1189,17 @@ ability_grid <- datagrid(dataset = unique,
 ability_preds <- avg_predictions(ability_sex_mod,
                                  newdata = ability_grid,
                                  re.form = NA,
-                                 by = c("dataset", "age_group", "age", "sex")) |>
+                                 by = c("site_label", "age_group", "age", "sex")) |>
   as_tibble()
 
 sd_ability <- sd(mrot_df_sex$ability)
-ability_comps <- comparisons(ability_sex_mod,
-                             newdata = ability_grid,
-                             re.form = NA,
-                             variables = list(dataset = "pairwise", sex = "pairwise", age = 1),
-                             by = "task") |> as_tibble() |>
+ability_comps <- comparisons(
+  ability_sex_mod,
+  newdata = ability_grid,
+  re.form = NA,
+  variables = list(site_label = "pairwise", sex = "pairwise", age = 1),
+  by = "task"
+) |> as_tibble() |>
   select(term, contrast, estimate, std.error, p.value) |>
   mutate(p.value = map_chr(p.value, fmt_p),
          estimate_sd = estimate / sd_ability)
@@ -1597,7 +1435,9 @@ mrot_sd_abs_slope   <- round(mrot_strat$SD_Abs_Slope, 2)
 ability_diff        <- round(flip$Mean_Ability - mrot_strat$Mean_Ability, 2)
 
 ```
+
 ## Analysis 4: Strategy Variation
+
 Our fourth research question asked, exploratorily, whether individual differences in children's RT profiles capture meaningful variation in strategy use, and whether strategy groupings differ across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. All analyses in this section are exploratory and descriptive; findings should be treated as hypothesis-generating rather than confirmatory.
 
 To select the number of clusters, we evaluated solutions from k = 1–8 using the elbow method and average silhouette width; see [Appendix D (Cluster solution validation)](#sec-apx-cluster) for full results. The statistically optimal solution was k = 2, but inspection of the resulting RT–angle functions revealed that this collapsed two theoretically distinguishable effective engagement profiles into a single region. We therefore adopted k = 3 on both empirical grounds (a moderate elbow inflection at k = 3) and theoretical grounds (the interpretability of the resulting RT profiles), treating the three profiles as descriptive anchors along a continuum rather than evidence for discrete strategy types.
@@ -1775,8 +1615,11 @@ validation_table |>
     data_row.padding = px(3)
   )
 ```
+
 ### Robustness checks {#sec-robustness-checks}
+
 Three robustness checks are reported in full in the appendices. First, comparison of k = 2 and k = 3 solutions confirmed that k = 2 collapsed two distinguishable RT–angle profiles into a single region, justifying the three-profile solution (see [Appendix D (Profile summary statistics)](#sec-apx-cluster-summary-stats) and [Appendix D (Cluster solution validation)](#sec-apx-cluster)). Profile membership by age group is reported in [Appendix D (Strategy use across age groups)](#sec-apx-strategy-age-group). Second, dimensionality reduction via PCA, t-SNE, and UMAP consistently recovered the separation between the Ineffective group and the two effective engagement profiles, while the boundary between the Rotation and Matching/Flipping/Other profiles remained less clear — supporting the continuum interpretation see [Appendix D (Dimensionality reduction checks)](#sec-apx-dimreduc). Third, re-analysis using full 0–360° rotation angles replicated the main findings and provided direct support for shortest-path rotation, with both the Rotation and Matching/Flipping/Other profiles showing near-symmetric inverted-U RT functions peaking around 200–240°, with the Rotation profile showing the steeper rise consistent with the main analysis [Appendix E (Full 0–360° angle check)](#sec-apx-360-angle).
+
 ```{r}
 #| label: local-clustering-agreement
 #| include: false
@@ -2073,7 +1916,7 @@ knitr::include_graphics("images/mrot_item_examples.pdf")
 mrot_info <- read_rds(here("models/mrot_info.rds"))
 
 info_2pl_scalar <- mrot_info |>
-  filter(model_set == "multigroup_site", itemtype == "2pl")
+  filter(model_set == "multigroup_dataset", itemtype == "2pl")
 
 angles <- sort(unique(info_2pl_scalar$angle))
 p_info_2pl <- ggplot(info_2pl_scalar, aes(x = theta, y = info)) +
@@ -2088,29 +1931,29 @@ p_info_2pl <- ggplot(info_2pl_scalar, aes(x = theta, y = info)) +
 p_info_2pl
 ```
 
-\clearpage
-## Uniandes-co rural and urban sub-samples {#sec-apx-co-rural-urban}
+<!-- \clearpage -->
+<!-- ## Uniandes-co rural and urban sub-samples {#sec-apx-co-rural-urban} -->
 
-```{r}
-#| label: fig-co-theta
-#| eval: true
-#| include: true
-#| fig-width: 5
-#| fig-height: 5
-#| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates."
+<!-- ```{r} -->
+<!-- #| label: fig-co-theta -->
+<!-- #| eval: true -->
+<!-- #| include: true -->
+<!-- #| fig-width: 5 -->
+<!-- #| fig-height: 5 -->
+<!-- #| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates." -->
 
-p_co_theta
-```
+<!-- p_co_theta -->
+<!-- ``` -->
 
-```{r}
-#| label: fig-co-item-difficulty
-#| dependson: co-item-difficulty-comparison
-#| fig-width: 7
-#| fig-height: 5
-#| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for the uniandes-co-bogota sample (red) and uniandes-co-rural sample (blue) separated and both samples pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one estimate for the 3D shape (120°) item in the uniandes-co-bogota sample."
+<!-- ```{r} -->
+<!-- #| label: fig-co-item-difficulty -->
+<!-- #| dependson: co-item-difficulty-comparison -->
+<!-- #| fig-width: 7 -->
+<!-- #| fig-height: 5 -->
+<!-- #| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for the uniandes-co-bogota sample (red) and uniandes-co-rural sample (blue) separated and both samples pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one estimate for the 3D shape (120°) item in the uniandes-co-bogota sample." -->
 
-p_co_items_d
-```
+<!-- p_co_items_d -->
+<!-- ``` -->
 
 \clearpage
 ## Developmental trajectories {#sec-apx-ability-age}
@@ -2122,13 +1965,13 @@ p_co_items_d
 #| fig-width: 6.5
 #| fig-height: 5.5
 
-ggplot(mrot_df, aes(x = age, y = metric_value, colour = dataset_label)) +
+ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
   geom_point(alpha = 0.35, size = 1.1, shape = 16) +
   # geom_linerange(aes(ymin = metric_value - metric_se, ymax = metric_value + metric_se),
   #                alpha = 0.35, size = 1.1) +
   geom_line(aes(group = user_id), alpha = .3) + 
   geom_smooth(method = "gam", formula = y ~ s(x, k = 5), se = TRUE, fullrange = TRUE) +
-  scale_colour_manual(values = dataset_pal) +
+  scale_colour_manual(values = site_pal) +
   scale_x_continuous(expand = expansion(mult = 0.02)) +
   labs(
     x      = "Age (years)",
@@ -2161,8 +2004,8 @@ site_n_labels <- mrot_df_sex |>
 
 mrot_df_sex |>
   left_join(site_n_labels) |>
-  ggplot(aes(x = age, y = metric_value, colour = sex)) +
-  facet_wrap(~label) +
+  ggplot(aes(x = age, y = ability, colour = sex)) +
+  facet_wrap(vars(site_label), nrow = 1) +
   geom_point(alpha = 0.35, size = 1.1) +
   geom_smooth(method = "lm", fullrange = TRUE) +
   labs(
@@ -2230,6 +2073,7 @@ n_table |> gt() |>
 
 \clearpage
 ## Raw RT by age and site {#sec-apx-irt-ability-age}
+
 ```{r}
 #| label: fig-rt-angle_raw
 #| fig-cap: "Reaction time by angle within age groups with raw per-run data and ±95% CI. CAT trials excluded."
@@ -2289,6 +2133,7 @@ p_mrot_rt_angle_age_2
 \clearpage
 ## Within-person dynamics {#sec-apx-within-person-dynamics}
 Having established that 3D stimuli elicit a clear angular disparity effect while 2D stimuli do to a lesser extent, we next asked a complementary question: whether children show sensitivity to task demands as they unfold in real time — specifically, whether reaction times shift systematically at the transition from 2D to 3D stimuli, and whether practice effects are detectable within blocks. To isolate time-on-task effects from item-driven RT changes, we residualized log-RTs on angle, stimulus, and item type prior to analysis.
+
 ```{r}
 #| label: fig-within-person-trials
 #| fig-cap: "**Trial-level reaction time dynamics (angle-residualised).** Mean residual log-RT across trials for each non-adaptive site ±SE. The dashed line marks the 2D→3D transition. Retest and CAT data removed."
@@ -2327,16 +2172,16 @@ transition_trial <- trial_resid_data |>
 # plot
 ggplot(trial_resid_data, 
        aes(x = trial_number, y = log_rt_resid, 
-           color = dataset, fill = dataset)) +
+           color = site_label, fill = site_label)) +
   stat_summary(fun = mean, geom = "point", size = 1.2, alpha = 0.5) +
-  geom_smooth(aes(group = interaction(dataset, block)),
+  geom_smooth(aes(group = interaction(site_label, block)),
               method = "loess", span = 0.75, se = TRUE, alpha = 0.2) +
   geom_vline(xintercept = transition_trial - 0.5, linetype = "dotted",
              color = "lightgrey", linewidth = 0.7) +
   annotate("text", x = transition_trial + 1, y = Inf,
            label = "Start of 3D block", hjust = 0, vjust = 1.5, size = 3.5) +
-  scale_colour_manual(values = dataset_pal) +
-  scale_fill_manual(values = dataset_pal) +
+  scale_colour_manual(values = site_pal) +
+  scale_fill_manual(values = site_pal) +
   labs(
     x     = "Trial number",
     y     = "Residual reaction time",
@@ -2356,7 +2201,7 @@ within_person_data <- trial_resid_data |>
     block         = factor(block, levels = c("2D", "3D")),
     # trial number centered within block
     trial_c       = trial_number - transition_trial,
-    site          = factor(site)
+    site_label          = factor(site_label)
   ) |>
   filter(!is.na(trial_number), !is.na(log_rt_resid))
 
