@@ -104,7 +104,7 @@ The present study uses data from the Learning Variability Network Exchange (LEVA
 
 Our first research question asks whether the LEVANTE mental rotation task achieves measurement invariance across three international study sites — that is, whether the task captures the same underlying construct regardless of where it is administered. Our second asks whether reaction time performance is sensitive to the spatial properties of the stimuli, as originally demonstrated by @shepard1971mental, using the angular disparity effect as the key benchmark: as the angular difference between two objects increases, so too should the time required to judge whether they match. If children across three culturally diverse sites show this same systematic pattern, this constitutes good evidence that the task is engaging the spatial demands it was designed to capture. Our third research question asks whether a sex difference in mental rotation is detectable in this sample, and whether it interacts with age. Alongside these three primary research questions, we tentatively explore a fourth: whether children draw on different cognitive strategies when solving mental rotation problems, and whether their strategies vary across contexts. These four questions move from psychometric structure (*Cross-site invariance*), to process-level validity (*Angular sensitivity*), to individual variation (*Sex differences*), to profiles of engagement (*Strategy variation*) — building a layered case for the task's cross-cultural validity.
 
-{{< include _data_prep.qmd >}}
+{{< include _00_data_prep.qmd >}}
 
 ```{r}
 #| label: tbl-participants
@@ -180,14 +180,14 @@ From this model, we extracted five person-level features for each child. Baselin
 
 # Results
 
-{{< include _irt.qmd >}}
+{{< include _01_irt.qmd >}}
 ## Analysis 1: Cross-site invariance
 
 Our first research question asked whether the task measured the mental rotation construct in the same way across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`, *k* = `r npar_2pl_scalar`), outperforming the 2PL configural invariance model by `r delta_bic_configural` BIC points and the Rasch scalar invariance model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt).
 
 The better fit of the 2PL model compared to the Rasch model indicates that mental rotation items vary in their discrimination — specifically, items with higher angular disparity provide more information at higher abilities (see @fig-item-info). In addition to the 2PL model being favored over the Rasch model in terms of model fit, it also provides substantially higher marginal reliabilities (2PL: `r rxx[["2pl"]]`; Rasch: `r rxx$rasch`), providing further support for its suitability.
 
-Crucially, scalar invariance was supported over more flexible alternatives, meaning that both item discriminations and difficulties were equivalent across sites — items are not only ordered similarly in difficulty across sites, but the absolute spacing between them on the latent scale is also preserved. This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artifacts. Practically, the relative difficulty and discrimination of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across study sites, and ability estimates can be placed on a common latent scale [@putnick2016measurement].
+Crucially, scalar invariance was supported over more flexible alternatives, meaning that both item difficulties and discriminations were equivalent across sites — items are not only ordered similarly in difficulty across sites, but the absolute spacing between them on the latent scale is also preserved. This means that children across sites are being measured on a comparable scale, and that differences in θ are not attributable to site-specific measurement artifacts. Practically, the relative difficulty and discrimination of items — for example, the greater challenge posed by larger rotation angles and 3D figures — is consistent in magnitude across study sites, and ability estimates can be placed on a common latent scale [@putnick2016measurement].
 
 Scalar invariance is a psychometric property of the instrument: it establishes that scores can be meaningfully compared across contexts (though it does not license inferences about the causes of any absolute differences). Scalar invariance also does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in Analysis 2.
 
@@ -226,7 +226,7 @@ mrot_models |>
 
 Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
-{{< include _angle_sensitivity.qmd >}}
+{{< include _02_angle_sensitivity.qmd >}}
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
 #| fig-cap: "**Reaction time by angle within age groups ±95% CI.** Note. Cells with fewer than 10 observations are excluded. Lines reflect descriptive means; statistical models were fit separately for 2D and 3D stimuli. Age groups shown for visualization only; age was modeled as a continuous predictor."
@@ -292,12 +292,12 @@ The angle effect increased considerably over age, being smallest for 5--7 year o
 
 Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
 
-{{< include _sex_diffs.qmd >}}
+{{< include _03_sex_diffs.qmd >}}
 ## Analysis 3: Sex differences 
 
 Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (), with no evidence for a main effect of sex () or an age-by-sex interaction (). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
 
-{{< include _strategies.qmd >}}
+{{< include _04_strategies.qmd >}}
 ## Analysis 4: Strategy variation
 
 Our fourth research question asked, exploratorily, whether individual differences in children's RT profiles capture meaningful variation in strategy use, and whether strategy groupings differ across cultural contexts. We approach this as an attempt to characterize a continuum of engagement rather than identify discrete strategy types — from children who appear to disengage from the spatial structure of the task entirely, to those who engage effectively in varying ways. All analyses in this section are exploratory and descriptive; findings should be treated as hypothesis-generating rather than confirmatory.
@@ -461,7 +461,7 @@ Four research questions motivated this study, each asking in a different way whe
 ::: {#refs}
 :::
 
-{{< include _appendix.qmd >}}
+{{< include _101_appendix.qmd >}}
 
 \clearpage
 Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (). No main effect of sex was detected (). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
