@@ -42,7 +42,8 @@ mrot_scores <- read_rds(here("models/mrot_scores.rds")) |>
   filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
 
 # coefficients
-mrot_coefs <- read_rds(here("models/mrot_coef.rds"))
+mrot_coefs <- read_rds(here("models/mrot_coef.rds")) |>
+  filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
 
 # sex info for sex differences analyses
 sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))

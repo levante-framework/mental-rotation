@@ -193,35 +193,23 @@ Scalar invariance is a psychometric property of the instrument: it establishes t
 
 ```{r}
 #| label: tbl-mrot-irt
-#| tbl-cap: "**Model fit indices for IRT models fit to overlapping items.** Note: 2PL = 2-parameter logistic model; Rasch model constrains all item discriminations to be equal. Configural invariance allows all parameters to vary across groups; metric constrains discriminations across groups; scalar constrains discriminations and difficulties. The selected model (bold) had the lowest BIC."
+#| tbl-cap: "**Model fit indices for IRT models fit to overlapping items.** Note: 2PL = 2-parameter logistic model; Rasch model constrains all item discriminations to be equal. Configural invariance allows all parameters to vary across groups; metric constrains discriminations across groups; scalar constrains discriminations and difficulties. The selected model (bold) had the lowest BIC; ΔBIC indicates the difference in BIC for each model from that minimum."
 
-best_row <- which.min(mrot_models$BIC)
-
-mrot_models |>
-  mutate(itemtype = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl")) |>
-  mutate(dBIC = BIC - lag(BIC)) |>
-  select(itemtype, invariance, logLik, AIC, BIC, dBIC, df, model_order) |>
+mod_tbl |>
+  arrange(desc(itemtype), n_pars) |>
+  mutate(itemtype = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl") |>
+           as.character()) |>
+  select(itemtype, invariance, n_pars, logLik, AIC, BIC, d_BIC) |>
   gt() |>
   tab_header(title = md("")) |>
-  cols_hide(columns = model_order) |>
   cols_label(itemtype = "Model",
              invariance = "Invariance",
+             n_pars = "Parameters",
              logLik = "Log-likelihood",
-             dBIC = "ΔBIC",
-             df = "ΔParameters") |>
-  fmt_number(columns = c(logLik, AIC, BIC, dBIC), decimals = 2) |>
-  fmt_number(columns = df, decimals = 0, use_seps = FALSE) |>
-  cols_align(align = "center", columns = c(itemtype, invariance, df)) |>
-  cols_align(align = "right",  columns = c(logLik, AIC, BIC)) |>
+             d_BIC = "ΔBIC") |>
   tab_style(style = list(cell_text(weight = "bold"),
                          cell_fill(color = "#f0f7ff")),
-            locations = cells_body(rows = best_row)) |>
-  tab_footnote(footnote = "Computed relative to the previous model in the sequence.",
-               locations = cells_column_labels(columns = c(dBIC, df))) |>
-  tab_row_group(label = "2PL",   rows = model_order %in% 3:5) |>
-  tab_row_group(label = "Rasch", rows = model_order %in% 1:2) |>
-  tab_options(table.width = pct(100), data_row.padding = px(3),
-              row_group.font.weight = "bold")
+            locations = cells_body(rows = d_BIC == 0))
 ```
 
 {{< include _02_angle_sensitivity.qmd >}}
@@ -250,7 +238,7 @@ Although the primary analyses modeled angle as a linear predictor over the 40–
 #| fig-align: "center"
 #| include: true
 #| fig-width: 9
-#| fig-height: 8
+#| fig-height: 9
 
 # RT axis breaks and labels
 rt_labels <- c(0.25, 0.5, 1, 2, 4, 8)

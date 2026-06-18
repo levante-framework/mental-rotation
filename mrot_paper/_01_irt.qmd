@@ -24,18 +24,21 @@ rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
 ```{r}
 #| label: irt-values
 
-mrot_2pl_scalar <- mrot_models |>
-  filter(task == "mrot", itemtype == "2pl", invariance == "scalar")
+mod_tbl <- mrot_models |>
+  mutate(across(where(is.double), \(x) round(x))) |>
+  select(-model_set, -subset)
 
-mrot_2pl_configural <- mrot_models |>
-  filter(task == "mrot", itemtype == "2pl", invariance == "configural")
+mrot_2pl_scalar <- mod_tbl |>
+  filter(itemtype == "2pl", invariance == "scalar")
 
-mrot_rasch_scalar <- mrot_models |>
-  filter(task == "mrot", itemtype == "rasch", invariance == "scalar")
+mrot_2pl_configural <- mod_tbl |>
+  filter(itemtype == "2pl", invariance == "configural")
 
-delta_bic_rasch <- round(mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC, 1)
-delta_bic_configural <- round(mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC, 1)
-bic_2pl_scalar  <- round(mrot_2pl_scalar$BIC, 2)
-aic_2pl_scalar  <- round(mrot_2pl_scalar$AIC, 2)
-npar_2pl_scalar <- mrot_2pl_scalar$df
+mrot_rasch_scalar <- mod_tbl |>
+  filter(itemtype == "rasch", invariance == "scalar")
+
+delta_bic_rasch <- mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC
+delta_bic_configural <- mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC
+bic_2pl_scalar <- mrot_2pl_scalar$BIC
+aic_2pl_scalar <- mrot_2pl_scalar$AIC
 ```
