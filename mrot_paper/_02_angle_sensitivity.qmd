@@ -55,14 +55,14 @@ angle_levels <- mrot_lme_data |>
 age_seq <- seq(min(mrot_lme_data$age_sc), max(mrot_lme_data$age_sc), length.out = 100)
 pred_grid <- datagrid(angle_sc = unique,        # each angle
                       stimulus = unique,        # each stimulus
-                      site_label = unique,            # each site
+                      site_label = unique,      # each site
                       age_sc = age_seq,         # 100 equally spaced values of age
                       newdata = mrot_lme_data) |>
   select(rowid, angle_sc, stimulus, site_label, age_sc) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
          age_group = cut(age, breaks = age_breaks,
-                         include.lowest = TRUE, right = FALSE),
+                         include.lowest = FALSE, right = FALSE),
          task = "mrot") |>
   inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
   left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
@@ -95,7 +95,7 @@ get_pred_slopes <- \(pred) {
 pred_slopes <- map(slope_preds, get_pred_slopes) |> list_rbind()
 
 pred_slopes_tbl <- pred_slopes |>
-  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  select(predictor, value, estimate, std.error, p.value) |>
   mutate(estimate_rt = exp(estimate)) |>
   mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
          interpretation = paste(interpretation, glue("per {deg}°")),
@@ -127,10 +127,11 @@ pred_slope_tests_tbl <- pred_slope_tests |> as_tibble() |>
 ```{r}
 #| label: rt-plot-prep
 
+z_rt_cutoff <- 2
 # data points to plot - cut off RT tails
 mrot_lme_data_plot <- mrot_lme_data |>
   mutate(z_rt = scale(log_rt)[,1]) |>
-  filter(abs(z_rt) <= 2) |>
+  filter(abs(z_rt) <= z_rt_cutoff) |>
   left_join(angle_levels)
 
 # empirical means and CIs
@@ -159,9 +160,10 @@ angle_stats <- mrot_lme_data |>
             age_max = max(age),
             n_trials = n(),
             n_runs = n_distinct(run_id)) |>
-  mutate(across(everything(), \(x) round(x, 2)))
+  mutate(across(where(is.integer), \(x) format(x, big.mark = ","))) |>
+  mutate(across(where(is.double), \(x) round(x, 2) |> format(nsmall = 1)))
 
-mod_stats_tbl <- full_mod_stats |>
+mod_stats_tbl <- full_mod_stats |> as_tibble() |>
   select(R2_conditional, R2_marginal, RMSE) |>
   mutate(RMSE_exp = exp(RMSE)) |>
   mutate(across(everything(), \(x) round(x, 2)))
@@ -172,4 +174,28 @@ interp_str <- \(s) glue("β = {round(s$estimate, 2)}, {s$interpretation}")
 
 slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
 slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
+```
+
+```{r}
+#| label: rt-slopes-tbl
+
+slopes_tbl <- bind_rows(
+  pred_slopes_tbl,
+  pred_slope_tests_tbl |> rename(value = hypothesis)
+) |>
+  filter(predictor != "task") |>
+  select(-estimate_rt) |>
+  mutate(predictor = predictor |> fct_inorder()) |>
+  arrange(predictor) |>
+  mutate(predictor = predictor |>
+           fct_recode("stimulus_type" = "item_group",
+                      "site" = "site_label") |>
+           str_replace("_", " ") |> str_to_sentence(),
+         value = value |> str_replace_all("(?<=[0-9])d", "D")) |>
+  mutate(p_num = str_extract(p.value, "(?<= ).*$") |> as.numeric(),
+         interpretation = interpretation |> as.character(),
+         interpretation = if_else(p_num < 0.05, interpretation, paste(interpretation, "(ns)"))) |>
+  select(-p_num) |>
+  mutate(across(matches("estimate"), \(x) round(x, 2))) |>
+  mutate(std.error = std.error |> round(3))
 ```

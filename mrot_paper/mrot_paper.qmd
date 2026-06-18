@@ -183,7 +183,7 @@ From this model, we extracted five person-level features for each child. Baselin
 {{< include _01_irt.qmd >}}
 ## Analysis 1: Cross-site invariance
 
-Our first research question asked whether the task measured the mental rotation construct in the same way across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`, *k* = `r npar_2pl_scalar`), outperforming the 2PL configural invariance model by `r delta_bic_configural` BIC points and the Rasch scalar invariance model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt).
+Our first research question asked whether the task measured the mental rotation construct in the same way across all three sites — that is, whether it achieves measurement invariance. The 2PL scalar invariance model provided the best fit (BIC = `r bic_2pl_scalar`, AIC = `r aic_2pl_scalar`), outperforming the 2PL configural invariance model by `r delta_bic_configural` BIC points and the Rasch scalar invariance model by `r delta_bic_rasch` BIC points (see @tbl-mrot-irt).
 
 The better fit of the 2PL model compared to the Rasch model indicates that mental rotation items vary in their discrimination — specifically, items with higher angular disparity provide more information at higher abilities (see @fig-item-info). In addition to the 2PL model being favored over the Rasch model in terms of model fit, it also provides substantially higher marginal reliabilities (2PL: `r rxx[["2pl"]]`; Rasch: `r rxx$rasch`), providing further support for its suitability.
 
@@ -224,16 +224,33 @@ mrot_models |>
               row_group.font.weight = "bold")
 ```
 
-Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
-
 {{< include _02_angle_sensitivity.qmd >}}
+## Analysis 2: Angular sensitivity
+
+Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites.
+After exclusion of adaptive assessments and incorrect trials, a total of `r angle_stats$n_runs` assessments contributed `r angle_stats$n_trials` trials to the analysis (M age = `r angle_stats$age_mean`, SD = `r angle_stats$age_sd`).
+Our model predicts reaction time (in log transformed seconds) from angle (20°--160°), stimulus type (2D duck, 2D rabbit, 3D), site (uniandes-co-bogota, mpieva-de, western-ca), age (`r angle_stats$age_min`--`r angle_stats$age_max` years), and all of their possible interactions, along with participant-level random intercepts and random slopes of angle.
+This model's conditional $r^2$ (i.e. variance explained by both fixed and random effects) was `r mod_stats_tbl$R2_conditional`, its marginal $r^2$ (i.e. variance explained by only fixed effects) was `r mod_stats_tbl$R2_marginal`, and its RMSE (root mean squared error) is `r mod_stats_tbl$RMSE` (corresponding to `r mod_stats_tbl$RMSE_exp` seconds of RT). @fig-rt-angle-per-run-no-cat show the resulting model fits as a function of angle, along with empirical means and individual data points, stratified by site and age group (age was modeled as continuous and only binned for visualization or marginalization).
+
+Overall there was a strong positive effect of rotation angle, in that the average marginal effect (slope) of angle was `r slope_str(slope("mrot"))`, confirming that response times increased systematically with angular disparity across the full sample.
+Since RT is modeled in log space, this corresponds to a multiplicative factor of `r slope("mrot")$estimate_rt` per unit of angle (40°).
+In other words, reaction times are approximately `r slope("mrot")$interpretation` of stimulus rotation.
+
+The relationship between angle and reaction time was additionally moderated by stimulus type, age, and site (see @tbl-slopes).
+The angle effect was comparatively larger for 2D stimuli (`r interp_str(slope("2d"))`) than 3D stimuli (`r interp_str(slope("3d"))`).
+There was a negligible difference in angle effect between 2D duck stimuli (`r interp_str(slope("duck"))`) and 2D rabbit stimuli (`r interp_str(slope("rabbit"))`).
+There were small differences in angle effect among sites, with a slightly larger effect for mpieva-de (`r interp_str(slope("mpieva-de"))`) than for western-ca (`r interp_str(slope("western-ca"))`) or for uniandes-co-bogota (`r interp_str(slope("uniandes-co-bogota"))`).
+The angle effect increased considerably over age, being smallest for 5--7 year olds (`r interp_str(slope("[5,8)"))`), middle for 8--10 year olds (`r interp_str(slope("[8,11)"))`), and largest for 11-13 year olds (`r interp_str(slope("[11,14]"))`).
+
+Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
+
 ```{r}
 #| label: fig-rt-angle-per-run-no-cat
-#| fig-cap: "**Reaction time by angle within age groups ±95% CI.** Note. Cells with fewer than 10 observations are excluded. Lines reflect descriptive means; statistical models were fit separately for 2D and 3D stimuli. Age groups shown for visualization only; age was modeled as a continuous predictor."
+#| fig-cap: "**Reaction time by angle within age groups and site.** Points and dotted lines reflect descriptive means and 95% CIs; solid lines reflect model fits, with grey ribbons for their 95% CIs; color indicates stimulus type. Points show individual observations, with RTs outside of ±2 SDs from the mean not shown for visualization clarity. Age groups are shown for visualization only, as age was modeled as a continuous predictor."
 #| fig-align: "center"
 #| include: true
 #| fig-width: 9
-#| fig-height: 7
+#| fig-height: 8
 
 # RT axis breaks and labels
 rt_labels <- c(0.25, 0.5, 1, 2, 4, 8)
@@ -253,7 +270,7 @@ ggplot(avg_preds, aes(x = angle_level)) +
   geom_sina(aes(y = log_rt, colour = stimulus),
             data = mrot_lme_data_plot, position = position_identity(),
             size = 0.1, alpha = 0.05, seed = 3141) +
-  # model fit SE
+  # model fit CI
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, group = stimulus),
               fill = "lightgrey", alpha = 0.4) +
   # empirical mean + CI
@@ -273,27 +290,24 @@ ggplot(avg_preds, aes(x = angle_level)) +
   theme(legend.position = "bottom")
 ```
 
-## Analysis 2: Angular sensitivity
+```{r}
+#| label: tbl-slopes
+#| dependson: rt-slopes-tbl
+#| tbl-cap: "**Angle slope marginal effects.** Angle slope represents the difference in log reaction time per unit of angle (40°). For each predictor, estimates are shown for each of its values (e.g. 2D and 3D items) and for the pairwise differences between its values (e.g. 3D - 2D). Interpretation converts the effects from log space (additive) to reaction time in seconds (multiplicative), with (ns) indicating that the effect is not statistically significant at α = .05."
 
-Our second research question asked whether trial-level performance is sensitive to the spatial properties of the stimuli — specifically, whether the angular disparity effect first reported by @shepard1971mental replicates across all three sites.
-After exclusion of adaptive assessments and incorrect trials, a total of `r angle_stats$n_runs` assessments contributed `r format(angle_stats$n_trials, big.mark = ",")` trials to the analysis (M age = `r angle_stats$age_mean`, SD = `r format(angle_stats$age_sd, nsmall = 1)`).
-Our model predicts reaction time (in log transformed seconds) from angle (20°--160°), stimulus type (2D duck, 2D rabbit, 3D), site (uniandes-co-bogota, mpieva-de, western-ca), age (`r angle_stats$age_min`--`r angle_stats$age_max` years), and all of their possible interactions, along with participant-level random intercepts and random slopes of angle.
-This model's conditional $r^2$ (i.e. variance explained by both fixed and random effects) was `r mod_stats_tbl$R2_conditional`, its marginal $r^2$ (i.e. variance explained by only fixed effects) was `r mod_stats_tbl$R2_marginal`, and its RMSE (root mean squared error) is `r mod_stats_tbl$RMSE` (corresponding to `r mod_stats_tbl$RMSE_exp` seconds of RT). @fig-rt-angle-per-run-no-cat show the resulting model fits as a function of angle, along with empirical means and individual data points, stratified by site and age group (age was modeled as continuous and only binned for visualization or marginalization.)
-
-Overall there was a strong positive effect of rotation angle, in that the average marginal effect (slope) of angle was `r slope_str(slope("mrot"))`, confirming that response times increased systematically with angular disparity across the full sample.
-Since RT is modeled in log space, this corresponds to a multiplicative factor of `r slope("mrot")$estimate_rt` per unit of angle (40°).
-In other words, reaction times are approximately `r slope("mrot")$interpretation` of simulus rotation.
-
-The relationship between angle and reaction time was additionally moderated by stimulus type, age, and site (see @tbl-slopes).
-The angle effect was comparatively larger for 2D stimuli (`r interp_str(slope("2d"))`) than 3D stimuli (`r interp_str(slope("3d"))`).
-There was a negligible difference in angle effect between 2D duck stimuli (`r interp_str(slope("duck"))`) and 2D rabbit stimuli (`r interp_str(slope("rabbit"))`).
-There were small differences in angle effect among sites, with a slightly larger effect for mpieva-de (`r interp_str(slope("mpieva-de"))`) than for western-ca (`r interp_str(slope("western-ca"))`) or for uniandes-co-bogota (`r interp_str(slope("uniandes-co-bogota"))`).
-The angle effect increased considerably over age, being smallest for 5--7 year olds (`r interp_str(slope("[5,8)"))`), middle for 8--10 year olds (`r interp_str(slope("[8,11)"))`), and largest for 11-13 year olds (`r interp_str(slope("[11,14]"))`).
-
-Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
+slopes_tbl |>
+  mutate(value = value |> str_replace_all("\\[", "\\\\lbrack ") |> map(latex)) |>
+  gt(groupname_col = "predictor") |>
+  tab_header(title = md("")) |>
+  cols_label_with(fn = str_to_sentence) |>
+  cols_label("value" = "Predictor", "std.error" = "SE", "p.value" = "p-value") |>
+  cols_align(align = "left", columns = value)
+```
 
 {{< include _03_sex_diffs.qmd >}}
-## Analysis 3: Sex differences 
+## Analysis 3: Demographic differences
+
+Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
 
 Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (), with no evidence for a main effect of sex () or an age-by-sex interaction (). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
 
@@ -461,7 +475,7 @@ Four research questions motivated this study, each asking in a different way whe
 ::: {#refs}
 :::
 
-{{< include _101_appendix.qmd >}}
+<!-- {{< include _101_appendix.qmd >}} -->
 
 \clearpage
 Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (). No main effect of sex was detected (). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.

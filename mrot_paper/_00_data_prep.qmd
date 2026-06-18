@@ -72,7 +72,7 @@ age_breaks <- c(5, 8, 11, 14)
 # add age groups and site labels
 runs_filtered <- run_data_filtered |>
   mutate(age_group = cut(age, breaks = age_breaks,
-                         include.lowest = TRUE, right = FALSE),
+                         include.lowest = FALSE, right = FALSE),
          site_label = dataset |>
            recode_values(from = site_labels, to = names(site_labels)))
 ```
@@ -172,6 +172,8 @@ cat_counts <- mrot_rt_trial |>
   pivot_wider(names_from = adaptive, values_from = value) |>
   mutate(n_total = n_cat + n_non_cat,
          pct_cat = round(n_cat / n_total * 100, 1)) |>
+  rowwise() |>
+  mutate(across(where(is.integer), \(x) format(x, big.mark = ","))) |>
   nest(counts = -count) |>
   deframe()
 ```
