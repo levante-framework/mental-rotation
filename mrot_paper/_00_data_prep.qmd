@@ -198,11 +198,11 @@ trials_per_run <- mrot_rt_trial |>
   select(site_label, trials_summary)
 
 site_features <- tribble(
-  ~site_label, ~area, ~location, ~setting, ~device,
-  "mpieva-de", "Leipzig, Germany", "remote (home-based)", "individual", "family device",
-  "uniandes-co-bogota", "Bogotá, Colombia", "in school", "group", "tablet (researcher-provided)",
-  "uniandes-co-rural", "Caquetá and Boyacá, Colombia", "in school", "group", "tablet (researcher-provided)",
-  "western-ca", "London, Ontario, Canada", "on-campus", "individual", "tablet (researcher-provided)"
+  ~site_label, ~area, ~testing_location, ~testing_setting, ~testing_device,
+  "mpieva-de", "Leipzig, Germany", "home", "individual", "family device",
+  "uniandes-co-bogota", "Bogotá, Colombia", "school", "group", "researcher-provided tablet",
+  "uniandes-co-rural", "Caquetá & Boyacá, Colombia", "school", "group", "researcher-provided tablet",
+  "western-ca", "London, Ontario, Canada", "lab", "individual", "researcher-provided tablet"
 )
 
 site_info <- mrot_df |>
@@ -220,6 +220,7 @@ site_info <- mrot_df |>
                                age_mean, age_sd, age_min, age_max)) |>
   left_join(trials_per_run) |>
   left_join(site_features) |>
-  mutate(testing_format = glue("Location: {location}\nSetting: {setting}\nDevice: {device}")) |>
-  select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_format)
+  select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_location, testing_setting, testing_device)
+  # mutate(testing_format = glue("Location: {location}\\newline Setting: {setting}\\newline Device: {device}") |> as.character()) |>
+  # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_format)
 ```

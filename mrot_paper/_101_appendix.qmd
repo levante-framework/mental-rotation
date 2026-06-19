@@ -168,35 +168,6 @@ ggplot(mrot_df, aes(x = age, y = metric_value, colour = site_label)) +
 \clearpage
 ## Sex differences {#sec-apx-sex-diff-plot}
 
-```{r}
-#| label: fig-sex-plot
-#| fig-cap: "Mental rotation ability (θ) as a function of age and sex assigned at birth across three sites."
-#| include: true
-#| fig-align: "center"
-#| fig-width: 7
-#| fig-height: 4.5
-
-site_n_labels <- mrot_df_sex |>
-  distinct(run_id, site_label) |>
-  count(site_label) |>
-  mutate(label = paste0(site_label, "\n(n = ", n, ")"))
-
-mrot_df_sex |>
-  left_join(site_n_labels) |>
-  ggplot(aes(x = age, y = ability, colour = sex)) +
-  facet_wrap(vars(site_label), nrow = 1) +
-  geom_point(alpha = 0.35, size = 1.1) +
-  geom_smooth(method = "lm", fullrange = TRUE) +
-  labs(
-    x = "Age (years)",
-    y = "Ability (θ)",
-    colour = "Sex"
-  ) +
-  scale_colour_brewer(palette = "Set1") +
-  scale_x_continuous(expand = expansion(mult = 0.02)) +
-  guides(color = guide_legend(override.aes = list(fill = NA))) +
-  theme(legend.position = "bottom")
-```
 
 
 # Angular sensitivity {.appendix #sec-apx-c}

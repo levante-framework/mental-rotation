@@ -11,7 +11,7 @@ author-note:
     conflict-of-interest: "The author has no conflict of interest to declare."
     financial-support: "This work was supported by the Jacobs Foundation."
 
-abstract: "Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in 1,037 children aged 5--13 years (411 girls, 427 boys, 199 unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 343.5 vs. configural invariance model). The angular disparity effect (Shepard & Metzler, 1971) replicated robustly for 3D stimuli (β = 0.19, p < .001), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (β = 0.16, p < .001). No main effect of sex was detected (β = -0.03, p = .94). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning."
+abstract: "Mental rotation — the ability to mentally transform an object’s orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across four international study sites in three countries (Colombia, Germany, and Canada) for 1,037 children aged 5–13 years (411 girls, 427 boys, 199 unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = 416 vs. configural invariance model). The angular disparity effect (Shepard and Metzler, 1971) replicated robustly for both 2D and 3D stimuli (β = 0.14, SE = 0.01, p < .001), with response times being approximately 16% slower per 40° of stimulus rotation angle. Mental rotation abilities increased with age (β = 0.33, SE = 0.02, p < .001) and did not differ by sex (β = -0.01, SE = 0.09, p = .912). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning. "
 
 keywords: ["cognitive development", "mental rotation", "spatial reasoning"]
 word-count: true
@@ -111,14 +111,20 @@ Our first research question asks whether the LEVANTE mental rotation task achiev
 #| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
 
 site_info |>
+  select(site_label, area, starts_with("testing"), everything()) |>
   gt() |>
   cols_label(site_label = "Site",
              area = "Area",
+             testing_location = "Location",
+             testing_setting = "Setting",
+             testing_device = "Device",
+             site_label = "Site",
              n_run = "N assessments",
              n_user = "N participants",
              age_summary = "Age: M (SD) [range]",
-             trials_summary = "Trials per assessment: M [range]",
-             testing_format = "Testing format")
+             trials_summary = "Trials per assessment: M [range]") |>
+  tab_spanner(label = "Testing characteristics",
+              columns = starts_with("testing"))
 ```
 
 # Methods
@@ -228,7 +234,7 @@ The relationship between angle and reaction time was additionally moderated by s
 The angle effect was comparatively larger for 2D stimuli (`r interp_str(slope("2d"))`) than 3D stimuli (`r interp_str(slope("3d"))`).
 There was a negligible difference in angle effect between 2D duck stimuli (`r interp_str(slope("duck"))`) and 2D rabbit stimuli (`r interp_str(slope("rabbit"))`).
 There were small differences in angle effect among sites, with a slightly larger effect for mpieva-de (`r interp_str(slope("mpieva-de"))`) than for western-ca (`r interp_str(slope("western-ca"))`) or for uniandes-co-bogota (`r interp_str(slope("uniandes-co-bogota"))`).
-The angle effect increased considerably over age, being smallest for 5--7 year olds (`r interp_str(slope("[5,8)"))`), middle for 8--10 year olds (`r interp_str(slope("[8,11)"))`), and largest for 11-13 year olds (`r interp_str(slope("[11,14]"))`).
+The angle effect increased considerably over age, being smallest for 5--7 year olds (`r interp_str(slope("[5,8)"))`), middle for 8--10 year olds (`r interp_str(slope("[8,11)"))`), and largest for 11-14 year olds (`r interp_str(slope("[11,14)"))`).
 
 Although the primary analyses modeled angle as a linear predictor over the 40–160° range, inspection of @fig-rt-angle-per-run-no-cat suggests some non-linearity in certain subgroups. The full 0–360° rotation functions — reported in [Appendix E (Full 0–360° Angle Check)](#sec-apx-360-angle) in the context of the strategy variation analysis — show the expected inverted-U, with RT increasing to a peak around 200–240° before declining symmetrically, consistent with participants taking the shortest rotational path. The 40–160° window analysed here captures the approximately linear rising limb of this function, supporting the use of a linear model for the angular disparity effect. Raw per-run data underlying these trends are reported in [Appendix C (Raw RT by age and site)](#sec-apx-irt-ability-age). Within-person dynamics — including trial-level variability and individual trajectories across runs are shown in [Appendix C (Within-person dynamics)](#sec-apx-within-person-dynamics).
 
@@ -295,9 +301,83 @@ slopes_tbl |>
 {{< include _03_sex_diffs.qmd >}}
 ## Analysis 3: Demographic differences
 
-Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability.
+<!-- Scalar invariance establishes structural equivalence across sites, but does not on its own confirm that θ reflects meaningful variation in mental rotation ability. As a check on construct validity, @fig-ability-age shows participants' IRT-estimated ability (θ) against age, with GAM (generalized additive model)-smoothed trends shown as a visualization aid to highlight the general shape of developmental trajectories without imposing a linear form; formal statistical modeling of these trends is reported in @Kachergis2025LEVANTEcoretasks. Across all three sites, ability increases with age, confirming that the task is sensitive to developmental change — a prerequisite for the individual-differences analyses that follow. The dispersion of points within age bands also underscores the substantial individual variability among same-aged children that motivates our strategy analysis. Note that level differences between site trajectories reflect differences in sample composition and should not be interpreted as cross-cultural differences in ability. -->
 
-Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. We found that ability increased with age (), with no evidence for a main effect of sex () or an age-by-sex interaction (). The absence of sex differences is illustrated across all three sites in [Appendix B (Sex differences)](#sec-apx-sex-diff-plot).
+<!-- Our third research question examined whether sex differences in mental rotation ability are detectable in this sample, and whether any such differences interact with age. -->
+
+Next we examine how abilities and reaction times depend on age and whether they differ by sex.
+
+### Analysis 3a: Demographic differences in ability
+
+A total of `r ability_sex_stats$n_runs` assessments contributed to the analysis (M age = `r ability_sex_stats$age_mean`, SD = `r ability_sex_stats$age_sd`).
+Our model predicts ability from sex (female, male), age (`r ability_sex_stats$age_min`--`r ability_sex_stats$age_max` years), site (uniandes-co-bogota, uniandes-co-rural, mpieva-de, western-ca), and all of their possible interactions, along with participant-level random intercepts.
+This model's conditional $r^2$ was `r ability_sex_mod_tbl$R2_conditional`, its marginal $r^2$ was `r ability_sex_mod_tbl$R2_marginal`, and its RMSE is `r ability_sex_mod_tbl$RMSE` units of ability. @fig-sex-plot (A) shows the resulting model fits and individual observations.
+
+We found that abilities increased with age (`{r} slope_str(ability_sex_comp("age", "+1"))`), corresponding to an increase of `{r} round(ability_sex_comp("age", "+1")$estimate_sd, 2)` standard deviations of ability per year. We found no difference in ability by sex (`{r} slope_str(ability_sex_comp("sex", "Male - Female"))`) and no difference in age slope by sex (`{r} slope_diff_str(ability_slope_diffs)`).
+
+### Analysis 3b: Demographic differences in reaction time
+
+Directly comparing reaction times by age is not informative due to the non-independence of those variables and trial difficulty (i.e. older children are more likely to see harder trials, for which reaction times are likely to be longer). As such, we examine angle sensitivity as in Analysis 2, but with the addition of a sex predictor (in a separate model due to the high rate of missingness of sex).
+
+A total of `r rt_sex_stats$n_runs` assessments contributed `r rt_sex_stats$n_trials` trials to the analysis (M age = `r rt_sex_stats$age_mean`, SD = `r rt_sex_stats$age_sd`).
+Our model predicts reaction time (in log transformed seconds) from angle (20°--160°), stimulus type (2D duck, 2D rabbit, 3D), site (uniandes-co-bogota, mpieva-de, western-ca), age (`r rt_sex_stats$age_min`--`r rt_sex_stats$age_max` years), sex (female, male), and all of their possible interactions, along with participant-level random intercepts and random slopes of angle.
+This model's conditional $r^2$ was `r rt_sex_mod_tbl$R2_conditional`, its marginal $r^2$ was `r rt_sex_mod_tbl$R2_marginal`, and its RMSE is `r rt_sex_mod_tbl$RMSE` (corresponding to `r rt_sex_mod_tbl$RMSE_exp` seconds of RT). @fig-sex-plot (B) shows the resulting model fits and individual observations.
+
+We found a relatively small but robust effect of sex (`{r} slope_str(rt_sex_comp("mrot"))`), corresponding to boys being on average `{r} rt_sex_comp("mrot")$interpretation` than girls. This effects holds within stimulus type (2D: `{r} slope_str(rt_sex_comp("2d"))`, `{r} rt_sex_comp("2d")$interpretation`; 3D: `{r} slope_str(rt_sex_comp("3d"))`, `{r} rt_sex_comp("3d")$interpretation`). We find no difference in angle slope, with both girls (`{r} slope_str(rt_sex_slope("Female"))`) and boys being (`{r} slope_str(rt_sex_slope("Male"))`) being about `{r} rt_sex_slope("mrot")$interpretation`.
+ 
+```{r}
+#| label: fig-sex-plot
+#| fig-cap: "**Mental rotation ability (A) and reaction time (B) by sex assigned at birth**. Points in A represent assessments while points in B represent individual trials; lines reflect model fits, with grey ribbons for their 95% CIs (2D stimuli as solid lines, 3D stimuli as dashed lines)."
+#| include: true
+#| fig-align: "center"
+#| fig-width: 9
+#| fig-height: 7.5
+
+# site_n_labels <- mrot_df_sex |>
+#   distinct(run_id, site_label) |>
+#   count(site_label) |>
+#   mutate(label = paste0(site_label, "\n(n = ", n, ")"))
+
+plt_sex_ability <- ggplot(mrot_df_sex, aes(x = age)) +
+  facet_grid(cols = vars(site_label),
+             labeller = labeller(.cols = dataset_labeller)) +
+  geom_point(aes(y = ability, colour = sex), alpha = 0.35, size = 1.1) +
+  geom_ribbon(data = ability_sex_preds,
+              aes(ymin = conf.low, ymax = conf.high, group = sex),
+              fill = "lightgrey", alpha = 0.4) +
+  geom_line(data = ability_sex_preds,
+            aes(y = estimate, group = sex, colour = sex)) +
+  scale_colour_brewer(palette = "Set1") +
+  scale_x_continuous(expand = expansion(mult = 0.02)) +
+  labs(x = "Age (years)", y = "Ability (θ)", colour = "Sex") +
+  # guides(color = guide_legend(override.aes = list(fill = NA))) +
+  guides(color = "none") +
+  theme(legend.position = "bottom")
+
+plt_sex_rt <- ggplot(sex_preds, aes(x = angle_level)) +
+  facet_grid(cols = vars(site_label),
+             labeller = labeller(.cols = dataset_labeller)) +
+  geom_point(aes(y = -Inf), colour = "white", alpha = 0,
+             data = tibble(angle_level = fct_inorder(levels(angle_levels$angle_level)))) +
+  geom_sina(aes(y = log_rt, colour = sex), data = mrot_lme_data_sex_plot,
+            position = position_identity(), #maxwidth = 1,
+            size = 0.1, alpha = 0.05, seed = 3141) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, group = interaction(sex, stimulus)),
+              fill = "lightgrey", alpha = 0.4) +
+  geom_line(aes(y = estimate, group = interaction(sex, stimulus),
+                colour = sex, linetype = item_group)) +
+  scale_x_discrete(breaks = angle_levels$angle_level) +
+  scale_y_continuous(breaks = rt_breaks, labels = rt_labels) +
+  scale_colour_brewer(palette = "Set1") +
+  scale_linetype(guide = "none") +
+  labs(x = "Rotation angle (°)", y = "Reaction time\n(seconds, log scale)",
+       colour = "Sex") +
+  theme(legend.position = "bottom")
+
+plt_sex_ability + plt_sex_rt +
+  plot_layout(ncol = 1) +
+  plot_annotation(tag_levels = "A")
+```
 
 {{< include _04_strategies.qmd >}}
 ## Analysis 4: Strategy variation
@@ -466,4 +546,4 @@ Four research questions motivated this study, each asking in a different way whe
 <!-- {{< include _101_appendix.qmd >}} -->
 
 \clearpage
-Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across three international study sites (Colombia, Germany, and Canada) in `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for 3D stimuli (), with a 90° increase in rotation angle associated with approximately 45% longer response times; the effect was present but attenuated for 2D stimuli (). No main effect of sex was detected (). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
+Mental rotation — the ability to mentally transform an object's orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across four international study sites in three countries (Colombia, Germany, and Canada) for `{r} n_final$n_users` children aged 5--13 years (`{r} overall_sex_counts$Female` girls, `{r} overall_sex_counts$Male` boys, `{r} overall_sex_counts$Unknown` unknown). The task demonstrated measurement invariance across all three sites (2PL scalar invariance model; ΔBIC = `{r} delta_bic_configural` vs. configural invariance model). The angular disparity effect (@shepard1971mental) replicated robustly for both 2D and 3D stimuli (`r slope_str(slope("mrot"))`), with response times being approximately `r slope("mrot")$interpretation` of stimulus rotation angle. Mental rotation abilities increased with age (`{r} slope_str(ability_sex_comp("age", "+1"))`) and did not differ by sex (`{r} slope_str(ability_sex_comp("sex", "Male - Female"))`). Exploratory clustering identified three engagement profiles: Rotation (monotonically increasing RT–angle function), Matching/Flipping/Other, and Ineffective (absent angular sensitivity, low ability). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning.
