@@ -182,45 +182,67 @@ cat_counts <- mrot_rt_trial |>
 ```{r}
 #| label: site-info-tbl
 
-trials_per_run <- mrot_rt_trial |>
-  group_by(site_label, user_id, run_id) |>
-  summarise(n_trials = n()) |>
-  group_by(site_label) |>
-  summarise(
-    trials_mean = mean(n_trials),
-    trials_sd   = sd(n_trials),
-    trials_min  = min(n_trials),
-    trials_max  = max(n_trials),
-    .groups = "drop"
-  ) |>
-  mutate(trials_summary = sprintf("%.0f (%.1f) [%d–%d]", trials_mean, trials_sd,
-                                  trials_min, trials_max)) |>
-  select(site_label, trials_summary)
+sample_summary <- \(...) {
+  features <- enquos(...)
+  mrot_rt_trial |>
+    group_by(user_id, run_id, age) |>
+    group_by(!!!features, .add = TRUE) |>
+    summarise(n_trials = n(), .groups = "drop") |>
+    group_by(!!!features) |>
+    summarise(
+      n_run       = n_distinct(run_id),
+      n_user      = n_distinct(user_id),
+      age_mean    = mean(age),
+      age_sd      = sd(age),
+      age_min     = min(age),
+      age_max     = max(age),
+      trials_mean = mean(n_trials),
+      trials_sd   = sd(n_trials),
+      trials_min  = min(n_trials),
+      trials_max  = max(n_trials),
+      .groups = "drop"
+    ) |>
+    mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
+                                 age_mean, age_sd, age_min, age_max),
+           trials_summary = sprintf("%.0f (%.1f) [%d–%d]", trials_mean, trials_sd,
+                                    trials_min, trials_max)) |>
+    select(!!!features, starts_with("n_"), contains("summary"))
+}
+
+site_counts <- bind_rows(
+  sample_summary(site_label) |> mutate(group = ""),
+  sample_summary(site_label, item_group) |>
+    rename(group = item_group) |> mutate(group = group |> fct_recode("2D" = "2d", "3D" = "3d")),
+  sample_summary(site_label, adaptive) |>
+    rename(group = adaptive) |> mutate(group = if_else(group, "adaptive", "non-adaptive"))
+) |>
+  arrange(site_label) |>
+  relocate(group, .after = site_label)
 
 site_features <- tribble(
   ~site_label, ~area, ~testing_location, ~testing_setting, ~testing_device,
   "mpieva-de", "Leipzig, Germany", "home", "individual", "family device",
-  "uniandes-co-bogota", "Bogotá, Colombia", "school", "group", "researcher-provided tablet",
-  "uniandes-co-rural", "Caquetá & Boyacá, Colombia", "school", "group", "researcher-provided tablet",
-  "western-ca", "London, Ontario, Canada", "lab", "individual", "researcher-provided tablet"
+  "uniandes-co-bogota", "Bogotá, Colombia", "school", "group", "researcher tablet",
+  "uniandes-co-rural", "Caquetá & Boyacá, Colombia", "school", "group", "researcher tablet",
+  "western-ca", "London, Ontario, Canada", "lab", "individual", "researcher tablet"
 )
 
-site_info <- mrot_df |>
-  group_by(site_label) |>
-  summarise(
-    n_run    = n(),
-    n_user   = n_distinct(user_id),
-    age_mean = mean(age),
-    age_sd   = sd(age),
-    age_min  = min(age),
-    age_max  = max(age),
-    .groups  = "drop"
-  ) |>
-  mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
-                               age_mean, age_sd, age_min, age_max)) |>
-  left_join(trials_per_run) |>
-  left_join(site_features) |>
-  select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_location, testing_setting, testing_device)
-  # mutate(testing_format = glue("Location: {location}\\newline Setting: {setting}\\newline Device: {device}") |> as.character()) |>
-  # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_format)
+# site_info <- mrot_df |>
+  # group_by(site_label) |>
+  # summarise(
+  #   n_run    = n(),
+  #   n_user   = n_distinct(user_id),
+  #   age_mean = mean(age),
+  #   age_sd   = sd(age),
+  #   age_min  = min(age),
+  #   age_max  = max(age),
+  #   .groups  = "drop"
+  # ) |>
+  # mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
+  #                              age_mean, age_sd, age_min, age_max)) |>
+  # left_join(trials_per_run) |>
+  # left_join(site_features) |>
+  # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_location, testing_setting, testing_device)
+  # # mutate(testing_format = glue("Location: {location}\\newline Setting: {setting}\\newline Device: {device}") |> as.character()) |>
+  # # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_format)
 ```

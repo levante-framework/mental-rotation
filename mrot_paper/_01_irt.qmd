@@ -39,6 +39,6 @@ mrot_rasch_scalar <- mod_tbl |>
 
 delta_bic_rasch <- mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC
 delta_bic_configural <- mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC
-bic_2pl_scalar <- mrot_2pl_scalar$BIC
-aic_2pl_scalar <- mrot_2pl_scalar$AIC
+bic_2pl_scalar <- as.character(mrot_2pl_scalar$BIC)
+aic_2pl_scalar <- as.character(mrot_2pl_scalar$AIC)
 ```

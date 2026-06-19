@@ -107,24 +107,36 @@ Our first research question asks whether the LEVANTE mental rotation task achiev
 {{< include _00_data_prep.qmd >}}
 
 ```{r}
-#| label: tbl-participants
-#| tbl-cap: "**Participant/assessment characteristics by site.** Age in years."
+#| label: tbl-participants-qualitative
+#| tbl-cap: "**Qualitative participant/assessment characteristics by site.**"
 
-site_info |>
-  select(site_label, area, starts_with("testing"), everything()) |>
+site_features |>
   gt() |>
+  tab_header(title = md("")) |>
   cols_label(site_label = "Site",
              area = "Area",
              testing_location = "Location",
              testing_setting = "Setting",
              testing_device = "Device",
-             site_label = "Site",
-             n_run = "N assessments",
-             n_user = "N participants",
-             age_summary = "Age: M (SD) [range]",
-             trials_summary = "Trials per assessment: M [range]") |>
+             site_label = "Site") |>
   tab_spanner(label = "Testing characteristics",
               columns = starts_with("testing"))
+```
+
+```{r}
+#| label: tbl-participants-quantitative
+#| tbl-cap: "**Quantitative participant/assessment characteristics by site.** Assessments and participants indicate counts; age (in years) and trials are shown as Mean (SD) [Min–Max]. Each site's overall statistics are in bold, and are then further broken down by item type (2D/3D) and whether the administration was adaptive (CAT) or non-adaptive."
+
+site_counts |>
+  gt(groupname_col = "site_label") |>
+  tab_header(title = md("")) |>
+  cols_label(group = "",
+             n_run = "Assessments",
+             n_user = "Participants",
+             age_summary = "Age",
+             trials_summary = "Trials per assessment") |>
+  tab_style(style = list(cell_text(weight = "bold")),
+            locations = cells_body(rows = group == ""))
 ```
 
 # Methods
@@ -195,6 +207,7 @@ We used the same methods as described above for extracting model performance and
 To characterize individual differences in how children engaged with the task's spatial demands, we first fitted a mixed-effects model (in R using the `lme4` package) predicting log RT from rotation angle, stimulus type, their interaction, and trial number, with by-participant random intercepts and slopes for angle and trial number, and a random intercept by item. Unlike the angular sensitivity analysis, CAT trials were retained here and both correct and incorrect trials were included: the strategy analysis extracts relative person-level features rather than estimating the angle effect at the population level, and including all available trials (correct and incorrect) yields more reliable individual-level estimates.
 
 From this model, we extracted five person-level features for each child. Baseline response speed (`Baseline_Speed`) reflects general processing efficiency independent of rotation demands. Angular sensitivity was captured two ways: as the absolute RT–angle slope (the time added per degree of rotation; `Abs_Slope`), and as that slope expressed relative to each child's baseline speed (`Rel_Slope`), capturing the degree to which rotation demands slow a child down proportional to their typical pace -- a relative measure better suited to a developmental sample where baseline processing speed varies substantially with age. The trial-by-trial RT trend (`Learning_Rate`) indexes within-session learning or fatigue. Finally, response instability (`Instability`) captures trial-to-trial variability that cannot be attributed to angle or trial position -- children who disengage from the task's spatial demands or shift inconsistently between approaches are expected to show greater residual variability than those applying a consistent strategy; this was operationalized as the standard deviation of model residuals. Each feature was retained on the basis that it captures a distinct and interpretable aspect of how children engage with the task's spatial demands. These five features were submitted to k-means clustering as a descriptive tool to identify broad patterns of engagement.
+
 
 # Results
 
