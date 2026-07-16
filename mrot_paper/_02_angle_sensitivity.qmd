@@ -8,7 +8,7 @@ yrs <- 2  # age unit size
 
 # filter to non-CAT, add age group, stimulus, angle
 mrot_lme_data <- mrot_rt_trial |>
-  filter(!adaptive,            # exclude CAT runs
+  filter(#!adaptive,            # exclude CAT runs
          correct == 1,         # exclude incorrect responses
          trial_number != 1) |> # exclude each run's first trial
   mutate(
@@ -16,10 +16,11 @@ mrot_lme_data <- mrot_rt_trial |>
     stimulus   = factor(stimulus),
     site_label = factor(site_label),
     angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
+    adaptive   = factor(adaptive), 
     age_sc     = (age - mean(age)) / yrs # scale to 2 units = sd
   ) |>
   select(site_label, user_id, run_id,  matches("age"), trial_number,
-         item_group, stimulus, angle, angle_sc, rt_s, log_rt)
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive)
 
 # effects code all factors
 contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
@@ -31,6 +32,8 @@ contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
 #| label: rt-angle-model
 
 full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
+                   trial_number * stimulus + 
+                   adaptive * stimulus * site_label +
                    (1 + angle_sc | user_id),
                  data = mrot_lme_data,
                  REML = FALSE,
@@ -57,8 +60,10 @@ pred_grid <- datagrid(angle_sc = unique,        # each angle
                       stimulus = unique,        # each stimulus
                       site_label = unique,      # each site
                       age_sc = age_seq,         # 100 equally spaced values of age
+                      trial_number = mean,
+                      adaptive = unique, 
                       newdata = mrot_lme_data) |>
-  select(rowid, angle_sc, stimulus, site_label, age_sc) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc, adaptive, trial_number) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
          age_group = cut(age, breaks = age_breaks,
@@ -69,7 +74,8 @@ pred_grid <- datagrid(angle_sc = unique,        # each angle
   left_join(angle_levels)
 
 # get model predictions at grid, average age by age_group
-grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group")
+grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group", "trial_number", "adaptive")
+
 avg_preds <- avg_predictions(full_mod,
                              newdata = pred_grid,
                              re.form = NA,
@@ -82,7 +88,8 @@ avg_preds <- avg_predictions(full_mod,
 #| label: rt-angle-slopes
 
 # extract angle slopes for each predictor
-slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group")
+slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group", "adaptive") # trial-number
+
 get_pred_slopes <- \(pred) {
   slopes(full_mod,
          newdata = pred_grid,
@@ -92,6 +99,7 @@ get_pred_slopes <- \(pred) {
     rename(value = !!pred) |>
     mutate(predictor = pred, .before = value)
 }
+
 pred_slopes <- map(slope_preds, get_pred_slopes) |> list_rbind()
 
 pred_slopes_tbl <- pred_slopes |>

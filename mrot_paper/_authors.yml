@@ -13,6 +13,16 @@ author:
       - visualization
       - writing – original draft
       - writing – review & editing
+  - name: "Mika Braginsky"
+    orcid: 0000-0001-9039-3220
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - data curation
+      - methodology
+      - software
+      - writing – review & editing
   - name: "Xingyao Xiao"
     orcid: 0000-0001-8430-0438
     affiliations:
@@ -30,16 +40,6 @@ author:
     roles:
       - conceptualization
       - methodology
-      - writing – review & editing
-  - name: "Mika Braginsky"
-    orcid: 0000-0001-9039-3220
-    affiliations:
-      - ref: stanford
-    roles:
-      - conceptualization
-      - data curation
-      - methodology
-      - software
       - writing – review & editing
   - name: "George Kachergis"
     orcid: 0000-0003-4153-4167
