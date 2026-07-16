@@ -1,0 +1,169 @@
+author: 
+  - name: "Fionnuala O'Reilly"
+    orcid: 0000-0002-4355-9088
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - formal analysis
+      - investigation
+      - methodology
+      - project administration
+      - validation
+      - visualization
+      - writing – original draft
+      - writing – review & editing
+  - name: "Xingyao Xiao"
+    orcid: 0000-0001-8430-0438
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - formal analysis
+      - methodology
+      - visualization
+      - writing – review & editing
+  - name: "Rebecca Zhu"
+    orcid: 0000-0003-0957-5962
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - methodology
+      - writing – review & editing
+  - name: "Mika Braginsky"
+    orcid: 0000-0001-9039-3220
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - data curation
+      - methodology
+      - software
+      - writing – review & editing
+  - name: "George Kachergis"
+    orcid: 0000-0003-4153-4167
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - data curation
+      - methodology
+      - resources
+      - software
+      - writing – review & editing
+  - name: "Daniel Ansari"
+    orcid: 0000-0002-7625-618X
+    affiliations:
+      - ref: western
+    roles:
+      - data curation
+      - writing – review & editing
+  - name: "Manuel Bohn"
+    orcid: 0000-0001-6006-1348
+    affiliations:
+      - ref: mpieva 
+      - ref: leuphana
+    roles:
+      - investigation
+      - writing – review & editing
+  - name: "Daniel Haun"
+    orcid: 0000-0002-3262-645X
+    affiliations:
+      - ref: mpieva
+    roles:
+      - investigation
+      - writing – review & editing
+  - name: "Maria Camila Perfetti"
+    affiliations:
+      - ref: uniandes
+    roles:
+      - data curation
+      - writing – review & editing
+  - name: "Julián P. Mariño"
+    affiliations:
+      - ref: uniandes
+    roles:
+      - data curation
+      - writing – review & editing
+  - name: "Nilàm Ram"
+    orcid: 0000-0003-1671-5257
+    affiliations:
+      - ref: stanford
+    roles:
+      - methodology
+      - writing – review & editing
+  - name: "Benjamin W. Domingue"
+    orcid: 0000-0002-3894-9049
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - methodology
+      - supervision
+      - writing – review & editing
+  - name: "Michael C. Frank"
+    orcid: 0000-0002-7551-4378
+    affiliations:
+      - ref: stanford
+    roles:
+      - conceptualization
+      - funding acquisition
+      - investigation
+      - methodology
+      - project administration
+      - resources
+      - software
+      - supervision
+      - validation
+      - writing - original draft
+      - writing - review & editing
+    corresponding: true
+    email: mcfrank@stanford.edu
+
+roles:
+      - conceptualization
+      - data curation
+      - formal analysis
+      - funding acquisition
+      - investigation
+      - methodology
+      - project administration
+      - resources
+      - software
+      - supervision
+      - validation
+      - visualization
+      - writing – original draft
+      - writing – review & editing
+
+affiliations:
+  - id: stanford
+    name: Stanford University
+    department: Department of Psychology
+    address: 450 Jane Stanford Way
+    city: Stanford
+    region: CA
+    country: United States
+    postal-code: 94305
+  - id: western
+    name: University of Western Ontario
+    department: Department of Psychology
+    city: London
+    region: ON
+    country: Canada
+  - id: mpieva
+    name: Max Planck Institute for Evolutionary Anthropology
+    department: Department of Comparative Cultural Psychology
+    city: Leipzig
+    country: Germany
+  - id: leuphana
+    name: Leuphana University
+    department: Institute of Psychology
+    city: Lüneburg
+    country: Germany
+  - id: uniandes
+    name: Universidad de los Andes
+    department: School of Education
+    city: Bogotá
+    country: Colombia

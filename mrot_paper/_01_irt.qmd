@@ -1,0 +1,44 @@
+```{r}
+#| label: irt-anova
+
+task_anova <- read_rds(here("models/mrot_anova.rds"))
+mrot_models <- task_anova |> filter(model_set == "multigroup_dataset")
+```
+
+```{r}
+#| label: irt-rxx
+
+task_rxx <- read_rds(here("models/mrot_rxx.rds"))
+site_rxx <- task_rxx |>
+  filter(model_set == "multigroup_dataset") |>
+  rename(dataset = group) |>
+  mutate(site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels))) |>
+  select(itemtype, site_label, rxx)
+
+rxx <- site_rxx |> mutate(rxx = round(rxx, 2)) |>
+  nest(data = -itemtype) |> deframe() |> map(deframe) |>
+  map(\(vals) imap(vals, paste) |> paste(collapse = ", "))
+```
+
+```{r}
+#| label: irt-values
+
+mod_tbl <- mrot_models |>
+  mutate(across(where(is.double), \(x) round(x))) |>
+  select(-model_set, -subset)
+
+mrot_2pl_scalar <- mod_tbl |>
+  filter(itemtype == "2pl", invariance == "scalar")
+
+mrot_2pl_configural <- mod_tbl |>
+  filter(itemtype == "2pl", invariance == "configural")
+
+mrot_rasch_scalar <- mod_tbl |>
+  filter(itemtype == "rasch", invariance == "scalar")
+
+delta_bic_rasch <- mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC
+delta_bic_configural <- mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC
+bic_2pl_scalar <- as.character(mrot_2pl_scalar$BIC)
+aic_2pl_scalar <- as.character(mrot_2pl_scalar$AIC)
+```

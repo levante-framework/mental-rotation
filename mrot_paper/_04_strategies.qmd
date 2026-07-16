@@ -1,0 +1,486 @@
+```{r}
+#| label: strategy-analysis-prep
+#| results: "hide"
+
+# ability
+ability_run <- mrot_df |>
+  group_by(site_label, user_id, run_id, age, age_group) |>
+  summarise(
+    ability = mean(metric_value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# prep trial-level data for the rich model
+mrot_rich_data <- mrot_rt_trial |>
+  # filter(!adaptive) |> # note: added by Fionnuala, april 12
+  mutate(
+    stimulus = as.factor(stimulus),
+    angle_s  = as.numeric(scale(angle)),
+    trial_s  = as.numeric(scale(trial_number))
+  )
+
+# set sum-to-zero contrasts - by default, R uses treatment contrasts (Duck = reference). 
+# This makes the "Angle" slope represent only Ducks (which is flat for everyone).
+# Setting sum contrasts ensures the "Angle" slope represents the grand mean slope across all stimuli.
+contrasts(mrot_rich_data$stimulus) <- contr.sum(levels(mrot_rich_data$stimulus))
+m_rich <- lmer(
+  log_rt ~ angle_s * stimulus + trial_s +
+    (1 + angle_s + trial_s | run_id) +
+    (1 | item),
+  data = mrot_rich_data,
+  control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000))
+)
+
+# extract subject-level random effects
+ran_effs <- ranef(m_rich)$run_id |>
+  tibble::rownames_to_column("run_id") |>
+  as_tibble() |>
+  rename(
+    int_dev   = `(Intercept)`,
+    slope_dev = angle_s,
+    trial_dev = trial_s
+  )
+
+# fixed effects (global averages)
+fix_int <- fixef(m_rich)["(Intercept)"]
+fix_ang <- fixef(m_rich)["angle_s"]
+fix_tri <- fixef(m_rich)["trial_s"]
+
+# compute cognitive features (on log-RT scale)
+rich_features_raw <- ran_effs |>
+  mutate(
+    # Baseline Speed: Speed at angle 0 (Intercept)
+    Baseline_Speed = fix_int + int_dev,
+    # Absolute Slope: Time added per degree of rotation (Rotation Cost)
+    Abs_Slope = fix_ang + slope_dev,
+    # Relative Slope (Per Mike's suggestion)
+    # "Is rotation expensive relative to their normal speed?"
+    Rel_Slope = Abs_Slope / Baseline_Speed,
+    # Learning Rate 
+    Learning_Rate  = fix_tri + trial_dev
+  )
+# compute instability (Residual SD)
+# We calculate SD of the *residuals* (not raw RT) to remove the "Task Difficulty" confound.
+# This isolates internal inconsistency from the fact that some kids saw harder items.
+mrot_rich_data$resid <- residuals(m_rich)
+
+instability_data <- mrot_rich_data |>
+  group_by(run_id) |>
+  summarise(
+    # Instability = SD of residuals (pure internal noise)
+    Instability = sd(resid, na.rm = TRUE), 
+    .groups = "drop"
+  )
+
+# join
+rich_features_final <- rich_features_raw |>
+  left_join(instability_data, by = c("run_id")) |> 
+  left_join(ability_run,  by = c("run_id")) |>
+  mutate(Site = site_label) |>
+  # filter to ensure all needed features
+  filter(if_all(c(ability, Rel_Slope, Abs_Slope, Baseline_Speed, Instability, Learning_Rate), is.finite))
+```
+
+```{r}
+#| label: clustering-execution
+
+strategy_pal <- ptol_pal()(3)
+strategy_colors <- c(
+  "Rotation" = strategy_pal[1],
+  "Matching/Flipping/Other" = strategy_pal[2],
+  "Ineffective" = strategy_pal[3]
+)
+
+analysis_data <- rich_features_final |>
+  filter(if_all(c(ability, Baseline_Speed, Abs_Slope, Rel_Slope, 
+                  Instability, Learning_Rate), is.finite)) 
+
+global_input <- analysis_data |>
+  select(Baseline_Speed, Rel_Slope, Abs_Slope, 
+         Instability, Learning_Rate) |>
+  scale()
+
+set.seed(123)
+k_global <- kmeans(global_input, centers = 3, nstart = 25)
+analysis_data$Global_Cluster <- as.factor(k_global$cluster)
+
+cluster_stats <- analysis_data |>
+  group_by(Global_Cluster) |>
+  summarise(
+    mean_ability = mean(ability),
+    mean_slope   = mean(Rel_Slope), 
+    .groups = "drop"
+  )
+
+# as.character() on all pull() calls
+low_eff_id <- cluster_stats |>
+  arrange(mean_ability) |> 
+  slice(1) |> 
+  pull(Global_Cluster) |>
+  as.character()
+
+effective_clusters <- cluster_stats |>
+  filter(as.character(Global_Cluster) != low_eff_id) |>
+  arrange(mean_slope) 
+
+analytical_id <- effective_clusters |>
+  slice(1) |> 
+  pull(Global_Cluster) |>
+  as.character()
+
+holistic_id <- effective_clusters |>
+  slice(2) |> 
+  pull(Global_Cluster) |>
+  as.character()
+
+analysis_data <- analysis_data |>
+  mutate(Strategy_Label = case_when(
+    as.character(Global_Cluster) == low_eff_id ~ "Ineffective",
+    as.character(Global_Cluster) == analytical_id ~ "Matching/Flipping/Other",
+    as.character(Global_Cluster) == holistic_id ~ "Rotation"
+  ),
+  Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors)))
+
+# ggplot(analysis_data, aes(x = ability, y = Rel_Slope, color = Strategy_Label)) +
+#   geom_point(alpha = 0.6) +
+#   scale_color_manual(values = strategy_colors) +
+#   labs(title = "Cluster Result: Ability vs. Relative Slope")
+```
+
+```{r}
+#| label: strategy-reporting-objects
+#| include: false
+
+# helper functions needed for formatting
+fmt_num <- function(x, d = 3) formatC(x, format = "f", digits = d)
+fmt_pct <- function(x, d = 1) paste0(formatC(100*x, format = "f", digits = d), "%")
+
+# ineff <- analysis_data |>
+#   filter(Strategy_Label == "Ineffective") |>
+#   summarise(
+#     N              = n(),
+#     Mean_Ability   = mean(ability, na.rm = TRUE),
+#     SD_Ability     = sd(ability, na.rm = TRUE),
+#     Mean_Slope     = mean(Rel_Slope, na.rm = TRUE),
+#     SD_Slope       = sd(Rel_Slope, na.rm = TRUE),
+#     Mean_Abs_Slope = mean(Abs_Slope, na.rm = TRUE),
+#     SD_Abs_Slope   = sd(Abs_Slope, na.rm = TRUE),
+#     Mean_Baseline  = mean(Baseline_Speed, na.rm = TRUE),
+#     Mean_Instab    = mean(Instability, na.rm = TRUE)
+#   )
+# 
+# flip <- analysis_data |>
+#   filter(Strategy_Label == "Matching/Flipping/Other") |>
+#   summarise(
+#     N              = n(),
+#     Mean_Ability   = mean(ability, na.rm = TRUE),
+#     SD_Ability     = sd(ability, na.rm = TRUE),
+#     Mean_Slope     = mean(Rel_Slope, na.rm = TRUE),
+#     SD_Slope       = sd(Rel_Slope, na.rm = TRUE),
+#     Mean_Abs_Slope = mean(Abs_Slope, na.rm = TRUE),
+#     SD_Abs_Slope   = sd(Abs_Slope, na.rm = TRUE),
+#     Mean_Baseline  = mean(Baseline_Speed, na.rm = TRUE),
+#     Mean_Instab    = mean(Instability, na.rm = TRUE)
+#   )
+# 
+# mrot_strat <- analysis_data |>
+#   filter(Strategy_Label == "Rotation") |>
+#   summarise(
+#     N              = n(),
+#     Mean_Ability   = mean(ability, na.rm = TRUE),
+#     SD_Ability     = sd(ability, na.rm = TRUE),
+#     Mean_Slope     = mean(Rel_Slope, na.rm = TRUE),
+#     SD_Slope       = sd(Rel_Slope, na.rm = TRUE),
+#     Mean_Abs_Slope = mean(Abs_Slope, na.rm = TRUE),
+#     SD_Abs_Slope   = sd(Abs_Slope, na.rm = TRUE),
+#     Mean_Baseline  = mean(Baseline_Speed, na.rm = TRUE),
+#     Mean_Instab    = mean(Instability, na.rm = TRUE)
+#   )
+
+strats <- analysis_data |>
+  group_by(Strategy_Label) |>
+  summarise(
+    n              = n(),
+    mean_ability   = mean(ability, na.rm = TRUE),
+    sd_ability     = sd(ability, na.rm = TRUE),
+    mean_slope     = mean(Rel_Slope, na.rm = TRUE),
+    sd_slope       = sd(Rel_Slope, na.rm = TRUE),
+    mean_abs_slope = mean(Abs_Slope, na.rm = TRUE),
+    sd_abs_slope   = sd(Abs_Slope, na.rm = TRUE),
+    mean_baseline  = mean(Baseline_Speed, na.rm = TRUE),
+    mean_instab    = mean(Instability, na.rm = TRUE)
+  ) |>
+  mutate(pct = round(n / sum(n) * 100)) |>
+  mutate(across(where(is.double), \(x) round(x, 2))) |>
+  mutate(Strategy_Label = Strategy_Label |>
+           fct_recode("mrot" = "Rotation",
+                      "flip" = "Matching/Flipping/Other",
+                      "ineff" = "Ineffective")) |>
+  nest(vals = -Strategy_Label) |>
+  deframe()
+
+# # pre-computed scalars for inline R in results and discussion
+# ineff_n              <- ineff$N
+# ineff_pct            <- round(ineff$N / nrow(analysis_data) * 100)
+# ineff_mean_ability   <- round(ineff$Mean_Ability, 2)
+# ineff_sd_ability     <- round(ineff$SD_Ability, 2)
+# ineff_mean_slope     <- round(ineff$Mean_Slope, 2)
+# ineff_mean_abs_slope <- round(ineff$Mean_Abs_Slope, 2)
+# ineff_mean_baseline  <- round(ineff$Mean_Baseline, 2)
+# ineff_mean_instab    <- round(ineff$Mean_Instab, 2)
+# 
+# flip_n            <- flip$N
+# flip_pct          <- round(flip$N / nrow(analysis_data) * 100)
+# flip_mean_ability <- round(flip$Mean_Ability, 2)
+# flip_sd_ability   <- round(flip$SD_Ability, 2)
+# flip_mean_slope   <- round(flip$Mean_Slope, 2)
+# 
+# mrot_n              <- mrot_strat$N
+# mrot_pct            <- round(mrot_strat$N / nrow(analysis_data) * 100)
+# mrot_mean_ability   <- round(mrot_strat$Mean_Ability, 2)
+# mrot_sd_ability     <- round(mrot_strat$SD_Ability, 2)
+# mrot_mean_slope     <- round(mrot_strat$Mean_Slope, 2)
+# mrot_sd_slope       <- round(mrot_strat$SD_Slope, 2)
+# mrot_mean_abs_slope <- round(mrot_strat$Mean_Abs_Slope, 2)
+# mrot_sd_abs_slope   <- round(mrot_strat$SD_Abs_Slope, 2)
+# ability_diff        <- round(flip$Mean_Ability - mrot_strat$Mean_Ability, 2)
+
+```
+
+```{r}
+#| label: rt-disparity
+
+rt_run_disparity <- mrot_rich_data |>
+  left_join(analysis_data |> select(Site, run_id, Strategy_Label),
+            by = c("run_id")) |>
+  filter(!is.na(Strategy_Label), is.finite(log_rt)) |>
+  mutate(Strategy_Label = factor(Strategy_Label, levels = names(strategy_colors))) |>
+  group_by(Strategy_Label, run_id, angle) |>      
+  summarise(user_mean_log_rt = mean(log_rt, na.rm = TRUE), .groups = "drop")
+
+rt_disparity_summary <- rt_run_disparity |>
+  summarise(n_runs = n_distinct(run_id),
+            mean_rt = mean(user_mean_log_rt, na.rm = TRUE),
+            se = sd(user_mean_log_rt, na.rm = TRUE) / sqrt(n_runs),
+            lwr = mean_rt - 1.96 * se,
+            upr = mean_rt + 1.96 * se,
+            .by  = c(Strategy_Label, angle))
+```
+
+```{r}
+#| label: local-clustering-agreement
+#| include: false
+
+cluster_vars <- c("Baseline_Speed", "Rel_Slope", "Abs_Slope", "Instability", "Learning_Rate")
+
+stopifnot(all(cluster_vars %in% names(analysis_data)))
+stopifnot(all(c("Site", "user_id", "run_id", "Strategy_Label") %in% names(analysis_data)))
+stopifnot(nrow(analysis_data) == nrow(distinct(analysis_data, Site, user_id, run_id)))
+
+# ARI function
+ARI <- function(a, b) {
+  a <- as.integer(factor(a))
+  b <- as.integer(factor(b))
+  tab <- table(a, b)
+  n <- sum(tab)
+  if (n <= 1) return(NA_real_)
+  comb2    <- function(x) x * (x - 1) / 2
+  sum_ij   <- sum(comb2(tab))
+  sum_i    <- sum(comb2(rowSums(tab)))
+  sum_j    <- sum(comb2(colSums(tab)))
+  expected <- (sum_i * sum_j) / comb2(n)
+  max_idx  <- 0.5 * (sum_i + sum_j)
+  denom    <- max_idx - expected
+  if (denom == 0) return(NA_real_)
+  (sum_ij - expected) / denom
+}
+
+get_local_strategy_labels <- function(df_site,
+                                      k = 3,
+                                      seed = 123,
+                                      nstart = 25,
+                                      min_n = 30) {
+
+  if (nrow(df_site) < min_n) return(NULL)
+  set.seed(seed)
+
+  X <- df_site |>
+    select(all_of(cluster_vars)) |>
+    scale() |>
+    as.matrix()
+
+  km <- kmeans(X, centers = k, nstart = nstart)
+
+  tmp <- df_site |>
+    mutate(Local_Cluster = factor(km$cluster))
+
+  local_stats <- tmp |>
+    group_by(Local_Cluster) |>
+    summarise(
+      mean_abil  = mean(ability,   na.rm = TRUE),
+      mean_slope = mean(Rel_Slope, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    arrange(mean_abil)
+
+  ineff_id     <- local_stats |> slice(1) |> pull(Local_Cluster) |> as.character()
+  other_two    <- local_stats |> filter(as.character(Local_Cluster) != ineff_id) |> arrange(mean_slope)
+  other_eff_id <- other_two   |> slice(1) |> pull(Local_Cluster) |> as.character()
+  mrot_id      <- other_two   |> slice(2) |> pull(Local_Cluster) |> as.character()
+
+  tmp |>
+    mutate(
+      Strategy_Local = case_when(
+        as.character(Local_Cluster) == ineff_id ~ "Ineffective",
+        as.character(Local_Cluster) == other_eff_id ~ "Matching/Flipping/Other",
+        as.character(Local_Cluster) == mrot_id ~ "Rotation"
+      ),
+      Strategy_Local = factor(Strategy_Local, levels = levels(analysis_data$Strategy_Label))
+    ) |>
+    select(Site, user_id, run_id, Strategy_Local)
+}
+
+# fit local models independently within each site
+local_labels_all <- analysis_data |>
+  group_by(Site) |>
+  group_split() |>
+  purrr::map_dfr(get_local_strategy_labels)
+
+analysis_local <- analysis_data |>
+  select(-any_of("Strategy_Local")) |>
+  left_join(local_labels_all, by = c("Site", "user_id", "run_id"))
+
+# agreement (3-class)
+agreement_3class <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  group_by(Site) |>
+  summarise(
+    n         = n(),
+    pct_agree = mean(Strategy_Local == Strategy_Label),
+    ARI       = ARI(Strategy_Label, Strategy_Local),
+    .groups   = "drop"
+  )
+
+agreement_3class
+
+# confusion matrices per site — save split first to avoid pipe . scoping issue
+site_splits <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  group_split(Site)
+
+confusion_by_site <- site_splits |>
+  purrr::set_names(purrr::map_chr(site_splits, ~ unique(.x$Site))) |>
+  purrr::map(~ table(.x$Strategy_Local, .x$Strategy_Label))
+
+confusion_by_site
+
+# recall + purity
+recall_tbl <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  count(Site, Strategy_Label, Strategy_Local) |>
+  group_by(Site, Strategy_Label) |>
+  mutate(recall = n / sum(n)) |>
+  ungroup()
+
+purity_tbl <- analysis_local |>
+  filter(!is.na(Strategy_Local)) |>
+  count(Site, Strategy_Local, Strategy_Label) |>
+  group_by(Site, Strategy_Local) |>
+  mutate(purity = n / sum(n)) |>
+  ungroup()
+
+diag_summary <- recall_tbl |>
+  filter(Strategy_Label == Strategy_Local) |>
+  transmute(Site, Strategy = Strategy_Label, recall) |>
+  left_join(
+    purity_tbl |>
+      filter(Strategy_Local == Strategy_Label) |>
+      transmute(Site, Strategy = Strategy_Local, purity),
+    by = c("Site", "Strategy")
+  )
+
+diag_summary
+```
+
+```{r}
+#| label: local-vs-pooled-reporting
+#| include: false
+
+get_row <- function(df, site) df[df$Site == site, , drop = FALSE]
+
+# sites
+s_mpi <- "mpieva-de"
+s_uni <- "uniandes-co-bogota" # TODO: fix
+s_wes <- "western-ca"
+
+# agreement rows
+a_mpi <- get_row(agreement_3class, s_mpi)
+a_uni <- get_row(agreement_3class, s_uni)
+a_wes <- get_row(agreement_3class, s_wes)
+
+# label strings
+lab_ineff <- "Ineffective"
+lab_other <- "Matching/Flipping/Other"
+lab_mrot  <- "Rotation"
+
+get_diag <- function(site, label) {
+  out <- diag_summary[diag_summary$Site == site & diag_summary$Strategy == label, , drop = FALSE]
+  if (nrow(out) == 0) {
+    return(data.frame(Site = site, Strategy = label, recall = NA_real_, purity = NA_real_))
+  }
+  stopifnot(nrow(out) == 1)
+  out
+}
+
+d_mpi_ineff <- get_diag(s_mpi, lab_ineff)
+d_mpi_other <- get_diag(s_mpi, lab_other)
+d_mpi_mrot  <- get_diag(s_mpi, lab_mrot)
+
+d_uni_ineff <- get_diag(s_uni, lab_ineff)
+d_uni_other <- get_diag(s_uni, lab_other)
+d_uni_mrot  <- get_diag(s_uni, lab_mrot)
+
+d_wes_ineff <- get_diag(s_wes, lab_ineff)
+d_wes_other <- get_diag(s_wes, lab_other)
+d_wes_mrot  <- get_diag(s_wes, lab_mrot)
+
+# off-diagonal moves
+get_move <- function(tab, local_lab, global_lab) {
+  stopifnot(local_lab %in% rownames(tab), global_lab %in% colnames(tab))
+  n     <- tab[local_lab, global_lab]
+  denom <- sum(tab[, global_lab])
+  list(n = as.numeric(n), denom = as.numeric(denom), prop = as.numeric(n) / as.numeric(denom))
+}
+
+tab_mpi <- confusion_by_site[[s_mpi]]
+tab_uni <- confusion_by_site[[s_uni]]
+tab_wes <- confusion_by_site[[s_wes]]
+
+# Rotation globally assigned to Other Effective locally
+mpi_mrot2other <- get_move(tab_mpi, lab_other, lab_mrot)
+wes_mrot2other <- get_move(tab_wes, lab_other, lab_mrot)
+
+# Other Effective globally assigned to Rotation locally
+uni_other2mrot <- get_move(tab_uni, lab_mrot, lab_other)
+
+# pre-computed scalars for inline R
+wes_pct_agree  <- fmt_pct(a_wes$pct_agree)
+wes_ari        <- fmt_num(a_wes$ARI)
+wes_n          <- a_wes$n
+uni_pct_agree  <- fmt_pct(a_uni$pct_agree)
+uni_ari        <- fmt_num(a_uni$ARI)
+mpi_pct_agree  <- fmt_pct(a_mpi$pct_agree)
+mpi_ari        <- fmt_num(a_mpi$ARI)
+
+mpi_mrot_recall  <- round(d_mpi_mrot$recall, 2)
+mpi_mrot_purity  <- round(d_mpi_mrot$purity, 2)
+mpi_ineff_recall <- round(d_mpi_ineff$recall, 2)
+
+uni_mrot_recall  <- round(d_uni_mrot$recall, 2)
+uni_mrot_purity  <- round(d_uni_mrot$purity, 2)
+
+wes_mrot_recall  <- round(d_wes_mrot$recall, 2)
+wes_mrot_purity  <- round(d_wes_mrot$purity, 2)
+wes_ineff_recall <- round(d_wes_ineff$recall, 2)
+wes_flip_recall  <- round(d_wes_other$recall, 2)
+```

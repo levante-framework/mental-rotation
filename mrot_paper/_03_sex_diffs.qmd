@@ -1,0 +1,312 @@
+```{r}
+#| label: sex-rt-mods
+
+mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex)) |>
+  mutate(sex = factor(sex))
+
+contrasts(mrot_lme_data_sex$sex) <- contr.sum(levels(mrot_lme_data_sex$sex))
+
+sex_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
+                  (1 + angle_sc | user_id),
+                data = mrot_lme_data_sex,
+                REML = FALSE,
+                control = lmerControl(optimizer = "bobyqa"))
+sex_mod_stats <- model_performance(sex_mod, estimator = "ML")
+```
+
+```{r}
+#| label: sex-rt-preds
+
+sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
+                          stimulus = unique,        # each stimulus
+                          site_label = unique,      # each site
+                          sex = unique,             # each sex
+                          age_sc = age_seq,         # 100 equally spaced values of age
+                          newdata = mrot_lme_data_sex) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc, sex) |>
+  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
+         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
+         age_group = cut(age, breaks = age_breaks,
+                         include.lowest = FALSE, right = FALSE),
+         task = "mrot") |>
+  inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
+  left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
+  left_join(angle_levels)
+
+sex_grid_preds <- c("angle", "item_group", "stimulus", "site_label", "sex")
+sex_preds <- avg_predictions(sex_mod,
+                             newdata = sex_pred_grid,
+                             re.form = NA,
+                             by = sex_grid_preds) |>
+  as_tibble() |>
+  left_join(angle_levels)
+```
+
+```{r}
+#| label: sex-rt-comps
+
+get_sex_comp <- \(pred) {
+  avg_comparisons(sex_mod,
+                  newdata = sex_pred_grid,
+                  re.form = NA,
+                  variables = "sex",
+                  by = pred) |>
+    as_tibble() |>
+    rename(value = !!pred) |>
+    mutate(predictor = pred, .before = value)
+}
+
+sex_comps <- map(slope_preds, get_sex_comp) |> list_rbind()
+
+sex_comps_tbl <- sex_comps |>
+  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: sex-rt-slopes
+
+get_sex_slopes <- \(pred) {
+  slopes(sex_mod,
+         newdata = sex_pred_grid,
+         re.form = NA,
+         variables = "angle_sc",
+         by = pred) |> as_tibble() |>
+    rename(value = !!pred) |>
+    mutate(predictor = pred, .before = value)
+}
+
+sex_slope_preds <- c("task", "sex")
+sex_slopes <- map(sex_slope_preds, get_sex_slopes) |> list_rbind()
+sex_slopes_tbl <- sex_slopes |>
+  select(term, contrast, predictor, value, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+         interpretation = paste(interpretation, glue("per {deg}°")),
+         p.value = map_chr(p.value, fmt_p))
+
+# sex_slopes <- slopes(sex_mod,
+#                      newdata = sex_pred_grid,
+#                      re.form = NA,
+#                      variables = "angle_sc",
+#                      by = "sex") |> as_tibble() |>
+#   mutate(predictor = "sex") |>
+#   select(term, contrast, predictor, value = sex, estimate, std.error, p.value) |>
+#   mutate(estimate_rt = exp(estimate)) |>
+#   mutate(interpretation = mult_to_pct(estimate_rt, "slower", "faster"),
+#          interpretation = paste(interpretation, glue("per {deg}°")),
+#          p.value = map_chr(p.value, fmt_p))
+
+sex_slope_diffs <- slopes(sex_mod,
+                          newdata = sex_pred_grid,
+                          re.form = NA,
+                          variables = "angle_sc",
+                          by = "sex",
+                          hypothesis = difference ~ pairwise) |> as_tibble() |>
+  mutate(predictor = "sex") |>
+  select(predictor, hypothesis, estimate, std.error, p.value) |>
+  mutate(estimate_rt = exp(estimate)) |>
+  mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
+         p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: sex-rt-plot-prep
+
+mrot_lme_data_sex_plot <- mrot_lme_data_sex |>
+  mutate(z_rt = scale(log_rt)[,1]) |>
+  filter(abs(z_rt) <= z_rt_cutoff) |>
+  left_join(angle_levels)
+
+# empirical means and CIs
+rt_summary_sex <- mrot_lme_data_sex |>
+  group_by(across(all_of(sex_grid_preds))) |>
+  summarise(
+    mean_rt = mean(log_rt),
+    se_rt = sd(log_rt) / sqrt(n()),
+    ci_lower = mean_rt - 1.96 * se_rt,
+    ci_upper = mean_rt + 1.96 * se_rt,
+    .groups = "drop"
+  ) |>
+  ungroup() |>
+  left_join(angle_levels)
+
+# ggplot(sex_preds, aes(x = angle_level)) +
+#   facet_grid(cols = vars(site_label),
+#              labeller = labeller(.cols = dataset_labeller)) +
+#   # fake points to make discrete x axis work
+#   geom_point(aes(y = -Inf), colour = "white", alpha = 0,
+#              data = tibble(angle_level = fct_inorder(levels(angle_levels$angle_level)))) +
+#   # observations
+#   geom_sina(aes(y = log_rt, colour = sex),
+#             data = mrot_lme_data_sex_plot, position = position_identity(),
+#             size = 0.1, alpha = 0.05, seed = 3141) +
+#   # model fit CI
+#   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, group = interaction(sex, stimulus)),
+#               fill = "lightgrey", alpha = 0.4) +
+#   # # # empirical mean + CI
+#   # geom_pointrange(aes(y = mean_rt, ymin = ci_lower, ymax = ci_upper, colour = sex),
+#   #                 linewidth = 0.5, size = 0.1, data = rt_summary_sex) +
+#   # geom_line(aes(y = mean_rt, group = interaction(sex, stimulus), colour = sex),
+#   #           linewidth = 0.5, linetype = "dashed", data = rt_summary_sex) +
+#   # model fit
+#   geom_line(aes(y = estimate, group = interaction(sex, stimulus),
+#                 colour = sex, linetype = item_group)) +
+#   scale_x_discrete(breaks = angle_levels$angle_level) +
+#   scale_y_continuous(breaks = rt_breaks, labels = rt_labels) +
+#   # scale_colour_brewer(palette = "Set2",
+#   #                     breaks = c("duck", "rabbit", "shape"),
+#   #                     labels = c("2D (duck)", "2D (rabbit)", "3D")) +
+#   scale_colour_brewer(palette = "Set1") +
+#   scale_linetype(guide = "none") +
+#   labs(x = "Rotation angle (°)", y = "Reaction time (seconds, log scale)",
+#        colour = "Sex") +
+#   theme(legend.position = "bottom")
+#         # legend.box = "vertical",
+#         # legend.box.just = "left")
+
+# sex_age_preds <- predictions(sex_mod,
+#                              newdata = sex_pred_grid,
+#                              by = c("site_label", "sex", "item_group", "stimulus", "age"),
+#                              re.form = NA) |> as_tibble()
+# # sex_grid_preds <- c("angle", "item_group", "stimulus", "site_label", "sex")
+# ggplot(sex_age_preds, aes(x = age, y = estimate, colour = sex)) +
+#   facet_grid(cols = vars(site_label),
+#              labeller = labeller(.cols = dataset_labeller)) +
+#   # facet_grid(vars(stimulus), vars(site_label)) +
+#   # geom_point(data = mrot_lme_data_sex, aes(y = log_rt),
+#   #            alpha = 0.35, size = 1.1) +
+#   geom_line(aes(group = interaction(stimulus, sex), linetype = item_group)) +
+#   scale_colour_brewer(palette = "Set1") +
+#   scale_linewidth_continuous(range = c(0.1, 3))
+# 
+# ggplot(mrot_lme_data_sex, aes(x = age)) +
+#   facet_wrap(vars(site_label)) +
+#   geom_density(aes(colour = sex))
+```
+
+```{r}
+#| label: sex-rt-results
+
+rt_sex_stats <- mrot_lme_data_sex |>
+  summarise(age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age),
+            n_trials = n(),
+            n_runs = n_distinct(run_id)) |>
+  mutate(across(where(is.integer), \(x) format(x, big.mark = ","))) |>
+  mutate(across(where(is.double), \(x) round(x, 2) |> format(nsmall = 1)))
+
+rt_sex_mod_tbl <- sex_mod_stats |> as_tibble() |>
+  select(R2_conditional, R2_marginal, RMSE) |>
+  mutate(RMSE_exp = exp(RMSE)) |>
+  mutate(across(everything(), \(x) round(x, 2)))
+
+rt_sex_comp <- \(v) sex_comps_tbl |> filter(value == v)
+rt_sex_slope <- \(v) sex_slopes_tbl |> filter(value == v)
+```
+
+
+```{r}
+#| label: sex-ability-mods
+
+mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex)) |>
+  mutate(sex = factor(sex),
+         site_label = factor(site_label)
+         # age_sc = (age - mean(age)) / yrs
+  ) |>
+  rename(ability = metric_value) |>
+  select(site_label, user_id, run_id, age_group, age, sex, ability)
+
+contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
+
+ability_sex_mod <- lmer(ability ~ age * sex * site_label +
+                          (1 | user_id), data = mrot_df_sex)
+
+ability_sex_mod_stats <- model_performance(ability_sex_mod)
+```
+
+```{r}
+#| label: sex-ability-preds
+
+age_seq_yrs <- seq(min(mrot_df_sex$age), max(mrot_df_sex$age), length.out = 100)
+ability_grid <- datagrid(site_label = unique,
+                         sex = unique,
+                         age = age_seq_yrs,
+                         newdata = mrot_df_sex) |>
+  select(rowid, site_label, sex, age) |>
+  mutate(age_group = cut(age, breaks = age_breaks,
+                         include.lowest = TRUE, right = FALSE),
+         task = "mrot")
+
+ability_sex_preds <- avg_predictions(ability_sex_mod,
+                                     newdata = ability_grid,
+                                     re.form = NA,
+                                     by = c("site_label", "age_group", "age", "sex")) |>
+  as_tibble()
+```
+
+```{r}
+#| label: sex-ability-comps
+
+sd_ability <- sd(mrot_df_sex$ability)
+ability_comps <- comparisons(
+  ability_sex_mod,
+  newdata = ability_grid,
+  re.form = NA,
+  variables = list(site_label = "pairwise", sex = "pairwise", age = 1),
+  by = "task"
+) |> as_tibble() |>
+  select(term, contrast, estimate, std.error, p.value) |>
+  mutate(p.value = map_chr(p.value, fmt_p),
+         estimate_sd = estimate / sd_ability)
+
+ability_slope_diffs <- slopes(
+  ability_sex_mod,
+  newdata = ability_grid,
+  re.form = NA,
+  variables = "age",
+  by = "sex",
+  hypothesis = difference ~ pairwise
+) |> as_tibble() |>
+  mutate(p.value = map_chr(p.value, fmt_p))
+
+# comparisons(
+#   ability_sex_mod,
+#   newdata = ability_grid,
+#   re.form = NA,
+#   variables = list(sex = "pairwise", age = 1),
+#   by = "site_label"
+# ) |> as_tibble()
+```
+
+```{r}
+#| label: sex-ability-results
+
+# set up various lists and functions for reporting model results in text
+
+ability_sex_stats <- mrot_df_sex |>
+  summarise(age_mean = mean(age),
+            age_sd = sd(age),
+            age_min = min(age),
+            age_max = max(age),
+            n_runs = n_distinct(run_id)) |>
+  mutate(across(where(is.integer), \(x) format(x, big.mark = ","))) |>
+  mutate(across(where(is.double), \(x) round(x, 2) |> format(nsmall = 1)))
+
+ability_sex_mod_tbl <- ability_sex_mod_stats |> as_tibble() |>
+  select(R2_conditional, R2_marginal, RMSE) |>
+  mutate(across(everything(), \(x) round(x, 2)))
+
+# slope_str <- \(s) glue("β = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p {s$p.value}")
+ability_sex_comp <- \(p, v) ability_comps |> filter(term == p, contrast == v)
+# interp_str <- \(s) glue("β = {round(s$estimate, 2)}, {s$interpretation}")
+
+# slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
+# slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
+```

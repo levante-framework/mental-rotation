@@ -126,34 +126,45 @@ write_rds(mod_coef, "models/mrot_coef.rds", compress = "gz")
 mod_obj <- mods_coded |>
   mutate(mod = map(mod_rec, model_from_record))
 
-# map multigroup model tibble to coding in mods
-mod_map <- models_multigroup |>
-  mutate(itemtype = itemtype |> str_to_lower(),
-         nfact = paste0("f", nfact),
-         model_order = 1:n())
+# checking that nestpars makes sense
+# nestpars <- \(mod) {
+#   mod_vals <- mod2values(mod) |> as_tibble()
+#   mod_vals |>
+#     mutate(par_group = if_else(item == "GROUP", group, const)) |>
+#     filter(est) |>
+#     distinct(class, par_group, name) |>
+#     count(class) |>
+#     pivot_wider(names_from = class, values_from = n)
+# }
+# 
+# n_pars <- mod_obj |>
+#   filter(model_set == "multigroup_dataset", subset == "overlap_items") |>
+#   select(itemtype, invariance, mod) |>
+#   mutate(n_pars_mirt = map_int(mod, \(m) extract.mirt(m, "nestpars")),
+#          n_pars = map(mod, nestpars)) |>
+#   arrange(n_pars_mirt) |>
+#   select(-mod) |>
+#   unnest(n_pars) |>
+#   rename(n_pars_group = GroupPars, n_pars_item = dich) |>
+#   mutate(n_pars_group = n_pars_group |> replace_na(0))
 
-# create anova of all multigroup models for each task
 task_anova <- mod_obj |>
   filter(subset == "overlap_items") |>
-  # join in model list from fit_irt_modular.qmd for sequencing models
-  left_join(mod_map) |>
-  arrange(model_set, model_order) |>
-  select(task, model_set, mod, nfact, itemtype, invariance, model_order) |>
-  # mutate(logPrior = map_dbl(mod, \(m) m@Fit$logPrior)) |>
-  # run anova for each task
-  nest(mods = -c(task, model_set)) |>
-  mutate(anova = map(mods, \(tm) anova_mirt_wrapper(tm$mod))) |>
-  # remove model objects and flatten out anova results
-  mutate(mod_info = map(mods, \(tm) tm |> select(-mod))) |>
-  select(task, model_set, mod_info, anova) |>
-  unnest(c(mod_info, anova))
+  mutate(mod_fit = map(mod, \(m) as_tibble(m@Fit)),
+         n_pars = map_int(mod, \(m) extract.mirt(m, "nestpars"))) |>
+  select(model_set, subset, itemtype, invariance, mod_fit, n_pars) |>
+  unnest(mod_fit) |>
+  mutate(logPost = logPrior + logLik, d_BIC = BIC - min(BIC)) |>
+  arrange(model_set, desc(n_pars)) |>
+  ungroup() |>
+  select(model_set, subset, itemtype, invariance, n_pars, starts_with("log"),
+         AIC, BIC, d_BIC)
 
 write_rds(task_anova, here("models/mrot_anova.rds"), compress = "gz")
 ```
 
 ```{r}
-# extract each group's models from multigroup models
-# only works for scalar models, would need debugging to get metric/configural
+# extract each group's models from multigroup models (only works for scalar)
 mod_obj_group <- mod_obj |>
   filter(invariance == "scalar", subset == "all_items") |>
   mutate(group = map(mod, \(m) m@Data$groupNames),

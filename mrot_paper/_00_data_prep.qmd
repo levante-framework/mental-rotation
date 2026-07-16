@@ -1,0 +1,248 @@
+```{r}
+#| label: setup
+#| cache: false
+
+source(here("helper", "plot_settings.R"))
+
+# p-value formatter
+fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
+
+# convert multiplicative factor to percentage increase/decrease
+mult_to_pct <- \(x, more, less) {
+  if_else(x > 1,
+          glue("{round((x - 1) * 100, 1)}% {more}"),
+          glue("{round((1 - x) * 100, 1)}% {less}"))
+}
+```
+
+```{r}
+#| label: site-info
+
+site_labels <- c("uniandes-co-bogota" = "pilot_uniandes_co_bogota",
+                 "uniandes-co-rural" = "pilot_uniandes_co_rural",
+                 "mpieva-de" = "pilot_mpieva_de_main",
+                 "western-ca" = "pilot_western_ca_main")
+
+site_pal <- ptol_pal()(length(site_labels)) |>
+  rlang::set_names(names(site_labels))
+.scale_colour_site <- \(...) scale_colour_manual(values = site_pal, ...)
+```
+
+```{r}
+#| label: load-data
+
+# run data
+run_data <- read_rds(here("data/runs_mrot.rds"))
+
+# RT data
+task_data <- read_rds(here("data/task_data_nested.rds"))
+
+# IRT data
+mrot_scores <- read_rds(here("models/mrot_scores.rds")) |>
+  filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
+
+# coefficients
+mrot_coefs <- read_rds(here("models/mrot_coef.rds")) |>
+  filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
+
+# sex info for sex differences analyses
+sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))
+```
+
+```{r}
+#| label: filter-runs
+
+# apply filters to runs for use in all subsequent analyses
+min_trials <- 10
+min_gap_months <- 3
+run_data_filtered <- run_data |>
+  filter(num_attempted >= min_trials) |>
+  filter(!is.na(age), age >= 5, age <= 14) |>
+  arrange(user_id, age) |>
+  group_by(user_id) |>
+  mutate(run_number = row_number(),
+         age_gap = age - lag(age)) |>
+  ungroup() |>
+  filter_out(age_gap < min_gap_months / 12) |>
+  select(site, dataset, user_id, run_id, age, adaptive)
+
+# create age groups based on roughly equal sample sizes
+ages <- run_data_filtered |> pull(age)
+age_breaks <- c(5, 8, 11, 14)
+
+# add age groups and site labels
+runs_filtered <- run_data_filtered |>
+  mutate(age_group = cut(age, breaks = age_breaks,
+                         include.lowest = FALSE, right = FALSE),
+         site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels)))
+```
+
+```{r}
+#| label: sample-counts
+
+# overall
+site_n_df <- run_data |>
+  group_by(dataset) |>
+  summarise(n_users = n_distinct(user_id),
+            n_runs = n_distinct(run_id)) |>
+  mutate(site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels)))
+
+site_n <- site_n_df |> nest(ns = -site_label) |> deframe()
+
+mrot_df <- mrot_scores |> inner_join(runs_filtered)
+
+n_excluded <- mrot_scores |>
+  anti_join(mrot_df) |>
+  summarise(n_users = n_distinct(user_id),
+            n_runs = n_distinct(run_id))
+
+n_final <- mrot_df |>
+  summarise(n_users = n_distinct(user_id),
+            n_runs = n_distinct(run_id))
+
+n_repeat_users <- runs_filtered |>
+  group_by(user_id) |>
+  summarise(n_assessments = n_distinct(run_id)) |>
+  filter(n_assessments > 1) |>
+  nrow()
+```
+
+```{r}
+#| label: trial-level-rts
+
+mrot_trials <- task_data |>
+  select(data) |>
+  unnest(data) |>
+  inner_join(runs_filtered)
+
+mrot_rt_trial <- mrot_trials |>
+  select(site_label, user_id, run_id, adaptive,
+         age, age_group, trial_id, trial_number, item_uid, item_group, item,
+         item_original, correct, rt_numeric) |>
+  mutate(
+    correct    = as.integer(correct),
+    rt_s       = as.numeric(rt_numeric) / 1000,
+    log_rt     = log(rt_s),
+    angle      = as.integer(stringr::str_extract(item, "(?<=_)\\d+")),
+    angle_full = as.integer(stringr::str_extract(item_original, "\\d{3}$")),
+    stimulus   = str_extract(item, "^[a-z]+")
+  ) |>
+  filter(is.finite(rt_s), rt_s > 0)
+```
+
+```{r}
+#| label: sex-data-coverage
+
+mrot_trial_sex <- mrot_rt_trial |>
+  left_join(sex_data_cleaned) |>
+  distinct(user_id, site_label, sex)
+
+site_sex_counts <- mrot_trial_sex |>
+  count(site_label, sex) |>
+  mutate(sex = sex |> replace_na("Unknown")) |>
+  pivot_wider(names_from = sex, values_from = n)
+
+overall_sex_counts <- mrot_trial_sex |>
+  count(sex) |>
+  mutate(sex = sex |> replace_na("Unknown")) |>
+  pivot_wider(names_from = sex, values_from = n)
+```
+
+```{r}
+#| label: site-timespans
+
+site_spans <- mrot_trials |>
+  group_by(site_label) |>
+  summarise(earliest = min(timestamp),
+            latest = max(timestamp)) |>
+  mutate(across(-site_label, as_date)) |>
+  nest(range = -site_label) |>
+  deframe()
+```
+
+```{r}
+#| label: cat-exclusion-counts
+
+cat_counts <- mrot_rt_trial |>
+  group_by(adaptive) |>
+  summarise(trials = n(), runs = n_distinct(run_id)) |>
+  mutate(adaptive = if_else(adaptive, "n_cat", "n_non_cat")) |>
+  pivot_longer(cols = c(trials, runs), names_to = "count") |>
+  pivot_wider(names_from = adaptive, values_from = value) |>
+  mutate(n_total = n_cat + n_non_cat,
+         pct_cat = round(n_cat / n_total * 100, 1)) |>
+  rowwise() |>
+  mutate(across(where(is.integer), \(x) format(x, big.mark = ","))) |>
+  nest(counts = -count) |>
+  deframe()
+```
+
+```{r}
+#| label: site-info-tbl
+
+sample_summary <- \(...) {
+  features <- enquos(...)
+  mrot_rt_trial |>
+    group_by(user_id, run_id, age) |>
+    group_by(!!!features, .add = TRUE) |>
+    summarise(n_trials = n(), .groups = "drop") |>
+    group_by(!!!features) |>
+    summarise(
+      n_run       = n_distinct(run_id),
+      n_user      = n_distinct(user_id),
+      age_mean    = mean(age),
+      age_sd      = sd(age),
+      age_min     = min(age),
+      age_max     = max(age),
+      trials_mean = mean(n_trials),
+      trials_sd   = sd(n_trials),
+      trials_min  = min(n_trials),
+      trials_max  = max(n_trials),
+      .groups = "drop"
+    ) |>
+    mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
+                                 age_mean, age_sd, age_min, age_max),
+           trials_summary = sprintf("%.0f (%.1f) [%d–%d]", trials_mean, trials_sd,
+                                    trials_min, trials_max)) |>
+    select(!!!features, starts_with("n_"), contains("summary"))
+}
+
+site_counts <- bind_rows(
+  sample_summary(site_label) |> mutate(group = ""),
+  sample_summary(site_label, item_group) |>
+    rename(group = item_group) |> mutate(group = group |> fct_recode("2D" = "2d", "3D" = "3d")),
+  sample_summary(site_label, adaptive) |>
+    rename(group = adaptive) |> mutate(group = if_else(group, "adaptive", "non-adaptive"))
+) |>
+  arrange(site_label) |>
+  relocate(group, .after = site_label)
+
+site_features <- tribble(
+  ~site_label, ~area, ~testing_location, ~testing_setting, ~testing_device,
+  "mpieva-de", "Leipzig, Germany", "home", "individual", "family device",
+  "uniandes-co-bogota", "Bogotá, Colombia", "school", "group", "researcher tablet",
+  "uniandes-co-rural", "Caquetá & Boyacá, Colombia", "school", "group", "researcher tablet",
+  "western-ca", "London, Ontario, Canada", "lab", "individual", "researcher tablet"
+)
+
+# site_info <- mrot_df |>
+  # group_by(site_label) |>
+  # summarise(
+  #   n_run    = n(),
+  #   n_user   = n_distinct(user_id),
+  #   age_mean = mean(age),
+  #   age_sd   = sd(age),
+  #   age_min  = min(age),
+  #   age_max  = max(age),
+  #   .groups  = "drop"
+  # ) |>
+  # mutate(age_summary = sprintf("%.1f (%.1f) [%.1f–%.1f]",
+  #                              age_mean, age_sd, age_min, age_max)) |>
+  # left_join(trials_per_run) |>
+  # left_join(site_features) |>
+  # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_location, testing_setting, testing_device)
+  # # mutate(testing_format = glue("Location: {location}\\newline Setting: {setting}\\newline Device: {device}") |> as.character()) |>
+  # # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_format)
+```
