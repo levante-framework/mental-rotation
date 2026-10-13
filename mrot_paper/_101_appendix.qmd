@@ -343,7 +343,6 @@ ggplot(trial_resid_data,
 
 ```{r}
 #| label: within-person-models
-#| cache: true
 #| include: false
 
 # center trial number within each block so the intercept at transition is interpretable
@@ -505,7 +504,6 @@ grid.arrange(p_elbow, p_sil, nrow = 1)
 
 ```{r}
 #| label: fig-k2-cluster-check
-#| cache: true
 #| eval: true
 #| include: true
 #| fig-width: 7
@@ -875,7 +873,6 @@ The results were broadly consistent with the disparity-based analyses and provid
 The Rotation profile showed the steeper and higher RT function throughout, rising from a mean log RT of 1.02 at 40° to a peak of 1.85 at 240° before declining to 1.49 at 320°. The Matching/Flipping/Other profile rose more gradually, peaking at 1.46 at 240° — consistent with less angular sensitivity relative to baseline speed, as reflected in its shallower relative slope in the main analysis. Notably, the inverted-U shape of the Matching/Flipping/Other profile in the full 360° data is more symmetric than the 120° peak-and-decline pattern observed in the disparity-capped data, suggesting the apparent flipping signature in the main analysis may partly reflect the capping of angles at 180° rather than a pure reflective symmetry strategy. Accuracy for both effective profiles showed a corresponding U-shaped function, declining to a minimum around 160–200° before recovering at higher angles, with the Matching/Flipping/Other profile maintaining the highest accuracy throughout. The Ineffective profile again showed a broadly flat and declining RT function across the full angular range, with accuracy remaining low at peak angles and showing only a modest recovery above 240°, further supporting the interpretation that these children are not engaging with the spatial structure of the items.
 ```{r}
 #| label: robustness-check-all-angles
-#| cache: true
 #| results: "hide"
 
 # NOTE: all objects in this and subsequent 360° chunks use _360 suffixes to avoid overwriting main analysis objects. These chunks must remain the
@@ -949,7 +946,6 @@ mrot_rich_data_360 |>
 
 ```{r}
 #| label: clustering-execution-360
-#| cache: true
 #| include: false
 
 # strategy_colors <- c(

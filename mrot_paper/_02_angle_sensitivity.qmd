@@ -31,8 +31,6 @@ contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
 
 ```{r}
 #| label: dimensionality-level
-#| cache: true
-#| dependson: rt-angle-data
 
 # 2D vs 3D overall response time, restricted to the angles both were
 # administered at. Reported instead of a slope contrast, because the two
@@ -64,8 +62,6 @@ dim_ratio <- coef(summary(dim_mod)) |>
 
 ```{r}
 #| label: rt-angle-model
-#| cache: true
-#| dependson: rt-angle-data
 
 full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
                    trial_number * stimulus + 
@@ -122,8 +118,6 @@ avg_preds <- avg_predictions(full_mod,
 
 ```{r}
 #| label: common-range-contrast
-#| cache: true
-#| dependson: [rt-angle-data, rt-angle-model]
 
 # 3D items were not administered at 160 degrees, and the angle function is not
 # linear, so slopes fitted over each stimulus type's own range are not
@@ -165,7 +159,6 @@ full_contrast <- hypotheses(
 
 ```{r}
 #| label: rt-angle-slopes
-#| dependson: rt-angle-model
 
 # extract angle slopes for each predictor
 slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group", "adaptive") # trial-number
@@ -197,7 +190,6 @@ pred_slopes_tbl <- pred_slopes |>
 
 ```{r}
 #| label: rt-angle-slope-tests
-#| dependson: rt-angle-model
 
 get_pred_slope_test <- \(pred) {
   slopes(full_mod,
@@ -271,7 +263,6 @@ slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
 
 ```{r}
 #| label: rt-slopes-tbl
-#| dependson: [rt-angle-slopes, rt-angle-slope-tests]
 
 slopes_tbl <- bind_rows(
   pred_slopes_tbl,

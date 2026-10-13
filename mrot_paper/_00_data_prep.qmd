@@ -258,7 +258,6 @@ site_features <- tribble(
 
 ```{r}
 #| label: cat-robustness
-#| cache: true
 
 # Adaptive administration could in principle bias the RT-angle relationship by
 # making angle exposure depend on ability. Two checks: (a) the run-level

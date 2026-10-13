@@ -1,7 +1,5 @@
 ```{r}
 #| label: sex-rt-mods
-#| cache: true
-#| dependson: rt-angle-data
 
 mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |>
   filter(!is.na(sex)) |>
@@ -220,7 +218,6 @@ rt_sex_slope <- \(v) sex_slopes_tbl |> filter(value == v)
 
 ```{r}
 #| label: sex-ability-mods
-#| cache: true
 
 mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
   filter(!is.na(sex)) |>
