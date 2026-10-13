@@ -148,6 +148,15 @@ overall_sex_counts <- mrot_trial_sex |>
   count(sex) |>
   mutate(sex = sex |> replace_na("Unknown")) |>
   pivot_wider(names_from = sex, values_from = n)
+
+# per-site coverage of sex, for reporting missingness in the demographic differences analysis
+sex_coverage <- site_sex_counts |>
+  mutate(across(any_of(c("Female", "Male", "Unknown")), \(x) replace_na(x, 0)),
+         n_total = Female + Male + Unknown,
+         pct_unknown = round(100 * Unknown / n_total)) |>
+  select(site_label, n_total, n_unknown = Unknown, pct_unknown) |>
+  nest(coverage = -site_label) |>
+  deframe()
 ```
 
 ```{r}
@@ -245,4 +254,33 @@ site_features <- tribble(
   # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_location, testing_setting, testing_device)
   # # mutate(testing_format = glue("Location: {location}\\newline Setting: {setting}\\newline Device: {device}") |> as.character()) |>
   # # select(site_label, area, n_run, n_user, age_summary, trials_summary, testing_format)
+```
+
+```{r}
+#| label: cat-robustness
+#| cache: true
+
+# Adaptive administration could in principle bias the RT-angle relationship by
+# making angle exposure depend on ability. Two checks: (a) the run-level
+# association between accuracy and mean angle administered, by format;
+# (b) whether the angle slope itself differs by format. Computed here rather
+# than in _02 because the Methods text cites them before that file is included.
+cat_check <- mrot_rt_trial |>
+  filter(is.finite(log_rt), trial_number != 1, !is.na(angle))
+
+cat_angle_sel <- cat_check |>
+  summarise(acc = mean(correct), mean_angle = mean(angle), n = n(),
+            .by = c(run_id, adaptive)) |>
+  filter(n >= 10) |>
+  summarise(r = cor(acc, mean_angle, use = "pairwise.complete.obs"), .by = adaptive) |>
+  mutate(adaptive = if_else(adaptive, "cat", "fixed")) |>
+  deframe()
+
+cat_slope_diff <- lme4::lmer(
+    log_rt ~ angle_sc * adaptive + (1 + angle_sc | user_id),
+    data = cat_check |> filter(correct == 1) |>
+      mutate(angle_sc = (angle - mean(angle)) / 40),
+    REML = FALSE, control = lme4::lmerControl(optimizer = "bobyqa")) |>
+  summary() |> coef() |> _["angle_sc:adaptiveTRUE", ] |>
+  as.list() |> setNames(c("estimate", "std.error", "statistic"))
 ```

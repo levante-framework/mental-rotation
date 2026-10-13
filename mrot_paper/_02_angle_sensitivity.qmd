@@ -17,10 +17,11 @@ mrot_lme_data <- mrot_rt_trial |>
     site_label = factor(site_label),
     angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
     adaptive   = factor(adaptive), 
-    age_sc     = (age - mean(age)) / yrs # scale to 2 units = sd
+    age_sc     = (age - mean(age)) / yrs, # scale to 2 units = sd
+    task       = "mrot"  # constant; slope_preds uses it for the overall effect
   ) |>
   select(site_label, user_id, run_id,  matches("age"), trial_number,
-         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive)
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive, task)
 
 # effects code all factors
 contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
@@ -29,11 +30,46 @@ contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
 ```
 
 ```{r}
+#| label: dimensionality-level
+#| cache: true
+#| dependson: rt-angle-data
+
+# 2D vs 3D overall response time, restricted to the angles both were
+# administered at. Reported instead of a slope contrast, because the two
+# stimulus types do not span the same angles (see Methods).
+shared_angles <- mrot_lme_data |>
+  distinct(item_group, angle) |>
+  count(angle) |>
+  filter(n == n_distinct(mrot_lme_data$item_group)) |>
+  pull(angle)
+
+# NB: mrot_lme_data carries sum contrasts on item_group, under which the
+# coefficient is a deviation from the grand mean (half the 2D-3D difference).
+# Rebuild the factor here so the coefficient is the 3D-vs-2D contrast directly.
+dim_data <- mrot_lme_data |>
+  filter(angle %in% shared_angles) |>
+  mutate(item_group = factor(as.character(item_group), levels = c("2d", "3d")))
+
+dim_mod <- lmer(log_rt ~ item_group + factor(angle) + (1 | user_id),
+                data = dim_data, REML = FALSE,
+                control = lmerControl(optimizer = "bobyqa"))
+
+dim_ratio <- coef(summary(dim_mod)) |>
+  as_tibble(rownames = "term") |>
+  filter(str_starts(term, "item_group")) |>
+  transmute(estimate = Estimate, std.error = `Std. Error`, statistic = `t value`,
+            ratio = exp(abs(Estimate))) |>
+  as.list()
+```
+
+```{r}
 #| label: rt-angle-model
+#| cache: true
+#| dependson: rt-angle-data
 
 full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
                    trial_number * stimulus + 
-                   adaptive * stimulus * site_label +
+                   adaptive * stimulus +   # not * site_label: rural is wholly adaptive (see Methods)
                    (1 + angle_sc | user_id),
                  data = mrot_lme_data,
                  REML = FALSE,
@@ -85,14 +121,62 @@ avg_preds <- avg_predictions(full_mod,
 ```
 
 ```{r}
+#| label: common-range-contrast
+#| cache: true
+#| dependson: [rt-angle-data, rt-angle-model]
+
+# 3D items were not administered at 160 degrees, and the angle function is not
+# linear, so slopes fitted over each stimulus type's own range are not
+# comparable -- including 2D's 120-160 segment raises its slope. Refit on the
+# angles both types share so the contrast compares like with like.
+shared_data <- mrot_lme_data |>
+  filter(angle %in% shared_angles) |>
+  mutate(angle_sc = (angle - mean(angle)) / deg)
+contrasts(shared_data$site_label) <- contr.sum(levels(shared_data$site_label))
+contrasts(shared_data$stimulus)   <- contr.sum(levels(shared_data$stimulus))
+
+common_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
+                     trial_number * stimulus +
+                     adaptive * stimulus +
+                     (1 + angle_sc | user_id),
+                   data = shared_data, REML = FALSE,
+                   control = lmerControl(optimizer = "bobyqa"))
+
+common_slopes <- slopes(common_mod, newdata = shared_data, re.form = NA,
+                        variables = "angle_sc", by = "item_group") |>
+  as_tibble() |>
+  select(item_group, estimate, std.error) |>
+  nest(s = -item_group) |>
+  deframe()   # common_slopes[["2d"]]$estimate
+
+common_contrast <- hypotheses(
+    slopes(common_mod, newdata = shared_data, re.form = NA,
+           variables = "angle_sc", by = "item_group"),
+    hypothesis = "b2 - b1 = 0") |>   # b1 = 2d, b2 = 3d
+  as_tibble() |> as.list()
+
+# the same contrast over each type's full range, for comparison
+full_contrast <- hypotheses(
+    slopes(full_mod, newdata = mrot_lme_data, re.form = NA,
+           variables = "angle_sc", by = "item_group"),
+    hypothesis = "b2 - b1 = 0") |>
+  as_tibble() |> as.list()
+```
+
+```{r}
 #| label: rt-angle-slopes
+#| dependson: rt-angle-model
 
 # extract angle slopes for each predictor
 slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group", "adaptive") # trial-number
 
+# Slopes are average marginal effects over the observed data rather than over
+# pred_grid: balancing upweights cells where a stimulus type is thinly
+# represented, and 3D items are unevenly distributed across age (see Methods).
+# pred_grid is retained for the fitted curves in the figure.
 get_pred_slopes <- \(pred) {
   slopes(full_mod,
-         newdata = pred_grid,
+         newdata = mrot_lme_data,
          re.form = NA,
          variables = "angle_sc",
          by = pred) |> as_tibble() |>
@@ -113,10 +197,11 @@ pred_slopes_tbl <- pred_slopes |>
 
 ```{r}
 #| label: rt-angle-slope-tests
+#| dependson: rt-angle-model
 
 get_pred_slope_test <- \(pred) {
   slopes(full_mod,
-         newdata = pred_grid,
+         newdata = mrot_lme_data,
          re.form = NA,
          variables = "angle_sc",
          by = pred,
@@ -186,6 +271,7 @@ slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
 
 ```{r}
 #| label: rt-slopes-tbl
+#| dependson: [rt-angle-slopes, rt-angle-slope-tests]
 
 slopes_tbl <- bind_rows(
   pred_slopes_tbl,

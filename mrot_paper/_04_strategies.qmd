@@ -1,5 +1,6 @@
 ```{r}
 #| label: strategy-analysis-prep
+#| cache: true
 #| results: "hide"
 
 # ability
@@ -83,6 +84,7 @@ rich_features_final <- rich_features_raw |>
 
 ```{r}
 #| label: clustering-execution
+#| cache: true
 
 strategy_pal <- ptol_pal()(3)
 strategy_colors <- c(
@@ -269,6 +271,7 @@ rt_disparity_summary <- rt_run_disparity |>
 
 ```{r}
 #| label: local-clustering-agreement
+#| cache: true
 #| include: false
 
 cluster_vars <- c("Baseline_Speed", "Rel_Slope", "Abs_Slope", "Instability", "Learning_Rate")
