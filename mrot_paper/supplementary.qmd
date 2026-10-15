@@ -1,0 +1,405 @@
+---
+title: "Supplementary material"
+subtitle: "Mental rotation in children aged 5--13: a cross-site comparison in three countries"
+bibliography: library_mrot.bib
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=1in
+    fig-pos: "H"
+  docx: default
+crossref:
+  fig-title: "Figure S"
+  tbl-title: "Table S"
+  title-delim: ":"
+  fig-prefix: "Figure S"
+  tbl-prefix: "Table S"
+execute:
+  echo: false
+  message: false
+  warning: false
+  cache: false
+---
+
+```{r}
+#| label: supp-setup
+
+library(tidyverse)
+library(glue)
+library(here)
+library(lme4)
+library(marginaleffects)
+library(gt)
+library(flextable)
+library(ggthemes)
+library(ggrepel)
+library(patchwork)
+library(kableExtra)
+library(performance)
+library(knitr)
+```
+
+{{< include _00_data_prep.qmd >}}
+
+```{r}
+#| label: supp-rt-summaries
+
+# Per-run and per-cell response-time summaries used in the sections below.
+# Rebuilt here rather than inherited: the earlier versions lived in
+# mental_rotation.qmd (outside this paper's include chain) and referred to
+# columns that no longer exist.
+# mirrors the rt-angle-data chunk in _02_angle_sensitivity.qmd; rebuilt here so
+# the supplementary renders without refitting the main models.
+deg <- 40 # angle unit size
+yrs <- 2  # age unit size
+
+# filter to non-CAT, add age group, stimulus, angle
+mrot_lme_data <- mrot_rt_trial |>
+  filter(#!adaptive,            # exclude CAT runs
+         correct == 1,         # exclude incorrect responses
+         trial_number != 1) |> # exclude each run's first trial
+  mutate(
+    item_group = factor(item_group),
+    stimulus   = factor(stimulus),
+    site_label = factor(site_label),
+    angle_sc   = (angle - mean(angle)) / deg, # scale to 1 unit = 40
+    adaptive   = factor(adaptive), 
+    age_sc     = (age - mean(age)) / yrs, # scale to 2 units = sd
+    task       = "mrot"  # constant; slope_preds uses it for the overall effect
+  ) |>
+  select(site_label, user_id, run_id,  matches("age"), trial_number,
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive, task)
+
+# effects code all factors
+
+# effects code all factors
+contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
+contrasts(mrot_lme_data$item_group) <- contr.sum(levels(mrot_lme_data$item_group))
+contrasts(mrot_lme_data$stimulus) <- contr.sum(levels(mrot_lme_data$stimulus))
+
+supp_rt_runs <- mrot_rt_trial |>
+  filter(correct == 1, trial_number != 1, is.finite(log_rt)) |>
+  summarise(rt_med = median(log_rt, na.rm = TRUE),
+            .by = c(site_label, user_id, run_id, age, stimulus, item_group, angle)) |>
+  mutate(age_group = cut(age, breaks = age_breaks, include.lowest = TRUE, right = FALSE)) |>
+  drop_na(age_group)   # age_group needed: the figure facets site_label ~ age_group
+
+supp_rt_cells <- supp_rt_runs |>
+  summarise(y = mean(rt_med, na.rm = TRUE),
+            sd = sd(rt_med, na.rm = TRUE),
+            n = n(),
+            .by = c(site_label, stimulus, item_group, angle, age_group)) |>
+  mutate(se = sd / sqrt(pmax(n, 1)), lwr = y - 1.96 * se, upr = y + 1.96 * se)
+```
+
+# Task materials
+
+
+## Example items
+
+```{r}
+#| label: apx-mrot-example-items
+#| fig-cap: "Example items for 2D and 3D rotation."
+#| out-width: "100%"
+#| fig-align: "center"
+
+knitr::include_graphics("images/mrot_item_examples.pdf")
+
+# library(pdftools)
+# pdf_convert("mrot_item_examples.pdf", format = "png", dpi = 300,
+#             filenames = "mrot_item_examples.png")
+```
+
+
+
+# Item response theory models
+
+
+## Item information curves
+
+```{r}
+#| label: fig-item-info
+#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by rotation angle. Higher rotation angle items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
+#| fig-width: 8
+#| fig-height: 3.5
+
+mrot_info <- read_rds(here("models/mrot_info.rds"))
+
+info_2pl_scalar <- mrot_info |>
+  filter(model_set == "multigroup_dataset", itemtype == "2pl")
+
+angles <- sort(unique(info_2pl_scalar$angle))
+p_info_2pl <- ggplot(info_2pl_scalar, aes(x = theta, y = info)) +
+  facet_wrap(vars(item_type)) +
+  geom_line(aes(group = item, colour = angle), linewidth = 0.5) +
+  scale_colour_viridis_c(direction = -1,
+                         breaks = angles,
+                         labels = paste0(angles, "°"),
+                         guide = guide_legend()) +
+  labs(x = "Ability (θ)", y = "Item information", colour = "Rotation angle") +
+  theme(legend.position = "bottom")
+p_info_2pl
+```
+
+```{r coef-scatter}
+# load configural parameters
+mrot_configural <- mrot_coefs |>
+  filter(task == "mrot",
+         itemtype == "2pl",
+         invariance == "configural",
+         model_set == "multigroup_dataset") |>
+  mutate(site_label = group |>
+           recode_values(from = site_labels, to = names(site_labels))) |>
+  select(item, site_label, difficulty, discrimination = a1)
+
+# pivot wide
+mrot_wide_d <- mrot_configural |>
+  pivot_wider(names_from = site_label, values_from = c(difficulty, discrimination)) |>
+  separate_wider_delim(item, delim = "_",
+                       names = c("task", "group", "stimulus", "angle")) |>
+  mutate(angle = as.integer(angle),
+         item_label = glue("{stimulus} {angle}°"))
+
+param_ranges <- list(
+  "difficulty" = range(mrot_configural$difficulty),
+  "discrimination" = range(mrot_configural$discrimination)
+)
+coef_scatter <- function(param, x_site, y_site) {
+  x_var <- paste(param, x_site, sep = "_")
+  y_var <- paste(param, y_site, sep = "_")
+  x_lab <- glue("{str_to_sentence(param)} ({x_site})")
+  y_lab <- glue("{str_to_sentence(param)} ({y_site})")
+  ggplot(mrot_wide_d, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+    coord_equal(xlim = param_ranges[[param]], ylim = param_ranges[[param]]) +
+    geom_abline(intercept = 0, slope = 1,
+                linetype = "dashed", colour = pal$grey) +
+    geom_point(aes(colour = stimulus), size = 2.5, na.rm = TRUE) +
+    geom_text_repel(aes(label = item_label), size = 2.8, family = .font,
+                    max.overlaps = Inf, box.padding = 0.5, point.padding = 0.3) +
+    .scale_colour_stimulus(guide = "none") +
+    labs(x = x_lab, y = y_lab)
+}
+
+sites <- names(site_labels)
+site_pairs <- expand_grid(s1 = 1:4, s2 = 1:4) |>
+  filter(s2 > s1) |>
+  mutate(s1 = sites[s1], s2 = sites[s2])
+```
+
+```{r}
+#| label: fig-item-diff
+#| fig-cap: "**Item difficulty parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item difficulty parameters are consistent across sites."
+#| fig-width: 12
+#| fig-height: 8
+
+pair_plots_d <- map2(site_pairs$s1, site_pairs$s2,
+                     partial(coef_scatter, param = "difficulty"))
+wrap_plots(pair_plots_d)
+```
+
+```{r}
+#| label: fig-item-disc
+#| fig-cap: "**Item discrimination parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item discrimination parameters are consistent across sites."
+#| fig-width: 12
+#| fig-height: 8
+
+pair_plots_a <- map2(site_pairs$s1, site_pairs$s2,
+                     partial(coef_scatter, param = "discrimination"))
+wrap_plots(pair_plots_a)
+```
+
+<!-- \clearpage -->
+<!-- ## Uniandes-co rural and urban sub-samples -->
+
+<!-- ```{r} -->
+<!-- #| label: fig-co-theta -->
+<!-- #| eval: true -->
+<!-- #| include: true -->
+<!-- #| fig-width: 5 -->
+<!-- #| fig-height: 5 -->
+<!-- #| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates." -->
+
+<!-- p_co_theta -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- #| label: fig-co-item-difficulty -->
+<!-- #| dependson: co-item-difficulty-comparison -->
+<!-- #| fig-width: 7 -->
+<!-- #| fig-height: 5 -->
+<!-- #| fig-cap: "**Item difficulty parameters across uniandes-co sub-samples.** Freely estimated item difficulties under configural invariance for the uniandes-co-bogota sample (red) and uniandes-co-rural sample (blue) separated and both samples pooled (grey). Item difficulties are largely consistent across sub-samples, with the exception of one estimate for the 3D shape (120°) item in the uniandes-co-bogota sample." -->
+
+<!-- p_co_items_d -->
+<!-- ``` -->
+
+\clearpage
+
+
+# Angular sensitivity
+
+
+## Sample sizes per cell
+
+```{r}
+#| label: tbl-rt-angle-sample-sizes
+#| tbl-cap: "Sample sizes at each cell (site by age group by item type and stimulus)."
+
+n_table <- supp_rt_cells |>
+  filter(angle != 20) |>
+  select(site_label, age_group, item_group, stimulus, angle, n) |>
+  mutate(item_group = str_to_upper(item_group),
+         age_group = as.character(age_group) |>
+           str_replace_all(c("\\[" = "", "\\]" = "", "\\)" = "", "," = "--"))) |>
+  pivot_wider(names_from = angle, values_from = n) |>
+  arrange(site_label, age_group, item_group, stimulus)
+
+# 3D items were not administered at 160 degrees, so those cells are empty
+options(knitr.kable.NA = "--")
+knitr::kable(
+  n_table,
+  col.names = c("Site", "Age group", "Item type", "Stimulus", "40°", "80°", "120°", "160°"),
+  booktabs = TRUE, linesep = "", align = c("l", "l", "l", "l", rep("r", 4))
+)
+```
+
+\clearpage
+## Prediction weighting: observed data versus a balanced grid
+
+Angle slopes in the main text are average marginal effects computed over the trials actually administered, rather than over a balanced grid of design cells. The two approaches answer different questions: averaging over observed trials estimates the angle effect for the average trial in this study, whereas a balanced grid estimates it for a hypothetical population with equal numbers of observations in every site by age by item-type cell.
+
+Cell sizes are substantially unbalanced (see Table S2): the largest cell contains more than 20 times as many trials as the smallest, and the sparsest cells are all 3D items, the two sparsest being 3D items administered to the youngest children. Because a balanced grid assigns every cell the same weight, it inflates the influence of the sparsest cell roughly eightfold, while reducing that of the largest cell to approximately a third. Given the steep age gradient in response time, this reweighting is sufficient to reverse the direction of the 2D--3D comparison, which is why observed-data averaging is used throughout.
+
+```{r}
+#| label: tbl-cell-weights
+#| tbl-cap: "Trials and children per design cell, with the weight each cell receives under observed-data averaging and under a balanced grid. Inflation is the ratio of the balanced-grid weight to the observed weight: values above 1 indicate cells whose influence a balanced grid increases, values below 1 cells whose influence it reduces. Trials at 20° (practice items) are excluded, as in the models."
+
+cell_weights <- mrot_lme_data |>
+  filter(angle != 20) |>
+  summarise(trials = n(), children = n_distinct(user_id),
+            .by = c(site_label, age_group, item_group)) |>
+  mutate(obs_wt = 100 * trials / sum(trials),
+         grid_wt = 100 / n(),
+         inflation = grid_wt / obs_wt) |>
+  arrange(site_label, age_group, item_group) |>
+  mutate(item_group = str_to_upper(item_group),
+         age_group = as.character(age_group) |>
+           str_replace_all(c("\\[" = "", "\\]" = "", "\\)" = "", "," = "--")),
+         across(c(obs_wt, grid_wt), \(x) sprintf("%.2f", x)),
+         inflation = sprintf("%.2f", inflation))
+
+knitr::kable(
+  cell_weights,
+  col.names = c("Site", "Age group", "Item type", "Trials", "Children",
+                "Observed wt. (%)", "Grid wt. (%)", "Inflation"),
+  booktabs = TRUE, linesep = "", align = c("l", "l", "l", rep("r", 5))
+) |>
+  kableExtra::kable_styling(latex_options = "HOLD_position", font_size = 9)
+```
+
+\clearpage
+## Raw RT by age and site
+
+```{r}
+#| label: fig-rt-angle_raw
+#| fig-cap: "Response time by angle within age groups, with raw per-run medians and 95% confidence intervals."
+#| fig-width: 8
+#| fig-height: 8
+#| fig-align: "center"
+
+# Add raw data underneath
+p_mrot_rt_angle_age_2 <- ggplot() +
+  # raw per-run medians
+  geom_point(
+    data = supp_rt_runs,
+    aes(x = angle, y = rt_med,
+        colour = stimulus),
+    size = 0.4,
+    alpha = 0.25,
+    position = position_jitter(width = 3, height = 0)
+  ) +
+  # summary CI + lines
+  geom_errorbar(
+    data = supp_rt_cells,
+    aes(x = angle, y = y, ymin = lwr, ymax = upr,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    width = 2,
+    linewidth = 0.35,
+    alpha = 0.6
+  ) +
+  geom_point(
+    data = supp_rt_cells,
+    aes(x = angle, y = y,
+        colour = stimulus,
+        group = interaction(item_group, stimulus)),
+    size = 1
+  ) +
+  geom_line(
+    data = supp_rt_cells,
+    aes(x = angle, y = y,
+        colour = stimulus, linetype = item_group,
+        group = interaction(item_group, stimulus)),
+    alpha = 0.85
+  ) +
+  facet_grid(site_label ~ age_group) +
+  .scale_colour_stimulus() +
+  labs(
+    x = "Rotation angle (°)",
+    y = "Reaction time (s)",
+    colour = "Stimulus",
+    linetype = "Item type"
+  ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
+  theme(legend.position = "bottom")
+
+p_mrot_rt_angle_age_2
+```
+
+\clearpage
+
+## Full 0--360° rotation functions
+
+The primary analyses model angular disparity as the shortest path to upright, capped at 180°, on the assumption that children rotate via the shorter available route. A 320° rotation is therefore treated as a 40° disparity. Figure S6 tests that assumption directly by plotting response time across the full 0--360° range.
+
+For the 2D stimuli, which were presented in both rotational directions, response times rise to a peak at 200° and then decline symmetrically, returning to approximately their 40° level by 320°. This is the pattern expected if performance depends on angular disparity rather than on absolute rotation, and it supports the shortest-path recoding.
+
+The 3D stimuli cannot provide the same test. The available Shepard and Metzler [-@shepard1971mental] figures were supplied at only three rotations, all greater than 180°, so 3D items appear only at 240°, 280° and 320° -- the descending limb of the function. The check is therefore restricted to the 2D stimuli.
+
+```{r}
+#| label: fig-full-angle
+#| fig-cap: "Response time by full rotation angle, before shortest-path recoding. Points are geometric means of participant-level mean log response times; ribbons are 95% confidence intervals. Correct responses only, excluding each run's first trial; adaptive and fixed-form runs are pooled. The y-axis is log-scaled, so a constant multiplicative difference appears as a constant vertical distance. 2D stimuli were presented in both rotational directions and show the expected inverted-U about 180°; the available 3D stimuli were supplied only at rotations greater than 180°, so only the descending limb is observed for them."
+#| fig-width: 7
+#| fig-height: 4.5
+
+full_angle_cell <- mrot_rt_trial |>
+  filter(correct == 1, trial_number != 1, is.finite(log_rt), !is.na(angle_full)) |>
+  summarise(m = mean(log_rt), .by = c(user_id, stimulus, angle_full)) |>
+  summarise(n_child = n(), mean_log = mean(m), se = sd(m) / sqrt(n()),
+            .by = c(stimulus, angle_full)) |>
+  mutate(rt = exp(mean_log), lo = exp(mean_log - 1.96 * se), hi = exp(mean_log + 1.96 * se))
+
+stim_labs <- c(duck = "2D (duck)", rabbit = "2D (rabbit)", shape = "3D")
+
+ggplot(full_angle_cell, aes(angle_full, rt, colour = stimulus,
+                            shape = stimulus, linetype = stimulus)) +
+  annotate("segment", x = 180, xend = 180, y = 1.9, yend = 9, colour = "grey75",
+           linewidth = .35, linetype = "22") +
+  annotate("text", x = 180, y = 9.6, label = "180\u00b0", size = 3, colour = "grey40") +
+  geom_ribbon(aes(ymin = lo, ymax = hi, fill = stimulus), alpha = .14, colour = NA) +
+  geom_line(linewidth = .65) +
+  geom_point(size = 2.1, fill = "white", stroke = .85) +
+  scale_y_log10(breaks = c(2, 3, 4, 6, 8), labels = \(x) paste0(x, "s"),
+                limits = c(1.85, 10)) +
+  scale_x_continuous(breaks = sort(unique(full_angle_cell$angle_full)),
+                     labels = \(x) paste0(x, "\u00b0")) +
+  .scale_colour_stimulus(labels = stim_labs) +
+  scale_fill_manual(values = stimulus_pal, labels = stim_labs) +
+  scale_shape_manual(values = c(21, 22, 24), labels = stim_labs) +
+  scale_linetype_manual(values = c("solid", "solid", "22"), labels = stim_labs) +
+  labs(x = "Full rotation angle", y = "Response time (log scale)",
+       colour = NULL, fill = NULL, shape = NULL, linetype = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(colour = "grey91", linewidth = .3),
+        axis.line = element_line(colour = "grey70", linewidth = .3))
+```

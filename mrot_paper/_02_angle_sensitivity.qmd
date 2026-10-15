@@ -105,11 +105,13 @@ pred_grid <- datagrid(angle_sc = unique,        # each angle
   left_join(mrot_lme_data |> distinct(angle, angle_sc)) |>
   left_join(angle_levels)
 
-# get model predictions at grid, average age by age_group
-grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group", "trial_number", "adaptive")
+# fitted values for the figure, averaged over the observed trials (as for the
+# slopes). trial_number and adaptive are not grouped over: the figure does not
+# distinguish them, so predictions are averaged across them.
+grid_preds <- c("angle", "item_group", "stimulus", "site_label", "age_group")
 
 avg_preds <- avg_predictions(full_mod,
-                             newdata = pred_grid,
+                             newdata = mrot_lme_data,
                              re.form = NA,
                              by = grid_preds) |>
   as_tibble() |>
