@@ -7,6 +7,19 @@ source(here("helper", "plot_settings.R"))
 # p-value formatter
 fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
 
+# SE formatter: two decimals is the convention throughout, but an SE below .005
+# rounds to zero and prints as a bare "0", which reads as an error. Show enough
+# decimals to reveal the first significant digit in that case. formatC rather
+# than signif(), which would render small values in scientific notation.
+# Estimate formatter: round() drops trailing zeros, so 0.199 prints as "0.2"
+# rather than "0.20". Keep two decimals fixed.
+fmt_est <- function(x) formatC(x, format = "f", digits = 2)
+
+fmt_se <- function(x) {
+  digits <- if_else(abs(x) >= .005 | x == 0, 2, pmax(3, ceiling(-log10(abs(x)))))
+  map2_chr(x, digits, \(v, d) formatC(v, format = "f", digits = d))
+}
+
 # convert multiplicative factor to percentage increase/decrease
 mult_to_pct <- \(x, more, less) {
   if_else(x > 1,

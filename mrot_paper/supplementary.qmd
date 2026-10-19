@@ -245,11 +245,14 @@ wrap_plots(pair_plots_a)
 #| tbl-cap: "Sample sizes at each cell (site by age group by item type and stimulus)."
 
 n_table <- supp_rt_cells |>
-  filter(angle != 20) |>
   select(site_label, age_group, item_group, stimulus, angle, n) |>
   mutate(item_group = str_to_upper(item_group),
          age_group = as.character(age_group) |>
            str_replace_all(c("\\[" = "", "\\]" = "", "\\)" = "", "," = "--"))) |>
+  # sort by angle before pivoting: pivot_wider orders new columns by first
+  # appearance, which is not numeric order, so the angle headers would otherwise
+  # be assigned to the wrong columns
+  arrange(angle) |>
   pivot_wider(names_from = angle, values_from = n) |>
   arrange(site_label, age_group, item_group, stimulus)
 
@@ -257,24 +260,23 @@ n_table <- supp_rt_cells |>
 options(knitr.kable.NA = "--")
 knitr::kable(
   n_table,
-  col.names = c("Site", "Age group", "Item type", "Stimulus", "40°", "80°", "120°", "160°"),
-  booktabs = TRUE, linesep = "", align = c("l", "l", "l", "l", rep("r", 4))
+  col.names = c("Site", "Age group", "Item type", "Stimulus", "20°", "40°", "80°", "120°", "160°"),
+  booktabs = TRUE, linesep = "", align = c("l", "l", "l", "l", rep("r", 5))
 )
 ```
 
 \clearpage
 ## Prediction weighting: observed data versus a balanced grid
 
-Angle slopes in the main text are average marginal effects computed over the trials actually administered, rather than over a balanced grid of design cells. The two approaches answer different questions: averaging over observed trials estimates the angle effect for the average trial in this study, whereas a balanced grid estimates it for a hypothetical population with equal numbers of observations in every site by age by item-type cell.
+Angle slopes in the main text are average marginal effects computed over the administered trials. They therefore estimate the angle effect for the average trial in this study. A balanced grid instead estimates the effect for a hypothetical population with equal numbers of observations in each site × age × item-type cell.
 
-Cell sizes are substantially unbalanced (see Table S2): the largest cell contains more than 20 times as many trials as the smallest, and the sparsest cells are all 3D items, the two sparsest being 3D items administered to the youngest children. Because a balanced grid assigns every cell the same weight, it inflates the influence of the sparsest cell roughly eightfold, while reducing that of the largest cell to approximately a third. Given the steep age gradient in response time, this reweighting is sufficient to reverse the direction of the 2D--3D comparison, which is why observed-data averaging is used throughout.
+Cell sizes are substantially unbalanced (Table S2): the largest contains more than 20 times as many trials as the smallest. The sparsest cells all contain 3D items, with the two sparsest comprising 3D items administered to the youngest children. Observed-data averaging weights each cell in proportion to its trial count, whereas a balanced grid weights all cells equally. Thus, compared with observed-data averaging, a balanced grid gives the sparsest cell approximately eight times as much weight and the largest approximately one third as much. Equal weighting also shifts the age composition toward younger children more strongly for 3D than for 2D items. Because the proportional angle slope increases with age, this shift affects the 3D estimate more than the 2D estimate. Table S3 reports the angle slopes under both weighting schemes.
 
 ```{r}
 #| label: tbl-cell-weights
-#| tbl-cap: "Trials and children per design cell, with the weight each cell receives under observed-data averaging and under a balanced grid. Inflation is the ratio of the balanced-grid weight to the observed weight: values above 1 indicate cells whose influence a balanced grid increases, values below 1 cells whose influence it reduces. Trials at 20° (practice items) are excluded, as in the models."
+#| tbl-cap: "Trials and children per cell, with the weight each cell receives under observed-data averaging and under a balanced grid. Inflation is the ratio of the balanced-grid weight to the observed weight: values above 1 indicate cells whose influence a balanced grid increases, values below 1 cells whose influence it reduces."
 
 cell_weights <- mrot_lme_data |>
-  filter(angle != 20) |>
   summarise(trials = n(), children = n_distinct(user_id),
             .by = c(site_label, age_group, item_group)) |>
   mutate(obs_wt = 100 * trials / sum(trials),
@@ -287,13 +289,113 @@ cell_weights <- mrot_lme_data |>
          across(c(obs_wt, grid_wt), \(x) sprintf("%.2f", x)),
          inflation = sprintf("%.2f", inflation))
 
-knitr::kable(
+cell_tbl <- knitr::kable(
   cell_weights,
   col.names = c("Site", "Age group", "Item type", "Trials", "Children",
                 "Observed wt. (%)", "Grid wt. (%)", "Inflation"),
   booktabs = TRUE, linesep = "", align = c("l", "l", "l", rep("r", 5))
-) |>
-  kableExtra::kable_styling(latex_options = "HOLD_position", font_size = 9)
+)
+
+# Shrink only for LaTeX: kable_styling emits HTML, which Quarto rejects when
+# rendering to docx. Without it the wide site labels wrap in the PDF.
+if (knitr::is_latex_output()) {
+  cell_tbl <- kableExtra::kable_styling(cell_tbl, latex_options = "HOLD_position",
+                                        font_size = 9)
+}
+cell_tbl
+```
+
+\clearpage
+## Angle slopes under each weighting scheme
+
+```{r}
+#| label: supp-weight-models
+#| cache: true
+
+# Refit the main-text angle model here: marginal effects over a balanced grid
+# require the fitted model object, which the summaries above do not carry.
+full_mod_supp <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
+                        trial_number * stimulus +
+                        adaptive * stimulus +
+                        (1 + angle_sc | user_id),
+                      data = mrot_lme_data, REML = FALSE,
+                      control = lmerControl(optimizer = "bobyqa"))
+
+# Balanced grid, built as in _02_angle_sensitivity.qmd
+stim_map_supp <- mrot_lme_data |> distinct(angle, angle_sc, item_group, stimulus)
+angle_levels_supp <- mrot_lme_data |> distinct(angle) |> arrange(angle)
+age_seq_supp <- seq(min(mrot_lme_data$age_sc), max(mrot_lme_data$age_sc), length.out = 100)
+
+pred_grid_supp <- datagrid(angle_sc = unique, stimulus = unique, site_label = unique,
+                           age_sc = age_seq_supp, trial_number = mean, adaptive = unique,
+                           newdata = mrot_lme_data) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc, adaptive, trial_number) |>
+  mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
+         age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
+         age_group = cut(age, breaks = age_breaks, include.lowest = FALSE, right = FALSE),
+         task = "mrot") |>
+  inner_join(stim_map_supp, by = c("angle_sc", "stimulus")) |>
+  left_join(mrot_lme_data |> distinct(angle, angle_sc), by = c("angle", "angle_sc"))
+
+slopes_by <- function(newdata, pred) {
+  slopes(full_mod_supp, newdata = newdata, re.form = NA,
+         variables = "angle_sc", by = pred) |>
+    as_tibble() |> rename(value = !!pred) |>
+    transmute(predictor = pred, value = as.character(value), estimate)
+}
+
+weight_compare <- map(c("task", "item_group", "site_label", "age_group"), \(pred) {
+  left_join(slopes_by(mrot_lme_data, pred) |> rename(observed = estimate),
+            slopes_by(pred_grid_supp, pred) |> rename(grid = estimate),
+            by = c("predictor", "value"))
+}) |> list_rbind() |> filter(!is.na(value), value != "NA")
+
+# Quantities quoted in the text, so they track the fitted model.
+at_mean_age <- mrot_lme_data |> mutate(age_sc = 0)
+
+item_slopes <- \(nd) slopes(full_mod_supp, newdata = nd, re.form = NA,
+                           variables = "angle_sc", by = "item_group") |> as_tibble()
+item_contrast <- \(nd) slopes(full_mod_supp, newdata = nd, re.form = NA,
+                             variables = "angle_sc", by = "item_group",
+                             hypothesis = "b2 - b1 = 0") |> as_tibble()
+
+obs_item   <- item_slopes(mrot_lme_data)
+grid_item  <- item_slopes(pred_grid_supp)
+fixed_item <- item_slopes(at_mean_age)
+
+sl  <- \(tbl, g) sprintf("%.3f", tbl$estimate[tbl$item_group == g])
+age_share_pct <- round(100 * abs(item_contrast(at_mean_age)$estimate) /
+                         abs(item_contrast(pred_grid_supp)$estimate))
+fixed_ctr <- item_contrast(at_mean_age)
+
+youngest <- levels(mrot_lme_data$age_group)[1]
+young_row <- weight_compare |> filter(predictor == "age_group", value == youngest)
+stopifnot(nrow(young_row) == 1)
+```
+
+The main text reports slopes averaged over the observed trials, a choice made after computing both sets of estimates. A balanced grid most strongly upweights cells containing 3D items administered to the youngest children, where the model's four-way interaction between angle, stimulus type, site, and age is least well identified; the sparsest cell contains 183 trials from 40 children. The balanced-grid 3D estimate therefore relies substantially on model-based predictions in cells with limited supporting data. Holding age at the sample mean rather than averaging over the observed age distribution accounts for approximately `r age_share_pct`% of the difference between schemes (2D = `r sl(fixed_item, "2d")`, 3D = `r sl(fixed_item, "3d")`; contrast = `r sprintf("%.3f", fixed_ctr$estimate)`, *p* `r fmt_p(fixed_ctr$p.value)`); the remainder reflects equal weighting of the sparse cells.
+
+
+
+```{r}
+#| label: tbl-weight-compare
+#| tbl-cap: "Marginal angle slopes from the same fitted model, averaged over the observed trials and over a balanced grid of cells. Slopes are on the log response time scale, so a value of 0.14 corresponds to approximately 15% longer response times per 40° of rotation. The final column is the grid estimate minus the observed estimate."
+
+weight_compare |>
+  mutate(
+    predictor = recode(predictor, task = "Overall", item_group = "Item type",
+                       site_label = "Site", age_group = "Age group"),
+    value = value |>
+      str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D",
+                        "\\[" = "", "\\]" = "", "\\)" = "", "," = "--")),
+    across(c(observed, grid), \(x) sprintf("%.3f", x)),
+    diff = sprintf("%+.3f", as.numeric(grid) - as.numeric(observed))
+  ) |>
+  select(predictor, value, observed, grid, diff) |>
+  knitr::kable(
+    col.names = c("", "Level", "Observed trials", "Balanced grid", "Difference"),
+    booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r")
+  )
 ```
 
 \clearpage
