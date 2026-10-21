@@ -270,7 +270,7 @@ knitr::kable(
 
 Angle slopes in the main text are average marginal effects computed over the administered trials. They therefore estimate the angle effect for the average trial in this study. A balanced grid instead estimates the effect for a hypothetical population with equal numbers of observations in each site × age × item-type cell.
 
-Cell sizes are substantially unbalanced (Table S2): the largest contains more than 20 times as many trials as the smallest. The sparsest cells all contain 3D items, with the two sparsest comprising 3D items administered to the youngest children. Observed-data averaging weights each cell in proportion to its trial count, whereas a balanced grid weights all cells equally. Thus, compared with observed-data averaging, a balanced grid gives the sparsest cell approximately eight times as much weight and the largest approximately one third as much. Equal weighting also shifts the age composition toward younger children more strongly for 3D than for 2D items. Because the proportional angle slope increases with age, this shift affects the 3D estimate more than the 2D estimate. Table S3 reports the angle slopes under both weighting schemes.
+Cell sizes are substantially unbalanced (Table S2): the largest contains more than 20 times as many trials as the smallest. The sparsest cells all contain 3D items, with the two sparsest comprising 3D items administered to the youngest children. Observed-data averaging weights each cell in proportion to its trial count, whereas a balanced grid weights all cells equally. Thus, compared with observed-data averaging, a balanced grid gives the sparsest cell approximately eight times as much weight and the largest approximately one third as much. Equal weighting also shifts the age composition toward younger children more strongly for 3D than for 2D items. Because the multiplicative angle slope increases with age, this shift affects the 3D estimate more than the 2D estimate. Table S3 reports the angle slopes under both weighting schemes.
 
 ```{r}
 #| label: tbl-cell-weights
@@ -397,6 +397,74 @@ weight_compare |>
     booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r")
   )
 ```
+
+\clearpage
+## Response time scale: multiplicative versus additive
+
+Response times are modelled on a log scale throughout, so the angle slopes reported in the main text describe a multiplicative cost — a constant percentage increase per 40° of rotation. The classic chronometric result [@shepard1971mental] is instead additive: a constant increment in milliseconds per degree, implying a constant rate of rotation. This section reports the angle effect under both specifications and the basis for modelling on the log scale.
+
+@tbl-scale-compare gives the angle slope from the model reported in the main text and from the same specification fitted to untransformed response times. The two agree on direction and, with one exception, on ordering: response time rises with angle overall, within each stimulus type and at every site, and the age gradient is monotonic under both. The exception is that uniandes-co-rural and western-ca exchange rank. The two stimulus types illustrate what the choice of scale does: their multiplicative costs are almost identical, whereas their additive costs differ by a factor of two. This is a single fact expressed two ways, since an equal multiplicative cost applied to a baseline that is 2.28 times higher yields twice the absolute cost. The additive estimates are also directly comparable with the chronometric literature, which reports rotation rate in milliseconds per degree.
+
+```{r}
+#| label: supp-scale-models
+#| cache: true
+
+# The same specification fitted to untransformed RT, for comparison.
+m_raw_supp <- lmer(rt_s ~ angle_sc * stimulus * site_label * age_sc +
+                     trial_number * stimulus + adaptive * stimulus +
+                     (1 + angle_sc | user_id),
+                   data = mrot_lme_data, REML = FALSE,
+                   control = lmerControl(optimizer = "bobyqa"))
+
+scale_rows <- function(mod, pred, scale) {
+  slopes(mod, newdata = mrot_lme_data, re.form = NA,
+         variables = "angle_sc", by = pred) |>
+    as_tibble() |> rename(value = !!pred) |>
+    transmute(predictor = pred, value = as.character(value), scale, estimate)
+}
+preds <- c("task", "item_group", "site_label", "age_group")
+scale_compare <- bind_rows(
+  map(preds, \(p) scale_rows(full_mod_supp, p, "log")) |> list_rbind(),
+  map(preds, \(p) scale_rows(m_raw_supp,    p, "raw")) |> list_rbind()
+) |>
+  mutate(shown = if_else(scale == "log",
+                         sprintf("%.1f%%", 100 * (exp(estimate) - 1)),
+                         sprintf("%.1f", 1000 * estimate / 40))) |>
+  select(-estimate) |>
+  pivot_wider(names_from = scale, values_from = shown)
+
+# Box-Cox needs an lm, so lambda is estimated from a fixed-effects simplification.
+bc <- MASS::boxcox(lm(rt_s ~ angle_sc * stimulus + site_label + age_sc,
+                      data = mrot_lme_data),
+                   lambda = seq(-0.4, 0.6, 0.01), plotit = FALSE)
+bc_lambda <- bc$x[which.max(bc$y)]
+bc_ci <- range(bc$x[bc$y > max(bc$y) - qchisq(.95, 1) / 2])
+
+# Likelihoods on different response scales are not comparable without the
+# Jacobian: f_Y(y) = f_Z(log y) / y, so subtract sum(log y) to express the
+# log-scale fit on the seconds scale.
+aic_log_on_raw <- -2 * (as.numeric(logLik(full_mod_supp)) - sum(mrot_lme_data$log_rt)) +
+  2 * attr(logLik(full_mod_supp), "df")
+aic_gap <- round(AIC(m_raw_supp) - aic_log_on_raw)
+```
+
+```{r}
+#| label: tbl-scale-compare
+#| tbl-cap: "Angle slope under the two response-time scales, from the same model specification. The log column gives the multiplicative cost (percentage increase in response time per 40° of rotation); the additive column gives the equivalent rate in milliseconds per degree, the unit used in the chronometric literature. Both are average marginal effects over the observed trials."
+
+scale_compare |>
+  mutate(predictor = recode(predictor, task = "Overall", item_group = "Item type",
+                            site_label = "Site", age_group = "Age group"),
+         value = value |>
+           str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D",
+                             "\\[" = "", "\\]" = "", "\\)" = "", "," = "--"))) |>
+  knitr::kable(col.names = c("", "Level", "Log scale (% per 40°)", "Additive scale (ms/degree)"),
+               booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r"))
+```
+
+Two formal comparisons support modelling on the log scale. A Box-Cox analysis, which estimates the power transformation best satisfying the model's distributional assumptions, returns $\lambda$ = `r sprintf("%.2f", bc_lambda)` (95% CI [`r sprintf("%.2f", bc_ci[1])`, `r sprintf("%.2f", bc_ci[2])`]); $\lambda$ = 0 corresponds to the log transform and $\lambda$ = 1 to no transformation, so the interval excludes the untransformed scale. Comparing the two fits by AIC requires a Jacobian correction, since likelihoods computed on different response scales are not otherwise comparable; with that correction the log-scale model is favoured by `r format(aic_gap, big.mark = ",")` AIC units.
+
+These comparisons concern the adequacy of the statistical model rather than the psychological mechanism. They indicate that the log scale is the appropriate one on which to fit and to draw inferences from these data, not that mental rotation proceeds multiplicatively. The two specifications agree on the finding the main text reports, namely that response time increases monotonically with angular disparity; the strictly linear chronometric function is not adjudicated here. Two caveats apply: $\lambda$ was estimated from a fixed-effects simplification of the model, as the Box-Cox routine does not accommodate random effects, and a generalised linear mixed model with a log link would be an alternative to transformation that is not pursued here.
 
 \clearpage
 ## Raw RT by age and site
