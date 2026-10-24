@@ -249,12 +249,13 @@ The rest are reported by the reviewer and I have not confirmed them.
 | Rasch configural | 52 | −21635.7 | 43375.4 | 43651.8 |
 
 - A nested model cannot have a higher likelihood than the model that contains it. The 2PL configural model is worse than both the 2PL metric model and the Rasch configural model it nests. This points to non-convergence or to priors in the objective.
-- The priors do change the likelihood. I refit the scalar model without priors: logLik −21635.9 against −21675.7 with them, a difference of about 40. Penalised likelihoods are therefore not comparable across levels of invariance, and the BIC comparison in Table 3 is not reliable as reported.
-- The configural and metric rows have 96 and 60 parameters (12 classes × 2 × 4 groups; 12 + 48), so they do not free the group means and variances, whereas the scalar row (30) does. Check that the three rows are identified the same way.
+- **Cause: the priors. (checked, `checks/irt_priors_configural.R`.)** I rebuilt the configural model with every group's mean fixed at 0 and variance at 1 and the paper's priors, and got logLik −21642.58, the same as Table 3. Without the priors the same model reaches −21453 (it had not fully converged after 6,000 EM cycles, so this is a lower bound). The 48 slope and 48 intercept priors in sparse cells cost about 190 log-likelihood points, against about 40 for the scalar model. So the penalised likelihoods are not comparable across invariance levels.
+- **Without priors, the headline weakens but the ordering by BIC survives.** Scalar logLik −21635.9 against configural −21453 gives LRT χ²(66) = 365, p < .001, so exact scalar invariance is rejected. BIC is still lower for scalar (43491 against 43609), but by 117 points, not 416. AIC favours configural (43099 against 43332).
+- The configural and metric rows have 96 and 60 parameters (group means and variances fixed), whereas the scalar row (30) frees them. That is a standard identification choice, but say so in the Table 3 note.
 - AIC prefers **metric** (43278) over scalar (43411). Results l.220 says scalar "provided the best fit (BIC = …, AIC = …)", but its AIC is not the lowest. Say so, or justify choosing BIC over AIC.
 - **ΔBIC:** 43987.39 − 43570.82 = 416.57. The Abstract and text give 416 (truncated) and Table 3 gives 417 (rounded). Use one rounded value, and fix the hard-coded `delta_bic = "416"` in the abstract guard (E1).
 - Fix: refit with convergence checks (increase `NCYCLES`, report the convergence flag), and report either unpenalised likelihoods or a prior-sensitivity row. State that guessing is fixed, so the "2PL" and "Rasch" models are really 3PL and 1PL with c = .5.
-- Rasch reliabilities in `models/mrot_rxx.rds` are 0.31–0.34 per dataset against 0.73–0.89 for the 2PL. They are what the paper reports. The gap is large for the same items and sample, so confirm how `rxx` is computed for the Rasch model.
+- **Reliability: blocked.** `models/mrot_rxx.rds` gives 0.31–0.34 per dataset for the Rasch model against 0.73–0.89 for the 2PL. `marginal_rxx` comes from `rlevante`, which is not installed here. With `mirt::marginal_rxx` on my rebuilt scalar models I get 0.65–0.84 for the 2PL (0.04–0.08 below the paper) and 0.32–0.69 for a Rasch model with slopes fixed at 1. The paper's Rasch value is nearly constant across sites even though the fitted group variances differ about fivefold, and reliability should track them. My Rasch model also has 18 parameters against the paper's 19 and a worse fit (−21972 against −21793), so the paper's Rasch specification differs from mine (perhaps one shared free slope). The authors need to check `rlevante::marginal_rxx` and the Rasch specification (`checks/irt_reliability_rasch.R`).
 - I already tested partial invariance and prior-free DIF (A3): under the two-factor model only 2D duck 40° and 3D shape 40° flag. That answers the reviewer's request to free the 3D items, and it can go into the paper.
 
 ### F2. The adaptive-format check contradicts Table 4. **(checked, scratch refit of `_02` `full_mod`)**
@@ -273,7 +274,7 @@ The rest are reported by the reviewer and I have not confirmed them.
   |---|---|---|---|---|---|---|---|---|---|
   | log RT | 0.75 | 0.85 | 0.99 | 1.01 | 1.13 | 1.25 | 1.02 | 0.96 | 0.78 |
 
-  The supplement itself says the peak is at 200°, not 180°. 200° (recoded 160°) is about 0.12 log units slower than 160°, and 320° (recoded 40°) is about 0.08 faster than 40°. The reviewer also says rabbit 80° is slower than 120°. I did not check that.
+  The supplement itself says the peak is at 200°, not 180°. 200° (recoded 160°) is about 0.12 log units slower than 160°, and 320° (recoded 40°) is about 0.08 faster than 40°. The reviewer also says rabbit 80° is slower than 120°. **That is not supported in the pooled data:** rabbit mean log RT is 1.00 at 80° and 1.05 at 120° (difference 0.08, t = 5.4). Duck 80° and 120° are close (0.95 and 0.98).
 - Fix: soften "supports shortest-path recoding" to "is broadly consistent with", say which asymmetries remain, and either model the offset or test sensitivity to dropping the 200° and 160° cells. Combine this with the quadratic or factor-coded angle comparison suggested in A6.
 
 ### F4. Further wording and analysis points on the angle effect and sex
@@ -281,7 +282,7 @@ The rest are reported by the reviewer and I have not confirmed them.
 - **Table 4 headline (extends A7):** it still leads with the full-range 2D vs 3D contrast (Δ = 0.00, p = .906), which the text itself calls an artefact of unequal angle ranges. Lead with the common-angle contrast, and put the 3D weighting sensitivity in the main text. The 3D slope falls from 0.155 to 0.115 under balanced weighting (Table S3), and the observed-trials scheme was chosen after seeing both. My follow-up shows the 3D − 2D difference comes from mpieva-de only.
 - **mpieva-de explanation (extends C2):** the Discussion argues the steeper slope follows from slower baselines. A log-RT model already expresses slopes proportionally, so baseline scaling is removed. The steeper *proportional* slope at mpieva-de still needs another explanation, such as format, device timing or age mix. The argument only works for additive slopes.
 - **Age × slope and Fig 1 (extends A5, A6):** report slopes by site × age group. Fig 1 shows near-flat 2D functions for 5–8 year-olds at Bogotá and rural, which undercuts "replicates robustly across all four sites" for the youngest children. My guessing sensitivity (`extra_analyses.qmd`) shows the age gradient shrinks but persists when only above-chance runs are kept. The log scale also inflates proportional slopes when intercepts are lower. Say both.
-- **Sex (extends A1, A2):** "holds within stimulus type" is overstated, because the 3D contrast has p = .103. State the boys' RT advantage (about 7.4% faster, p = .004) in the Abstract and Lay Summary. The sex subsample's pooled angle slope is 0.13 against 0.16 overall, because it over-represents Colombia. Add sex × site tests and an equivalence bound.
+- **Sex (extends A1, A2):** "holds within stimulus type" is overstated, because the 3D contrast has p = .103 under the balanced grid (under observed-trial averaging it is −5.7%, p = .0499). State the boys' RT advantage (about 7.4% faster, p = .004) in the Abstract and Lay Summary. The sex subsample's pooled angle slope is 0.13 against 0.16 overall, because it over-represents Colombia. Add sex × site tests and an equivalence bound.
 
 ### F5. Reporting errors
 
@@ -297,7 +298,7 @@ The rest are reported by the reviewer and I have not confirmed them.
 |---|---|
 | Fig S5 (`supplementary.qmd` l.518) | The y-axis says "Reaction time (s)" but shows log seconds (−2 to 3). Relabel it and use "response" rather than "reaction" throughout (also `_03` l.170, in a commented-out block). |
 | Fig 1 caption | "Points" is used for both group means and individual observations. Name each. |
-| Fig S2 caption (l.122) | The source has "(θ)", so the missing symbol is probably a font or render problem. Check the PDF. The claim that higher angles are "more discriminating" is stated for all items. The reviewer says 3D 80° vs 120° does not follow it. Check against the item parameters. |
+| Fig S2 caption (l.122) | The source has "(θ)", so the missing symbol is probably a font or render problem. Check the PDF. **(checked)** In the scalar model, discrimination rises with angle for 3D (a = 1.18, 1.66, 1.83 at 40°, 80°, 120°), so the reviewer's 80° vs 120° point does not hold. But "3D items are … less discriminating" holds only at 40° (3D 1.18 against 1.60 duck, 1.46 rabbit). At 80° and 120° the 3D values (1.66, 1.83) are within the 2D range (1.44–1.62, 1.68–1.97). Reword. |
 | Table S1 (`supplementary.qmd` l.248–257, l.285–287) | `age_group` is converted with `as.character()` before `arrange()`, so "11–14" sorts before "5–8". Keep it as a factor. |
 | Age labels | Text says "5–7 / 11–13", tables use `[5,8)`, and the supplement says "5–8". Use one scheme. The supplement's `include.lowest = TRUE` also differs from `_00` (see E4). |
 | Footnote on sex (l.91) | The footnote marker renders as "sex.147" (reviewer's report). Check the rendered footnote numbering. |
@@ -305,3 +306,29 @@ The rest are reported by the reviewer and I have not confirmed them.
 ### Cross-reference: reviewer points already covered in sections A–E
 
 Sex missing from Abstract/Discussion (A1); a null sex result as validity evidence (A2); no unidimensionality test (A3); BIC-only invariance (A3); "overlapping items" undefined (A3); 2D vs 3D not posed as an RQ (A7); no accuracy analysis, guessing and the age direction (A5, A6); CAT robustness (B5); "common/universal" (A9); Methods/Results model mismatches (B1); typos at l.10, l.12, l.83, l.150, l.153 and l.352 (D). I have run follow-up analyses for the first four, and for the 2D/3D and accuracy points; see `extra_analyses.qmd`.
+
+
+---
+
+## G. Remaining analytic checks (run after the second review)
+
+Scripts are in `checks/` (run from the repo root, e.g. `Rscript --vanilla mrot_paper/checks/sex_rt_observed.R`). They share `checks/prep.R` and reuse `helper/irt_checks.R`.
+
+**Resolved**
+
+- **Exemplar generalisation (A4). (`exemplar_random_effects.R`)** Adding random intercepts for the 68 concrete exemplars improves fit (χ²(2) = 363, p < .001; SD = 0.07 log units) and leaves the angle slopes unchanged: 2D 0.156 (SE 0.0046 → 0.0112), 3D 0.148 (SE 0.0076 → 0.0166), both p < 10⁻¹⁸. Inference does generalise over exemplars. Report the SEs from this model.
+- **Convergence (B4). (`rt_site_age_convergence.R`)** The full angle model converged with no warnings and is not singular. Say so.
+- **Age is not linear (B6). (`theta_sd_age_sex.R`, `theta_age_sex_sites.R`)** A quadratic term improves θ (χ²(1) = 12.0, p < .001). The slope falls from about 0.55 θ/year at age 5 to 0.08 at 13 (mean 0.29). Adding age² and age²×angle to the RT model also improves fit (χ²(2) = 9.8, p = .008). The "steady increase" and "0.33 per year" statements need qualifying, or a spline should be used.
+- **θ SD behind "0.22 SD/year". (checked)** The pooled SD of θ across runs is 1.48, which does give 0.33 / 1.48 ≈ 0.22. That SD includes between-site differences (site means −1.24 to +0.14), so state it, or use a within-site SD.
+- **Sex on θ (A2). (`theta_sd_age_sex.R`, `theta_age_sex_sites.R`)** The female − male difference is −0.003 θ (95% CI ±0.16), or −0.002 SD (±0.11 SD). Differences of 0.11 SD or more are excluded, including Lauer et al.'s g ≈ 0.20. Per-site CIs are wider (±0.16 to ±0.28 SD) and the sex × site test gives p = .33.
+- **Sex on RT, observed-trial averaging (B2). (`sex_rt_observed.R`)** Boys are 7.4% faster (−0.077 log, 95% CI −0.129 to −0.024, p = .004), the same as the paper's grid-based figure, so the weighting does not matter overall. By stimulus: 2D −8.0% (p = .002), 3D −5.7% (p = .0499). By site all four are negative (−4% to −13%). Sex × site: χ²(3) = 1.6, p = .67. Sex difference in angle slope: −0.002 (SE 0.009, p = .85), with none significant by site. The faster boys are therefore a consistent, if small, effect rather than a site artefact.
+- **Site × age-group slopes (A5, A6). (`rt_site_age_convergence.R`)** Slopes increase with age at every site for both stimulus types. The youngest 3D slopes are not distinguishable from zero in Colombia (Bogotá 0.016, p = .61; rural 0.030, p = .51) and are small at western-ca (0.074). 2D slopes at 5–8 are significant everywhere (0.07–0.13). So "replicates across all four sites" needs this qualification for 5–7 year-olds on 3D items, and the age gradient is steepest at Bogotá (2D 0.07 → 0.23, against 0.07 → 0.17 at rural and 0.13 → 0.18 at mpieva-de).
+- **Adaptive × angle (F2), prior-free invariance and DIF (F1, A3):** done; see F1, F2 and the follow-up section above.
+
+**Blocked or needing the authors**
+
+- **Reliability values (F1).** Needs `rlevante::marginal_rxx` and the exact Rasch specification.
+- **Citation checks (C4, F5).** Need the source papers: `hetland2000learning`, `jansen2013mental`, Lauer et al.'s "30,000 children", `nunez1998mental` n = 151, and the age range of Frick et al. (2013).
+- **Metric-invariance row of Table 3.** My helper does not fit "slopes equal, intercepts free" models, so I could not recheck that row. Reproducing it needs a small extension, and it matters only if the authors keep the full config → metric → scalar sequence.
+- **Rendered-output items.** The "sex.147" footnote marker, the missing θ in the Fig S2 caption, and Table S1 ordering need the PDF or HTML render, which I have not built (renv packages are missing here).
+- **Decisions for the authors.** Whether to report unpenalised or penalised IRT likelihoods; whether to treat 3D items as partially invariant; and how to frame the sex RT difference (A1).

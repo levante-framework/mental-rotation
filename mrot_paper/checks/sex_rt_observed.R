@@ -1,0 +1,21 @@
+source(here::here("mrot_paper/checks/prep.R"))
+suppressMessages({library(lme4); library(marginaleffects)})
+d <- inner_join(mrot_lme_data, sex_data_cleaned, by="user_id") |> filter(!is.na(sex)) |> mutate(sex=factor(sex)); contrasts(d$sex) <- contr.sum(levels(d$sex))
+cat("n trials", nrow(d), " users", n_distinct(d$user_id), "\n"); print(d |> distinct(user_id, site_label) |> count(site_label))
+f <- log_rt ~ angle_sc * stimulus * site_label * age_sc * sex + (1 + angle_sc | user_id)
+sm <- lmer(f, d, REML=FALSE, control=lmerControl(optimizer="bobyqa"))
+cat("== observed-data sex contrasts (avg over observed trials) ==\n")
+for (by in list("task", "item_group", "site_label")) {
+  if (is.null(d$task)) d$task <- "mrot"
+  r <- avg_comparisons(sm, newdata=d, re.form=NA, variables="sex", by=by) |> as_tibble()
+  print(r |> mutate(pct=round(100*(exp(estimate)-1),1)) |> select(any_of(c(by,"contrast")), estimate, std.error, p.value, conf.low, conf.high, pct))
+}
+cat("== sex slope diff by site (observed) ==\n")
+print(slopes(sm, newdata=d, re.form=NA, variables="angle_sc", by=c("sex")) |> as_tibble() |> select(sex, estimate, std.error))
+print(slopes(sm, newdata=d, re.form=NA, variables="angle_sc", by=c("sex"), hypothesis=difference~pairwise) |> as_tibble())
+print(slopes(sm, newdata=d, re.form=NA, variables="angle_sc", by=c("sex","site_label"), hypothesis=difference~pairwise|site_label) |> as_tibble() |> select(site_label, hypothesis, estimate, std.error, p.value))
+cat("== LRT: sex x site (RT level) ==\n")
+fa <- log_rt ~ angle_sc * stimulus * site_label * age_sc + sex + (1 + angle_sc | user_id)
+fb <- log_rt ~ angle_sc * stimulus * site_label * age_sc + sex*site_label + (1 + angle_sc | user_id)
+ma <- lmer(fa, d, REML=FALSE, control=lmerControl(optimizer="bobyqa")); mb <- lmer(fb, d, REML=FALSE, control=lmerControl(optimizer="bobyqa"))
+print(anova(ma, mb))

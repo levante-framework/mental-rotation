@@ -1,0 +1,17 @@
+source(here::here("mrot_paper/checks/prep.R"))
+suppressMessages({library(lme4); library(marginaleffects)})
+full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc + trial_number * stimulus + adaptive * stimulus +
+                   (1 + angle_sc | user_id), data = mrot_lme_data, REML = FALSE, control = lmerControl(optimizer = "bobyqa"))
+cat("\n== convergence ==\n"); cat("singular:", isSingular(full_mod), " messages:", length(full_mod@optinfo$conv$lme4$messages), "\n"); print(full_mod@optinfo$conv)
+cat("\n== site x age-group slopes (observed trials) ==\n")
+d <- mrot_lme_data |> mutate(age_group = cut(age, c(5,8,11,14), right=FALSE))
+print(table(d$age_group, useNA="ifany"))
+sl <- slopes(full_mod, newdata = d, re.form = NA, variables = "angle_sc", by = c("site_label","item_group","age_group"))
+print(as_tibble(sl) |> transmute(site_label, item_group, age_group, est=round(estimate,3), se=round(std.error,3), p=signif(p.value,2)), n=50)
+cat("\n== age nonlinearity in RT slope: add age^2 terms ==\n")
+mq <- update(full_mod, . ~ . + I(age_sc^2) + angle_sc:I(age_sc^2))
+print(anova(full_mod, mq))
+cat("\n== rabbit 80 vs 120 (raw participant-level) ==\n")
+print(mrot_lme_data |> filter(item_group=="2d", stimulus=="rabbit" | TRUE) |> summarise(m=round(mean(log_rt),3), n=n(), .by=c(stimulus, angle)) |> arrange(stimulus, angle), n=30)
+rb <- mrot_lme_data |> filter(stimulus=="rabbit", angle %in% c(80,120))
+if (nrow(rb)) { mm <- lmer(log_rt ~ factor(angle) + (1|user_id), rb); print(round(summary(mm)$coefficients,3)) }

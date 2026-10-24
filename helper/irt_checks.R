@@ -28,8 +28,12 @@ load_mrot_irt_data <- function(path = "models/mrot/multigroup_dataset/overlap_it
 #   free_classes  item classes whose slope and intercept are free across groups (still equal
 #                 across the instances within a group); all other classes are equal across groups
 #   priors        apply the paper's priors (FALSE gives unpenalised likelihoods for LR tests)
+#   rasch         fix all slopes at 1 (1PL with guessing fixed at .5), as in the paper's Rasch models
+#   fix_groups    fix every group's mean at 0 and variance at 1 (one-factor only), as in the paper's
+#                 configural and metric models; needed to identify a model with all item parameters free
 fit_mrot <- function(dat, spec = "uni", free_classes = character(), quadpts = 61,
-                     priors = TRUE, ncycles = 3000, tol = 1e-6, verbose = FALSE) {
+                     priors = TRUE, ncycles = 3000, tol = 1e-6, verbose = FALSE,
+                     fix_groups = FALSE, rasch = FALSE) {
   is3d <- grepl("_3d_", dat$items)
   model <- switch(spec,
     uni = 1,
@@ -49,6 +53,15 @@ fit_mrot <- function(dat, spec = "uni", free_classes = character(), quadpts = 61
   pars$nconst <- "none"
   pars$value[pars$name == "g"] <- 0.5
   pars$est[pars$name %in% c("g", "u")] <- FALSE
+  if (rasch) {
+    pars$value[pars$name == "a1"] <- 1
+    pars$est[pars$name == "a1"] <- FALSE
+  }
+  if (fix_groups) {
+    pars$value[pars$name == "MEAN_1"] <- 0
+    pars$value[pars$name == "COV_11"] <- 1
+    pars$est[pars$name %in% c("MEAN_1", "COV_11")] <- FALSE
+  }
 
   item_class <- sub("-[0-9]+$", "", pars$item)
   is_item_par <- pars$class == "dich" & pars$name %in% c("a1", "a2", "d")
