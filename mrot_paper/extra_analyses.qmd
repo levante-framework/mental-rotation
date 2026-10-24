@@ -1,0 +1,391 @@
+---
+title: "Additional analyses: 2D vs 3D, accuracy, dimensionality and DIF"
+subtitle: "Mental rotation in children aged 5--13: a cross-site comparison in three countries"
+format:
+  html:
+    toc: true
+    embed-resources: true
+execute:
+  echo: false
+  message: false
+  warning: false
+  cache: false
+---
+
+These analyses follow the review in `suggested_edits.md` (items A3, A5, A7, B5). They use the same data,
+exclusions and main model as the paper (`_00_data_prep.qmd`, `_02_angle_sensitivity.qmd`). The IRT checks
+(sections 3 and 4) are fit in `../03_irt_checks.qmd` and read from `models/`.
+
+```{r libraries}
+library(tidyverse)
+library(glue)
+library(here)
+library(lme4)
+library(performance)
+library(marginaleffects)
+library(knitr)
+library(patchwork)
+```
+
+{{< include _00_data_prep.qmd >}}
+
+{{< include _02_angle_sensitivity.qmd >}}
+
+```{r helpers}
+fmt3 <- \(x) formatC(x, format = "f", digits = 3)
+fmt2 <- \(x) formatC(x, format = "f", digits = 2)
+pct <- \(x) paste0(formatC(100 * x, format = "f", digits = 1), "%")
+ci_str <- \(lo, hi, f = fmt3) glue("[{f(lo)}, {f(hi)}]")
+site_order <- c("mpieva-de", "uniandes-co-bogota", "uniandes-co-rural", "western-ca")
+```
+
+# 1. Does the angle effect differ between 2D and 3D stimuli?
+
+The main model pools stimulus types when reporting the overall angle slope, and `_02` compares 2D and 3D
+slopes only across all sites together. Here the comparison is made within each site. As in the main text,
+the contrast is restricted to the angles both types were administered at (40°, 80°, 120°), because 3D items
+were never given at 160° and the angle function is not linear. The model is the main model fitted to those
+angles, with stimulus type (2D/3D) in place of the three-level stimulus factor so that the 2D/3D slope
+difference is a single parameter; slopes are average marginal effects over the observed trials.
+
+```{r dim-models}
+shared_data <- mrot_lme_data |>
+  filter(angle %in% shared_angles) |>
+  mutate(angle_sc = (angle - mean(angle)) / deg)
+contrasts(shared_data$site_label) <- contr.sum(levels(shared_data$site_label))
+contrasts(shared_data$item_group) <- contr.sum(levels(shared_data$item_group))
+
+ctl <- lmerControl(optimizer = "bobyqa")
+m_ig <- lmer(log_rt ~ angle_sc * item_group * site_label * age_sc +
+               trial_number * item_group + adaptive * item_group +
+               (1 + angle_sc | user_id),
+             data = shared_data, REML = FALSE, control = ctl)
+
+# likelihood-ratio tests of the 3D-2D slope difference
+m_no_site <- update(m_ig, . ~ . - angle_sc:item_group:site_label - angle_sc:item_group:site_label:age_sc)
+m_no_age  <- update(m_ig, . ~ . - angle_sc:item_group:age_sc - angle_sc:item_group:site_label:age_sc)
+m_no_diff <- update(m_ig, . ~ . - angle_sc:item_group - angle_sc:item_group:site_label -
+                      angle_sc:item_group:age_sc - angle_sc:item_group:site_label:age_sc)
+lrt <- \(small) { a <- anova(small, m_ig); tibble(chisq = a$Chisq[2], df = a$Df[2], p = a$`Pr(>Chisq)`[2]) }
+lrt_site <- lrt(m_no_site)
+lrt_age  <- lrt(m_no_age)
+lrt_any  <- lrt(m_no_diff)
+
+slopes_ig <- slopes(m_ig, newdata = shared_data, re.form = NA, variables = "angle_sc",
+                    by = c("item_group", "site_label")) |> as_tibble()
+diff_site <- slopes(m_ig, newdata = shared_data, re.form = NA, variables = "angle_sc",
+                    by = c("item_group", "site_label"), hypothesis = ~ pairwise | site_label) |> as_tibble()
+diff_all <- slopes(m_ig, newdata = shared_data, re.form = NA, variables = "angle_sc",
+                   by = "item_group", hypothesis = ~ pairwise) |> as_tibble()
+
+shared_data_age <- shared_data |> mutate(age_group = cut(age, age_breaks, right = FALSE))
+diff_age <- slopes(m_ig, newdata = shared_data_age, re.form = NA, variables = "angle_sc",
+                   by = c("item_group", "age_group"), hypothesis = ~ pairwise | age_group) |> as_tibble()
+
+# slopes over each type's own range, from the main model (for comparison)
+slopes_full <- slopes(full_mod, newdata = mrot_lme_data, re.form = NA, variables = "angle_sc",
+                      by = c("item_group", "site_label")) |> as_tibble()
+```
+
+```{r}
+#| label: tbl-2d3d
+#| tbl-cap: "**Angle slope (log RT per 40°) by stimulus type and site.** Common angles: 40°, 80° and 120° only, from the model described above. Own range: each type over the angles it received (2D up to 160°, 3D up to 120°), from the main model. The last column is the 3D minus 2D difference on the common angles."
+
+tab <- slopes_ig |>
+  transmute(site_label, item_group, common = glue("{fmt3(estimate)} {ci_str(conf.low, conf.high)}")) |>
+  pivot_wider(names_from = item_group, values_from = common, names_prefix = "common_")
+tab_full <- slopes_full |>
+  transmute(site_label, item_group, own = fmt3(estimate)) |>
+  pivot_wider(names_from = item_group, values_from = own, names_prefix = "own_")
+tab_diff <- diff_site |>
+  transmute(site_label, diff = glue("{fmt3(estimate)} {ci_str(conf.low, conf.high)}, p {map_chr(p.value, fmt_p)}"))
+overall <-slopes(m_ig, newdata = shared_data, re.form = NA, variables = "angle_sc", by = "item_group") |> as_tibble()
+overall_row <- tibble(site_label = "All sites",
+                      common_2d = glue("{fmt3(overall$estimate[overall$item_group == '2d'])} {ci_str(overall$conf.low[overall$item_group == '2d'], overall$conf.high[overall$item_group == '2d'])}"),
+                      common_3d = glue("{fmt3(overall$estimate[overall$item_group == '3d'])} {ci_str(overall$conf.low[overall$item_group == '3d'], overall$conf.high[overall$item_group == '3d'])}"),
+                      own_2d = fmt3(slope("2d")$estimate), own_3d = fmt3(slope("3d")$estimate),
+                      diff = glue("{fmt3(diff_all$estimate)} {ci_str(diff_all$conf.low, diff_all$conf.high)}, p {fmt_p(diff_all$p.value)}"))
+tab |>
+  left_join(tab_full, by = "site_label") |>
+  left_join(tab_diff, by = "site_label") |>
+  mutate(site_label = factor(site_label, levels = site_order)) |> arrange(site_label) |>
+  mutate(site_label = as.character(site_label)) |>
+  bind_rows(overall_row) |>
+  select(Site = site_label, `2D (common)` = common_2d, `3D (common)` = common_3d,
+         `2D (own range)` = own_2d, `3D (own range)` = own_3d, `3D − 2D (common)` = diff) |>
+  kable(booktabs = TRUE, align = c("l", "r", "r", "r", "r", "r"))
+```
+
+```{r}
+#| label: fig-2d3d
+#| fig-cap: "**Angle slopes for 2D and 3D stimuli at each site** (common angles 40--120°; points are average marginal effects, bars 95% CIs)."
+#| fig-width: 6
+#| fig-height: 3.2
+
+slopes_ig |>
+  mutate(site_label = factor(site_label, levels = rev(site_order)),
+         item_group = str_to_upper(item_group)) |>
+  ggplot(aes(estimate, site_label, colour = item_group)) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high), position = position_dodge(width = 0.5)) +
+  scale_colour_brewer(palette = "Set2") +
+  labs(x = "Angle slope (log RT per 40°)", y = NULL, colour = "Stimulus type") +
+  theme_bw() + theme(legend.position = "bottom", panel.grid.minor = element_blank())
+```
+
+On the common angles the 3D slope is steeper than the 2D slope overall
+(`{r} fmt3(diff_all$estimate)`, 95% CI `{r} ci_str(diff_all$conf.low, diff_all$conf.high)`,
+*p* `{r} fmt_p(diff_all$p.value)`), but this difference is not uniform across sites
+(likelihood-ratio test of the angle × stimulus type × site terms: χ²(`{r} lrt_site$df`) = `{r} fmt2(lrt_site$chisq)`,
+*p* `{r} fmt_p(lrt_site$p)`). It is large at mpieva-de
+(`{r} fmt3(diff_site$estimate[diff_site$site_label == "mpieva-de"])`, *p* `{r} fmt_p(diff_site$p.value[diff_site$site_label == "mpieva-de"])`)
+and indistinguishable from zero at the other three sites (@tbl-2d3d). Whether the 2D/3D slope difference
+changes with age is not clear (angle × stimulus type × age terms: χ²(`{r} lrt_age$df`) = `{r} fmt2(lrt_age$chisq)`,
+*p* `{r} fmt_p(lrt_age$p)`; the contrast is `{r} fmt3(diff_age$estimate[1])`, `{r} fmt3(diff_age$estimate[2])` and `{r} fmt3(diff_age$estimate[3])` in the three age groups).
+Both stimulus types show a clear positive angle slope at every site, so the finding that
+response times increase with angle holds for each type separately.
+
+# 2. Accuracy and the angle effect
+
+The paper analyses response time on correct trials only. Accuracy as a function of angle is the other
+standard dependent variable in mental rotation research and is needed to interpret the response-time results.
+
+```{r acc-data}
+acc <- mrot_rt_trial |>
+  mutate(item_group = factor(item_group), site_label = factor(site_label),
+         adaptive = factor(adaptive),
+         angle_sc = (angle - mean(angle)) / deg, age_sc = (age - mean(age)) / yrs,
+         correct = as.integer(correct), task = "mrot",
+         age_group = cut(age, breaks = age_breaks, right = FALSE))
+contrasts(acc$site_label) <- contr.sum(levels(acc$site_label))
+contrasts(acc$item_group) <- contr.sum(levels(acc$item_group))
+```
+
+```{r}
+#| label: tbl-acc-desc
+#| tbl-cap: "**Proportion correct by stimulus type, angle and age group** (all valid trials; chance = .50)."
+
+acc |>
+  summarise(p = mean(correct), n = n(), .by = c(item_group, angle, age_group)) |>
+  mutate(item_group = str_to_upper(item_group), p = fmt2(p)) |>
+  select(-n) |>
+  pivot_wider(names_from = age_group, values_from = p, names_sort = TRUE) |>
+  arrange(item_group, angle) |>
+  rename(`Stimulus type` = item_group, `Angle (°)` = angle) |>
+  kable(booktabs = TRUE)
+```
+
+The accuracy model is a logistic mixed model with the same fixed effects as the response-time model
+(angle × stimulus type × site × age, plus trial number and administration format × stimulus type) and
+participant-level random intercepts and angle slopes. It was fit with `nAGQ = 0` (the default adaptive
+quadrature did not finish in reasonable time); slopes are average marginal effects on the probability scale,
+i.e. the change in proportion correct per 40° of rotation.
+
+```{r acc-model}
+acc_mod <- glmer(correct ~ angle_sc * item_group * site_label * age_sc + trial_number +
+                   adaptive * item_group + (1 + angle_sc | user_id),
+                 data = acc, family = binomial, nAGQ = 0,
+                 control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+
+acc_slope <- \(by, nd = acc, mod = acc_mod) {
+  slopes(mod, newdata = nd, re.form = NA, variables = "angle_sc", by = by) |> as_tibble()
+}
+acc_by_type <- acc_slope("item_group")
+acc_by_site <- acc_slope(c("item_group", "site_label"))
+acc_by_age  <- acc_slope(c("item_group", "age_group"))
+acc_diff_site <- slopes(acc_mod, newdata = acc, re.form = NA, variables = "angle_sc",
+                        by = c("item_group", "site_label"), hypothesis = ~ pairwise | site_label) |> as_tibble()
+acc_overall <- slopes(acc_mod, newdata = acc, re.form = NA, variables = "angle_sc", by = "task") |> as_tibble()
+
+# the same model on fixed-form (non-adaptive) runs only: adaptive item selection ties angle to ability
+acc_fixed <- acc |> filter(adaptive == "FALSE") |> droplevels()
+contrasts(acc_fixed$site_label) <- contr.sum(levels(acc_fixed$site_label))
+contrasts(acc_fixed$item_group) <- contr.sum(levels(acc_fixed$item_group))
+acc_mod_fixed <- glmer(correct ~ angle_sc * item_group * site_label * age_sc + trial_number +
+                         (1 + angle_sc | user_id),
+                       data = acc_fixed, family = binomial, nAGQ = 0,
+                       control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+acc_by_type_fixed <- acc_slope("item_group", acc_fixed, acc_mod_fixed)
+```
+
+```{r}
+#| label: tbl-acc-slopes
+#| tbl-cap: "**Change in proportion correct per 40° of rotation** (average marginal effects, 95% CI). Negative values mean accuracy falls as the angle increases."
+
+bind_rows(
+  acc_by_type |> transmute(Level = "Stimulus type", Group = str_to_upper(item_group), estimate, conf.low, conf.high),
+  acc_by_site |> transmute(Level = "Site", Group = glue("{str_to_upper(item_group)}, {site_label}"), estimate, conf.low, conf.high),
+  acc_by_age  |> transmute(Level = "Age group", Group = glue("{str_to_upper(item_group)}, {as.character(age_group)}"), estimate, conf.low, conf.high)
+) |>
+  mutate(`Slope [95% CI]` = glue("{fmt3(estimate)} {ci_str(conf.low, conf.high)}")) |>
+  select(Level, Group, `Slope [95% CI]`) |>
+  kable(booktabs = TRUE, align = c("l", "l", "r"))
+```
+
+```{r}
+#| label: fig-acc
+#| fig-cap: "**Proportion correct by angle, stimulus type and age group.** Points are observed proportions with 95% binomial confidence intervals; the dashed line is chance."
+#| fig-width: 8
+#| fig-height: 3.6
+
+acc |>
+  summarise(k = sum(correct), n = n(), .by = c(item_group, angle, age_group)) |>
+  mutate(p = k / n, se = sqrt(p * (1 - p) / n),
+         item_group = str_to_upper(item_group)) |>
+  ggplot(aes(angle, p, colour = item_group)) +
+  facet_grid(cols = vars(age_group), labeller = labeller(.cols = \(x) paste("Age (years):", x))) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey50") +
+  geom_pointrange(aes(ymin = p - 1.96 * se, ymax = p + 1.96 * se), size = 0.3) +
+  geom_line() +
+  scale_colour_brewer(palette = "Set2") +
+  scale_y_continuous(limits = c(0.4, 1), labels = scales::percent) +
+  scale_x_continuous(breaks = c(20, 40, 80, 120, 160)) +
+  labs(x = "Rotation angle (°)", y = "Proportion correct", colour = "Stimulus type") +
+  theme_bw() + theme(legend.position = "bottom", panel.grid.minor = element_blank())
+```
+
+Accuracy fell with rotation angle: by `{r} fmt3(-acc_overall$estimate)` in proportion correct per 40° overall
+(95% CI `{r} ci_str(-acc_overall$conf.high, -acc_overall$conf.low)`), and for both 2D
+(`{r} fmt3(-acc_by_type$estimate[acc_by_type$item_group == "2d"])`) and 3D items
+(`{r} fmt3(-acc_by_type$estimate[acc_by_type$item_group == "3d"])`; @tbl-acc-slopes). The negative slope
+was present at every site for both stimulus types. On fixed-form runs only, where item selection does not depend on
+performance, the slopes were similar (2D `{r} fmt3(-acc_by_type_fixed$estimate[acc_by_type_fixed$item_group == "2d"])`,
+3D `{r} fmt3(-acc_by_type_fixed$estimate[acc_by_type_fixed$item_group == "3d"])`). Accuracy was
+well above chance on average, but 3D accuracy in 5--7-year-olds was only
+`{r} pct(mean(acc$correct[acc$item_group == "3d" & acc$age_group == "[5,8)"]))`.
+The speed and accuracy results therefore point the same way: larger rotations are slower and less accurate,
+with no sign of a speed--accuracy trade-off across angles.
+
+## Do fast guesses drive the age effect on the angle slope?
+
+Because the task is two-alternative, correct trials include lucky guesses. Responses under 0.5 s were at
+chance (2D: `{r} pct(mean(acc$correct[acc$item_group == "2d" & acc$rt_s < 0.5]))`;
+3D: `{r} pct(mean(acc$correct[acc$item_group == "3d" & acc$rt_s < 0.5]))`), and they make up
+`{r} pct(mean(acc$rt_s < 0.5))` of trials. If younger children guess quickly on hard items, their response-time slope would be
+flattened, which could produce the age gradient in the angle slope without any difference in rotation.
+To check, the main model was refit after removing fast responses, after keeping only runs with accuracy
+significantly above chance (one-sided binomial test, *p* < .05), and on fixed-form runs only.
+
+```{r rt-sensitivity}
+run_acc <- acc |>
+  summarise(k = sum(correct), n = n(), .by = run_id) |>
+  mutate(above_chance = map2_dbl(k, n, \(k, n) binom.test(k, n, 0.5, alternative = "greater")$p.value) < .05)
+
+fit_rt_sens <- function(d, label) {
+  d <- d |> mutate(angle_sc = (angle - mean(angle)) / deg, age_sc = (age - mean(age)) / yrs,
+                   site_label = droplevels(site_label), stimulus = droplevels(stimulus),
+                   adaptive = droplevels(adaptive),
+                   age_group = cut(age, breaks = age_breaks, right = FALSE))
+  contrasts(d$site_label) <- contr.sum(nlevels(d$site_label))
+  contrasts(d$stimulus) <- contr.sum(nlevels(d$stimulus))
+  f <- if (nlevels(d$adaptive) > 1) {
+    log_rt ~ angle_sc * stimulus * site_label * age_sc + trial_number * stimulus +
+      adaptive * stimulus + (1 + angle_sc | user_id)
+  } else {
+    log_rt ~ angle_sc * stimulus * site_label * age_sc + trial_number * stimulus +
+      (1 + angle_sc | user_id)
+  }
+  m <- lmer(f, data = d, REML = FALSE, control = ctl)
+  by_age <- slopes(m, newdata = d, re.form = NA, variables = "angle_sc", by = "age_group") |> as_tibble()
+  stopifnot(as.character(by_age$age_group) == c("[5,8)", "[8,11)", "[11,14)"))
+  gp <- slopes(m, newdata = d, re.form = NA, variables = "angle_sc", by = "age_group",
+               hypothesis = "b3 - b1 = 0") |> as_tibble()
+  tibble(analysis = label, trials = nrow(d), children = n_distinct(d$user_id),
+         s_young = by_age$estimate[1], s_mid = by_age$estimate[2], s_old = by_age$estimate[3],
+         gap = gp$estimate, gap_se = gp$std.error, gap_p = gp$p.value)
+}
+
+rt_sens <- bind_rows(
+  fit_rt_sens(mrot_lme_data, "Main model (as reported)"),
+  fit_rt_sens(mrot_lme_data |> filter(rt_s >= 0.5), "Exclude responses < 0.5 s"),
+  fit_rt_sens(mrot_lme_data |> filter(rt_s >= 1), "Exclude responses < 1 s"),
+  fit_rt_sens(mrot_lme_data |> semi_join(run_acc |> filter(above_chance), by = "run_id"),
+              "Only runs above chance"),
+  fit_rt_sens(mrot_lme_data |> filter(adaptive == "FALSE"), "Fixed-form runs only")
+)
+```
+
+```{r}
+#| label: tbl-rt-sens
+#| tbl-cap: "**Angle slope (log RT per 40°) by age group under alternative exclusions.** The last column is the 11--13 minus 5--7 year-old difference (SE)."
+
+rt_sens |>
+  mutate(gap_txt = glue("{fmt3(gap)} ({fmt3(gap_se)}), p {map_chr(gap_p, fmt_p)}"),
+         across(starts_with("s_"), fmt3), trials = format(trials, big.mark = ",")) |>
+  select(Analysis = analysis, Trials = trials, Children = children,
+         `5--7` = s_young, `8--10` = s_mid, `11--13` = s_old, `Difference` = gap_txt) |>
+  kable(booktabs = TRUE, align = c("l", "r", "r", "r", "r", "r", "r"))
+```
+
+The age gradient survives each of these exclusions: the slope rises from `{r} fmt2(rt_sens$s_young[1])` to
+`{r} fmt2(rt_sens$s_old[1])` across the age groups in the main model, and the oldest-minus-youngest difference stays
+between `{r} fmt3(min(rt_sens$gap))` and `{r} fmt3(max(rt_sens$gap))` across all analyses (@tbl-rt-sens),
+significant in each. It is smallest when only runs above chance are kept
+(`{r} fmt3(rt_sens$gap[rt_sens$analysis == "Only runs above chance"])`), so guessing probably accounts for part of the gradient but not all of it.
+
+# 3. Dimensionality
+
+The paper's IRT models assume one latent factor. The supplement shows that 3D items differ from 2D items in
+difficulty and discrimination, so the model was compared with two alternatives (fit in `../03_irt_checks.qmd`):
+two correlated factors, one for 2D items and one for 3D items; and a general factor with an additional 3D-specific factor.
+All are multigroup and scalar-invariant, with the paper's priors.
+
+```{r}
+#| label: tbl-dim
+#| tbl-cap: "**Fit of one- and two-dimensional scalar 2PL models.** ΔBIC is relative to the best-fitting model."
+
+dim_res <- read_rds(here("models/mrot_dim.rds"))
+dim_res$fit |>
+  mutate(across(c(logLik, AIC, BIC, d_BIC), \(x) formatC(x, format = "f", digits = 1))) |>
+  select(Model = model, Parameters = n_pars, `Log-lik.` = logLik, AIC, BIC, `ΔBIC` = d_BIC) |>
+  kable(booktabs = TRUE, align = c("l", "r", "r", "r", "r", "r"))
+```
+
+```{r dim-values}
+d1 <- dim_res$fit |> filter(model == "One factor")
+d2 <- dim_res$fit |> filter(str_starts(model, "Two"))
+d3 <- dim_res$fit |> filter(str_starts(model, "General"))
+cor_range <- range(dim_res$cor$r_2d_3d)
+```
+
+Both multidimensional models fit better than the one-factor model by a wide margin (@tbl-dim): BIC is
+`{r} round(d1$BIC - d2$BIC)` points lower for the two-factor model and `{r} round(d1$BIC - d3$BIC)` points lower for the
+general-plus-3D-specific model. The estimated correlation between the 2D and 3D factors is moderate and varies by dataset
+(`{r} fmt2(cor_range[1])` to `{r} fmt2(cor_range[2])`; mpieva-de, where the factor variances are fixed at 1, has the lowest).
+In the general-plus-3D model, 3D items load on both the general factor and the specific factor. So the 3D items share
+variance with the 2D items but not all of it, and a single θ conflates the two. This does not undermine the ordering of
+children on the task as a whole, but it limits how far "mental rotation ability" can be treated as one dimension, and it bears on
+the interpretation of the θ results (age and sex) in the paper. Note that dimensionality here is confounded with stimulus
+type: the 3D items also differ in depth cues, visual complexity and familiarity, so the second factor may reflect any of these.
+
+# 4. Differential item functioning
+
+```{r}
+#| label: tbl-dif
+#| tbl-cap: "**Likelihood-ratio DIF tests across the four datasets.** Each item class is freed in turn (slope and intercept free across datasets; df = 6) and compared with the all-invariant model. Holm-adjusted *p* across the 12 tests. Difficulty (b) is the intercept divided by the slope, by dataset (mpieva-de / uniandes-co-bogota / uniandes-co-rural / western-ca)."
+
+dif_res <- read_rds(here("models/mrot_dif.rds"))
+dif_tab <- \(d) d |>
+  mutate(b_by_group = map_chr(est, \(e) paste(fmt2(e$b), collapse = " / ")),
+         item = str_remove(item, "^mrot_") |> str_replace_all("_", " ")) |>
+  transmute(Item = item, `χ²(6)` = fmt2(chisq), `p (Holm)` = formatC(p_holm, format = "f", digits = 3), `b by dataset` = b_by_group)
+
+kable(dif_tab(dif_res$two), booktabs = TRUE, align = c("l", "r", "r", "r"),
+      caption = "Two-factor model (2D and 3D factors)")
+kable(dif_tab(dif_res$uni), booktabs = TRUE, align = c("l", "r", "r", "r"),
+      caption = "One-factor model (as in the paper)")
+```
+
+```{r dif-values}
+n_sig <- \(d) sum(d$p_holm < .05)
+sig_items <- \(d) d |> filter(p_holm < .05) |> pull(item) |> str_remove("^mrot_") |> str_replace_all("_", " ")
+```
+
+Under the paper's one-factor model, `{r} n_sig(dif_res$uni)` of 12 item classes show DIF after Holm correction, and the
+three 3D classes show it most strongly. Much of this comes from the one-factor model being misspecified: once 2D and 3D items
+load on separate factors, `{r} n_sig(dif_res$two)` classes remain flagged (`{r} paste(sig_items(dif_res$two), collapse = ", ")`).
+The remaining differences in difficulty are modest. For the flagged 3D 40° class, difficulty ranges from
+`{r} fmt2(min(dif_res$two$est[[which(dif_res$two$item == "mrot_3d_shape_040")]]$b))` to
+`{r} fmt2(max(dif_res$two$est[[which(dif_res$two$item == "mrot_3d_shape_040")]]$b))` across datasets, on a θ scale where the reference dataset (mpieva-de) has SD 1. Some freed slopes are very large in sparse cells (for example 7.1 for the 2D duck 40° class at
+uniandes-co-rural), because the fits are unpenalised, so the individual estimates are unstable. With about 1,500 assessments the tests can also detect
+small differences. These results flag items worth inspecting. They are not a final DIF classification, and partial invariance
+(freeing the flagged classes) would be the natural next model.

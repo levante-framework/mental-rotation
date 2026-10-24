@@ -1,0 +1,74 @@
+---
+title: "IRT dimensionality and DIF checks for the mental rotation task"
+---
+
+Follow-up to `02_fit_irt.qmd`. Starting from the response matrix of the paper's scalar 2PL model, this
+(1) tests the single-factor assumption against models with a separate 3D factor, and
+(2) tests each item class for differential item functioning (DIF) across the four datasets.
+Results are saved to `models/` and reported in `mrot_paper/extra_analyses.qmd`.
+
+```{r}
+library(here)
+library(readr)
+source(here("helper", "irt_checks.R"))
+
+dat <- load_mrot_irt_data(here("models/mrot/multigroup_dataset/overlap_items/mrot_2pl_f1_scalar.rds"))
+```
+
+## Check: rebuilt scalar model against the saved one
+
+The rebuilt model should reproduce the scalar 2PL fit in `models/mrot_anova.rds` (BIC ≈ 43571).
+
+```{r}
+m_uni <- fit_mrot(dat, "uni", quadpts = 61)
+saved <- read_rds(here("models/mrot_anova.rds")) |>
+  filter(model_set == "multigroup_dataset", itemtype == "2pl", invariance == "scalar")
+tibble(source = c("rebuilt", "saved"),
+       logLik = c(m_uni@Fit$logLik, saved$logLik),
+       BIC = c(m_uni@Fit$BIC, saved$BIC))
+```
+
+## Dimensionality
+
+All models are multigroup (four datasets), scalar-invariant (parameters equal across datasets and
+across the instances of an item class), with the paper's priors and guessing fixed at .5.
+The multidimensional models use 31 quadrature points per dimension, so the one-factor model is refit
+at 31 points for a like-for-like comparison.
+
+```{r}
+dim_models <- list(
+  "One factor"                       = fit_mrot(dat, "uni", quadpts = 31),
+  "Two correlated factors (2D, 3D)"  = fit_mrot(dat, "two", quadpts = 31),
+  "General + 3D-specific factor"     = fit_mrot(dat, "bifactor", quadpts = 31)
+)
+
+dim_fit <- imap(dim_models, \(m, label) fit_summary(m, label)) |> list_rbind() |>
+  mutate(d_BIC = BIC - min(BIC))
+
+# correlation between the 2D and 3D factors in each dataset
+two <- as_tibble(mod2values(dim_models[["Two correlated factors (2D, 3D)"]])) |>
+  filter(class == "GroupPars") |>
+  select(group, name, value) |>
+  pivot_wider(names_from = name, values_from = value)
+dim_cor <- two |> transmute(group, r_2d_3d = COV_21 / sqrt(COV_11 * COV_22))
+
+write_rds(list(fit = dim_fit, cor = dim_cor), here("models/mrot_dim.rds"), compress = "gz")
+dim_fit
+dim_cor
+```
+
+## Differential item functioning
+
+Each of the 12 item classes is freed in turn (slope and intercept free across datasets, df = 6) and
+compared with the all-invariant model by likelihood ratio. Likelihoods are unpenalised, because the
+priors used for the paper's models shrink freed parameters and make the likelihood ratio unreliable.
+DIF is run under the one-factor model (the paper's) and the two-factor model (which fits better).
+
+```{r}
+dif_uni <- class_dif(dat, "uni", quadpts = 61)
+dif_two <- class_dif(dat, "two", quadpts = 31)
+write_rds(list(uni = dif_uni, two = dif_two), here("models/mrot_dif.rds"), compress = "gz")
+
+dif_uni |> select(-est)
+dif_two |> select(-est)
+```
