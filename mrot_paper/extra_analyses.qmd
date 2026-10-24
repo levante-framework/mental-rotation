@@ -12,9 +12,12 @@ execute:
   cache: false
 ---
 
-These analyses follow the review in `suggested_edits.md` (items A3, A5, A7, B5). They use the same data,
+These analyses follow the review in `suggested_edits.md` (sections A, B, F and G). They use the same data,
 exclusions and main model as the paper (`_00_data_prep.qmd`, `_02_angle_sensitivity.qmd`). The IRT checks
-(sections 3 and 4) are fit in `../03_irt_checks.qmd` and read from `models/`.
+(sections 3 to 5) are fit in `../03_irt_checks.qmd` and the scripts in `checks/`, and read from `models/`.
+Sections 1 and 2 cover the 2D/3D comparison and accuracy; 3 and 4 dimensionality and DIF; 5 the effect of priors on the
+invariance comparison and the reliability values; 6 further response-time checks (adaptive format, exemplars, age, site by age);
+and 7 sex differences.
 
 ```{r libraries}
 library(tidyverse)
@@ -66,7 +69,7 @@ m_no_site <- update(m_ig, . ~ . - angle_sc:item_group:site_label - angle_sc:item
 m_no_age  <- update(m_ig, . ~ . - angle_sc:item_group:age_sc - angle_sc:item_group:site_label:age_sc)
 m_no_diff <- update(m_ig, . ~ . - angle_sc:item_group - angle_sc:item_group:site_label -
                       angle_sc:item_group:age_sc - angle_sc:item_group:site_label:age_sc)
-lrt <- \(small) { a <- anova(small, m_ig); tibble(chisq = a$Chisq[2], df = a$Df[2], p = a$`Pr(>Chisq)`[2]) }
+lrt <- \(small) { a <- anova(small, m_ig); tibble(chisq = a$Chisq[2], df = a$Df[2], p = a[["Pr(>Chisq)"]][2]) }
 lrt_site <- lrt(m_no_site)
 lrt_age  <- lrt(m_no_age)
 lrt_any  <- lrt(m_no_diff)
@@ -389,3 +392,260 @@ The remaining differences in difficulty are modest. For the flagged 3D 40° clas
 uniandes-co-rural), because the fits are unpenalised, so the individual estimates are unstable. With about 1,500 assessments the tests can also detect
 small differences. These results flag items worth inspecting. They are not a final DIF classification, and partial invariance
 (freeing the flagged classes) would be the natural next model.
+
+
+# 5. Invariance, priors and reliability
+
+## Do the priors drive the Table 3 comparison?
+
+The paper's models carry priors on every item slope (N(1, 0.3)) and intercept (N(0, 3)). Table 3 compares
+penalised log-likelihoods across invariance levels. The configural model has four times as many slope and intercept
+parameters as the scalar model, and so pays four times as much prior penalty, which can make it look worse than a
+nested, more constrained model. To check, the configural and scalar models were refit with and without the priors
+(`checks/irt_priors_configural.R`). The configural model fixes each dataset's mean at 0 and variance at 1, as in the paper.
+
+```{r}
+#| label: tbl-prior
+#| tbl-cap: "**Configural and scalar 2PL models with and without the priors.** Log-likelihoods are of the data alone. The no-prior configural model had not fully converged after 6,000 EM cycles, so its log-likelihood is a lower bound."
+
+prior_res <- read_rds(here("models/mrot_prior.rds"))
+prior_res$fit |>
+  transmute(Model = model, Converged = if_else(converged, "yes", "no"), Parameters = n_pars,
+            `Log-lik.` = formatC(logLik, format = "f", digits = 1),
+            AIC = formatC(AIC, format = "f", digits = 1), BIC = formatC(BIC, format = "f", digits = 1)) |>
+  kable(booktabs = TRUE, align = c("l", "l", "r", "r", "r", "r"))
+```
+
+```{r prior-values}
+pf <- prior_res$fit
+get_fit <- \(m, col) pf[[col]][pf$model == m]
+fi <- \(x) formatC(round(x), format = "d", big.mark = "")
+cfg_p <- "Configural, with priors (paper)"; cfg_n <- "Configural, no priors"
+sc_p <- "Scalar, with priors (paper)"; sc_n <- "Scalar, no priors"
+```
+
+The configural model with the priors has a log-likelihood of `{r} fmt2(get_fit(cfg_p, "logLik"))`, matching the paper's
+Table 3, and it is `{r} round(get_fit(cfg_p, "logLik") - get_fit(sc_p, "logLik"))` points higher than the scalar model's, as it should be for a nested model.
+(The paper's metric model, which sits between the two, has a log-likelihood of −21579, higher than the configural model's. This should not happen
+either, and is consistent with the same prior penalty acting on the configural model, but the metric model was not refit here.)
+But the priors cost the configural model about `{r} round(get_fit(cfg_n, "logLik") - get_fit(cfg_p, "logLik"))` log-likelihood
+points and the scalar model about `{r} round(get_fit(sc_n, "logLik") - get_fit(sc_p, "logLik"))`.
+Without the priors, a likelihood-ratio test rejects exact scalar invariance (χ²(`{r} prior_res$lrt$df`) = `{r} round(prior_res$lrt$chisq)`,
+p < .001), and AIC prefers the configural model (`{r} fi(get_fit(cfg_n, "AIC"))` against `{r} fi(get_fit(sc_n, "AIC"))`).
+BIC still prefers the scalar model, but by `{r} round(get_fit(cfg_n, "BIC") - get_fit(sc_n, "BIC"))` points, not the
+`{r} round(get_fit(cfg_p, "BIC") - get_fit(sc_p, "BIC"))` reported with the priors.
+So the claim that the data are more consistent with invariant parameters than with free parameters under BIC survives, but the large
+margin partly reflects the priors, and "full" scalar invariance is not supported by an unpenalised likelihood-ratio test.
+The DIF results in section 4 show where the departures are concentrated.
+
+## Marginal reliability
+
+The reliabilities in the paper (2PL: 0.73--0.89; Rasch: 0.31--0.34) come from `mirt::marginal_rxx` applied to each dataset's group model.
+That function integrates `TI / (TI + var)` against a standard normal density, where `TI` is the test information and `var` is the fitted
+latent variance of the group. Dataset variances are not 1 in the scalar models (the reference group has variance 1; the others
+are larger, and in the Rasch model all are around 5--6, because the slopes are fixed at 1 while the data support slopes near 2).
+The formula is therefore not invariant to the scale of θ, so the values depend on the arbitrary scaling of each model.
+The scale-free alternatives below are the reliability for θ distributed N(mean, var), `var·TI / (var·TI + 1)`,
+and the empirical reliability from the EAP scores (`mirt::empirical_rxx`). They were computed from the saved model records
+(`checks/irt_reliability_records.R`). The paper's values are from the `all_items` models (81 item instances); Table 3 uses the
+`overlap_items` models (54 instances).
+
+```{r}
+#| label: tbl-rxx
+#| tbl-cap: "**Marginal reliability of the scalar models by dataset under three definitions.** *mirt*: `marginal_rxx` as used in the paper. Corrected: variance-scaled reliability for θ ~ N(mean, var). Empirical: from EAP scores and their standard errors."
+
+rxx_res <- read_rds(here("models/mrot_rxx_check.rds")) |>
+  mutate(group = str_remove_all(group, "^pilot_|_main$") |> str_replace_all("_", "-"),
+         itemtype = recode(itemtype, `2pl` = "2PL", rasch = "Rasch"),
+         subset = recode(subset, all_items = "All items (as reported)", overlap_items = "Overlap items (Table 3)"))
+rxx_res |>
+  transmute(`Item set` = subset, Model = itemtype, Dataset = group,
+            `Latent var.` = fmt2(var_theta), mirt = fmt2(rxx_mirt),
+            Corrected = fmt2(rxx_density_corrected), Empirical = fmt2(rxx_empirical)) |>
+  kable(booktabs = TRUE, align = c("l", "l", "l", "r", "r", "r", "r"))
+```
+
+```{r rxx-values}
+rr <- \(ss, it, col) range(rxx_res[[col]][rxx_res$subset == ss & rxx_res$itemtype == it])
+ao <- "All items (as reported)"
+```
+
+Under the scale-free definitions the Rasch and 2PL models are about equally reliable (all items, corrected:
+2PL `{r} fmt2(rr(ao, "2PL", "rxx_density_corrected")[1])`--`{r} fmt2(rr(ao, "2PL", "rxx_density_corrected")[2])`,
+Rasch `{r} fmt2(rr(ao, "Rasch", "rxx_density_corrected")[1])`--`{r} fmt2(rr(ao, "Rasch", "rxx_density_corrected")[2])`;
+empirical: 2PL `{r} fmt2(rr(ao, "2PL", "rxx_empirical")[1])`--`{r} fmt2(rr(ao, "2PL", "rxx_empirical")[2])`,
+Rasch `{r} fmt2(rr(ao, "Rasch", "rxx_empirical")[1])`--`{r} fmt2(rr(ao, "Rasch", "rxx_empirical")[2])`).
+The 0.32 versus 0.89 contrast in the paper is a scaling artefact, not evidence that the 2PL measures more reliably.
+The better fit of the 2PL over the Rasch model rests on the likelihood criteria alone.
+Reliability is substantial for both: roughly 0.8--0.9 once children are scored on the same items.
+
+# 6. Further checks on the response-time models
+
+## Does the angle slope differ between adaptive and fixed-form runs?
+
+The paper's check fits `log_rt ~ angle * adaptive` with no other covariates. Here the interaction is added to the full model
+instead, so that it is estimated alongside the stimulus, site and age terms.
+
+```{r adaptive-interaction}
+m_ad <- update(full_mod, . ~ . + angle_sc:adaptive)
+ad_lrt <- anova(full_mod, m_ad)
+ad_coef <- summary(m_ad)$coefficients[str_detect(rownames(summary(m_ad)$coefficients), "^angle_sc:adaptive"), , drop = FALSE]
+```
+
+The adaptive × angle coefficient is `{r} fmt3(ad_coef[1, 1])` (SE = `{r} fmt3(ad_coef[1, 2])`, *t* = `{r} fmt2(ad_coef[1, 3])`;
+likelihood-ratio χ²(1) = `{r} fmt2(ad_lrt$Chisq[2])`, *p* = `{r} fmt3(ad_lrt[["Pr(>Chisq)"]][2])`).
+The adaptive slope is flatter. The estimate is imprecise and close to the conventional threshold, which is different from
+"no difference". The paper's simple model gives
+Δβ = `{r} fmt3(cat_slope_diff$estimate)` (SE = `{r} fmt3(cat_slope_diff$std.error)`), with the opposite sign. The row for `adaptive`
+in Table 4 of the paper contrasts marginal slopes of a model that has no adaptive × angle term, so it reflects which sites, stimuli and
+ages used each format and should not be read as a format effect.
+
+## Do the results generalise over stimulus exemplars?
+
+Each item class (stimulus × angle) comprises several concrete exemplars. The paper's RT model treats exemplars as interchangeable.
+Random intercepts for the exemplar were added.
+
+```{r exemplar-re}
+ex_dat <- mrot_rt_trial |>
+  filter(correct == 1, trial_number != 1) |>
+  mutate(item_group = factor(item_group), stimulus = factor(stimulus), site_label = factor(site_label),
+         angle_sc = (angle - mean(angle)) / deg, adaptive = factor(adaptive), age_sc = (age - mean(age)) / yrs)
+contrasts(ex_dat$site_label) <- contr.sum(levels(ex_dat$site_label))
+contrasts(ex_dat$stimulus) <- contr.sum(levels(ex_dat$stimulus))
+ex_f <- formula(full_mod)
+m_ex0 <- lmer(ex_f, ex_dat, REML = FALSE, control = lmerControl(optimizer = "bobyqa"))
+m_ex1 <- update(m_ex0, . ~ . + (1 | item_original))
+ex_lrt <- anova(m_ex0, m_ex1)
+ex_sd <- attr(VarCorr(m_ex1)$item_original, "stddev")
+ex_slopes <- bind_rows(
+  slopes(m_ex0, newdata = ex_dat, re.form = NA, variables = "angle_sc", by = "item_group") |> as_tibble() |> mutate(Model = "No exemplar effect"),
+  slopes(m_ex1, newdata = ex_dat, re.form = NA, variables = "angle_sc", by = "item_group") |> as_tibble() |> mutate(Model = "Exemplar random intercept"))
+```
+
+```{r}
+#| label: tbl-exemplar
+#| tbl-cap: "**Angle slope (log RT per 40°) with and without exemplar random intercepts.**"
+ex_slopes |>
+  transmute(Model, Stimulus = toupper(item_group), Slope = fmt3(estimate), SE = fmt3(std.error),
+            `95% CI` = ci_str(conf.low, conf.high)) |>
+  kable(booktabs = TRUE, align = c("l", "l", "r", "r", "r"))
+```
+
+There are `{r} n_distinct(ex_dat$item_original)` exemplars. Their random intercept has SD = `{r} fmt3(ex_sd)` log units and improves fit
+(χ²(1) = `{r} round(ex_lrt$Chisq[2])`, *p* < .001). The angle slopes are unchanged and their standard errors roughly double, so
+the angle effect does not depend on the particular exemplars sampled. The SEs from this model are the ones to report.
+
+## Is age linear?
+
+```{r age-nonlinear}
+th <- mrot_df |> left_join(sex_data_cleaned, by = "user_id") |> mutate(site_label = factor(site_label))
+th_lin <- lmer(metric_value ~ age + site_label + (1 | user_id), th, REML = FALSE)
+th_quad <- lmer(metric_value ~ age + I(age^2) + site_label + (1 | user_id), th, REML = FALSE)
+th_lrt <- anova(th_lin, th_quad)
+th_b <- fixef(th_quad)
+th_rate <- \(a) th_b[["age"]] + 2 * th_b[["I(age^2)"]] * a
+
+m_q <- update(full_mod, . ~ . + I(age_sc^2) + angle_sc:I(age_sc^2))
+q_lrt <- anova(full_mod, m_q)
+sd_theta <- sd(th$metric_value)
+```
+
+A quadratic age term improves the ability model (χ²(1) = `{r} fmt2(th_lrt$Chisq[2])`, *p* < .001).
+The estimated gain falls from `{r} fmt2(th_rate(5))` θ per year at age 5 to `{r} fmt2(th_rate(9))` at age 9 and `{r} fmt2(th_rate(13))` at age 13.
+Adding age² and its interaction with angle to the response-time model also improves fit (χ²(2) = `{r} fmt2(q_lrt$Chisq[2])`,
+*p* = `{r} fmt3(q_lrt[["Pr(>Chisq)"]][2])`). The pooled SD of θ across assessments is `{r} fmt2(sd_theta)`; it includes between-dataset
+differences in mean θ, which is why the paper's 0.33 per year corresponds to `{r} fmt2(0.33 / sd_theta)` SD per year.
+
+## Angle slopes by site, age group and stimulus type
+
+```{r}
+#| label: tbl-site-age
+#| tbl-cap: "**Angle slope (log RT per 40°) by site, age group and stimulus type** (average marginal effects over observed trials, SE in parentheses; * marks slopes whose 95% CI includes zero)."
+
+sa_dat <- mrot_lme_data |> mutate(age_group = cut(age, age_breaks, right = FALSE))
+sa <- slopes(full_mod, newdata = sa_dat, re.form = NA, variables = "angle_sc",
+             by = c("site_label", "item_group", "age_group")) |> as_tibble()
+sa |>
+  mutate(cell = glue("{fmt3(estimate)} ({fmt3(std.error)}){if_else(conf.low <= 0 & conf.high >= 0, '*', '')}"),
+         Stimulus = toupper(item_group)) |>
+  select(Site = site_label, Stimulus, age_group, cell) |>
+  pivot_wider(names_from = age_group, values_from = cell) |>
+  arrange(Site, Stimulus) |>
+  kable(booktabs = TRUE, align = c("l", "l", "r", "r", "r"))
+```
+
+Slopes increase with age at every site, for both stimulus types. For the youngest children the 3D slope cannot be told apart from zero
+at the two Colombian sites (marked), and is small at western-ca. The 2D slope at ages 5--7 is reliably positive everywhere.
+
+# 7. Sex differences
+
+## Ability
+
+```{r sex-theta}
+ths <- th |> filter(!is.na(sex)) |> mutate(sex = factor(sex))
+contrasts(ths$sex) <- contr.sum(levels(ths$sex))
+sx_add <- lmer(metric_value ~ age + site_label + sex + (1 | user_id), ths)
+sx_co <- summary(sx_add)$coefficients["sex1", ]
+sx_d <- 2 * sx_co[1] / sd(ths$metric_value)           # female minus male, in SD units
+sx_hw <- 2 * 1.96 * sx_co[2] / sd(ths$metric_value)   # half-width of the 95% CI
+sx_a1 <- lmer(metric_value ~ age * site_label + sex + (1 | user_id), ths, REML = FALSE)
+sx_a2 <- lmer(metric_value ~ age * site_label + sex * site_label + (1 | user_id), ths, REML = FALSE)
+sx_a_lrt <- anova(sx_a1, sx_a2)
+sx_site <- map(levels(ths$site_label), \(s) {
+  m <- lm(metric_value ~ age + sex, filter(ths, site_label == s) |> mutate(sex = factor(as.character(sex), levels = c("Female", "Male")))); cc <- summary(m)$coefficients
+  r <- str_which(rownames(cc), "^sex")
+  tibble(Site = s, `Male − female (SD)` = fmt2(cc[r, 1] / sd(ths$metric_value)),
+         `95% CI half-width` = fmt2(1.96 * cc[r, 2] / sd(ths$metric_value)))
+}) |> list_rbind()
+```
+
+The female minus male difference in θ, adjusting for age and site, is `{r} fmt3(sx_d)` SD (95% CI ±`{r} fmt2(sx_hw)`). Differences larger than about
+`{r} fmt2(sx_hw)` SD are therefore excluded, which rules out the d ≈ 0.20 reported in Lauer et al.'s (2019) meta-analysis for children around age 6. The
+sex × site interaction is not significant (χ²(`{r} sx_a_lrt$Df[2]`) = `{r} fmt2(sx_a_lrt$Chisq[2])`, *p* = `{r} fmt2(sx_a_lrt[["Pr(>Chisq)"]][2])`), but site-level
+intervals are wide, so "held across all four sites" should be worded as "no site showed a difference, though each site alone could not exclude moderate effects".
+
+```{r}
+#| label: tbl-sex-site
+#| tbl-cap: "**Sex difference in ability (male minus female, SD units) within each site, adjusting for age.**"
+kable(sx_site, booktabs = TRUE, align = c("l", "r", "r"))
+```
+
+## Response time
+
+The paper's sex contrasts average predictions over a balanced grid of angle, stimulus, site and age. Here they are averaged over the
+observed trials instead, the weighting the paper argues for elsewhere.
+
+```{r sex-rt}
+sx_rt <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |> filter(!is.na(sex)) |> mutate(sex = factor(sex))
+contrasts(sx_rt$sex) <- contr.sum(levels(sx_rt$sex))
+sx_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex + (1 + angle_sc | user_id),
+               sx_rt, REML = FALSE, control = lmerControl(optimizer = "bobyqa"))
+sx_cmp <- \(by) avg_comparisons(sx_mod, newdata = sx_rt, re.form = NA, variables = "sex", by = by) |> as_tibble()
+sx_tab <- bind_rows(
+  sx_cmp("task") |> mutate(Level = "All"),
+  sx_cmp("item_group") |> mutate(Level = toupper(item_group)),
+  sx_cmp("site_label") |> mutate(Level = site_label))
+sx_slope_diff <- slopes(sx_mod, newdata = sx_rt, re.form = NA, variables = "angle_sc", by = "sex",
+                        hypothesis = difference ~ pairwise) |> as_tibble()
+sx_ss_a <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc + sex + (1 + angle_sc | user_id),
+                sx_rt, REML = FALSE, control = lmerControl(optimizer = "bobyqa"))
+sx_ss_b <- update(sx_ss_a, . ~ . + sex:site_label)
+sx_rt_lrt <- anova(sx_ss_a, sx_ss_b)
+```
+
+```{r}
+#| label: tbl-sex-rt
+#| tbl-cap: "**Male minus female difference in log response time, averaged over observed trials.** Negative values mean boys responded faster. The last column is the percentage difference in response time."
+sx_tab |>
+  transmute(Level, `Estimate` = fmt3(estimate), SE = fmt3(std.error), `95% CI` = ci_str(conf.low, conf.high),
+            p = formatC(p.value, format = "f", digits = 3),
+            `% RT` = formatC(100 * (exp(estimate) - 1), format = "f", digits = 1)) |>
+  kable(booktabs = TRUE, align = c("l", "r", "r", "r", "r", "r"))
+```
+
+Averaged over observed trials, boys respond `{r} abs(round(100 * (exp(sx_tab$estimate[1]) - 1), 1))`% faster
+(*p* = `{r} fmt3(sx_tab$p.value[1])`), the same as the grid-based figure in the paper, so the weighting makes no difference to this result.
+By stimulus type, the 3D contrast has *p* = `{r} fmt3(sx_tab$p.value[sx_tab$Level == "3D"])` here, against .103 in the paper, so the statement that the effect "holds within stimulus type"
+depends on the weighting for 3D. All four sites show faster boys, and the sex × site interaction is not significant
+(χ²(`{r} sx_rt_lrt$Df[2]`) = `{r} fmt2(sx_rt_lrt$Chisq[2])`, *p* = `{r} fmt2(sx_rt_lrt[["Pr(>Chisq)"]][2])`). The sex difference in angle slope is
+`{r} fmt3(sx_slope_diff$estimate)` (SE = `{r} fmt3(sx_slope_diff$std.error)`, *p* = `{r} fmt2(sx_slope_diff$p.value)`).

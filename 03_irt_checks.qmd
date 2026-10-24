@@ -72,3 +72,19 @@ write_rds(list(uni = dif_uni, two = dif_two), here("models/mrot_dif.rds"), compr
 dif_uni |> select(-est)
 dif_two |> select(-est)
 ```
+
+## Priors and the invariance comparison
+
+Refits the configural and scalar models with and without the paper's priors, to check how much of the Table 3
+comparison depends on them. Results are saved to `models/mrot_prior.rds` and reported in `mrot_paper/extra_analyses.qmd`.
+
+```{r}
+#| eval: false
+source(here("mrot_paper", "checks", "irt_priors_configural.R"))
+```
+
+## Marginal reliability
+
+Recomputes the paper's marginal reliabilities from the saved model records and compares them with scale-free definitions.
+It needs the `rlevante` package source (set `RLEVANTE_PATH`; default `../rlevante`) and is run from the repository root:
+`Rscript --vanilla mrot_paper/checks/irt_reliability_records.R`. Results are saved to `models/mrot_rxx_check.rds`.
