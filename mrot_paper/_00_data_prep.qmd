@@ -5,7 +5,9 @@
 source(here("helper", "plot_settings.R"))
 
 # p-value formatter
-fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", round(p, 3)))
+# round() drops trailing zeros, so .0499 prints as ".05" and reads as exactly at
+# the threshold. formatC keeps three decimals fixed, as fmt_est does for estimates.
+fmt_p <- function(p) if (p < .001) "< .001" else paste0("= ", sub("^0", "", formatC(p, format = "f", digits = 3)))
 
 # SE formatter: two decimals is the convention throughout, but an SE below .005
 # rounds to zero and prints as a bare "0", which reads as an error. Show enough

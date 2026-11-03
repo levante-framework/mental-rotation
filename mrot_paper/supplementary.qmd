@@ -433,6 +433,13 @@ scale_compare <- bind_rows(
   select(-estimate) |>
   pivot_wider(names_from = scale, values_from = shown)
 
+# Rotation rate in the units of the original chronometric work. angle_sc is
+# scaled so one unit is 40 degrees and rt_s is in seconds, so the additive
+# slope is seconds per 40 degrees and 40 / slope is degrees per second.
+raw_est <- map(preds, \(p) scale_rows(m_raw_supp, p, "raw")) |> list_rbind()
+scale_rates <- raw_est |> transmute(predictor, value, rate = 40 / estimate)
+rate_of <- \(v) sprintf("%.0f", scale_rates$rate[scale_rates$value == v])
+
 # Box-Cox needs an lm, so lambda is estimated from a fixed-effects simplification.
 bc <- MASS::boxcox(lm(rt_s ~ angle_sc * stimulus + site_label + age_sc,
                       data = mrot_lme_data),
@@ -453,14 +460,19 @@ aic_gap <- round(AIC(m_raw_supp) - aic_log_on_raw)
 #| tbl-cap: "Angle slope under the two response-time scales, from the same model specification. The log column gives the multiplicative cost (percentage increase in response time per 40° of rotation); the additive column gives the equivalent rate in milliseconds per degree, the unit used in the chronometric literature. Both are average marginal effects over the observed trials."
 
 scale_compare |>
+  left_join(scale_rates |> mutate(rate = sprintf("%.0f", rate)),
+            by = c("predictor", "value")) |>
   mutate(predictor = recode(predictor, task = "Overall", item_group = "Item type",
                             site_label = "Site", age_group = "Age group"),
          value = value |>
            str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D",
                              "\\[" = "", "\\]" = "", "\\)" = "", "," = "--"))) |>
-  knitr::kable(col.names = c("", "Level", "Log scale (% per 40°)", "Additive scale (ms/degree)"),
-               booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r"))
+  knitr::kable(col.names = c("", "Level", "Log scale (% per 40°)",
+                             "Additive scale (ms/degree)", "Rate (°/sec)"),
+               booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r"))
 ```
+
+Expressed in the units of the original chronometric work, these estimates correspond to a rotation rate of `r rate_of("mrot")`° per second overall, `r rate_of("2d")`° per second for the 2D stimuli and `r rate_of("3d")`° per second for the 3D stimuli. @shepard1971mental reported that their adult participants rotated three-dimensional block figures at roughly 60° per second. The rate we obtain for the 3D items, from children aged 5 to 13, is approximately half the adult figure, which is what the prolonged development of this skill would lead one to expect, while the rate for the simpler 2D animal figures is closer to it. These comparisons are approximate, since the stimuli, the response format and the populations all differ from the original study, and our 3D items were administered only between 40° and 120°.
 
 Two formal comparisons support modelling on the log scale. A Box-Cox analysis, which estimates the power transformation best satisfying the model's distributional assumptions, returns $\lambda$ = `r sprintf("%.2f", bc_lambda)` (95% CI [`r sprintf("%.2f", bc_ci[1])`, `r sprintf("%.2f", bc_ci[2])`]); $\lambda$ = 0 corresponds to the log transform and $\lambda$ = 1 to no transformation, so the interval excludes the untransformed scale. Comparing the two fits by AIC requires a Jacobian correction, since likelihoods computed on different response scales are not otherwise comparable; with that correction the log-scale model is favoured by `r format(aic_gap, big.mark = ",")` AIC units.
 
@@ -572,4 +584,102 @@ ggplot(full_angle_cell, aes(angle_full, rt, colour = stimulus,
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_line(colour = "grey91", linewidth = .3),
         axis.line = element_line(colour = "grey70", linewidth = .3))
+```
+
+
+## Sex differences under the two averaging schemes
+
+The sex analyses reported in the main text use observed-trial averaging, as elsewhere. Because the sex effect on response time for 3D stimuli falls close to the conventional significance threshold, @tbl-sex-weight-compare reports each sex comparison under both schemes so that readers can see how far the choice of reference grid matters. Every conclusion is unchanged. The overall sex effect on response time is numerically identical under the two schemes, the absence of a sex difference in angle slope holds under both, and the absence of a sex difference in ability holds under both. The single quantity that moves is the 3D sex effect on response time, which is marginal under observed averaging and non-significant under a balanced grid. As with the angle slopes above, the balanced grid gives equal weight to sparse cells in which the five-way interaction is least well identified, which is why the main text reports the observed-trial estimates.
+
+```{r}
+#| label: supp-sex-weight-models
+#| cache: true
+
+mrot_lme_data_sex_supp <- mrot_lme_data |>
+  inner_join(sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex)) |>
+  mutate(sex = factor(sex))
+contrasts(mrot_lme_data_sex_supp$sex) <- contr.sum(levels(mrot_lme_data_sex_supp$sex))
+
+sex_mod_supp <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
+                       (1 + angle_sc | user_id),
+                     data = mrot_lme_data_sex_supp, REML = FALSE,
+                     control = lmerControl(optimizer = "bobyqa"))
+
+# balanced grid over the angle-by-stimulus cells that exist, crossed with
+# site, sex and a uniform age sequence
+stim_map_sex <- mrot_lme_data_sex_supp |> distinct(angle_sc, stimulus, item_group)
+sex_grid_supp <- stim_map_sex |>
+  tidyr::expand_grid(age_sc = seq(min(mrot_lme_data_sex_supp$age_sc),
+                                  max(mrot_lme_data_sex_supp$age_sc), length.out = 50)) |>
+  tidyr::expand_grid(site_label = levels(mrot_lme_data_sex_supp$site_label),
+                     sex = levels(mrot_lme_data_sex_supp$sex)) |>
+  mutate(site_label = factor(site_label, levels(mrot_lme_data_sex_supp$site_label)),
+         sex = factor(sex, levels(mrot_lme_data_sex_supp$sex)),
+         trial_number = mean(mrot_lme_data_sex_supp$trial_number))
+
+sex_row <- function(nd, scheme) {
+  overall <- avg_comparisons(sex_mod_supp, variables = "sex", newdata = nd, re.form = NA)
+  bydim   <- avg_comparisons(sex_mod_supp, variables = "sex", by = "item_group",
+                             newdata = nd, re.form = NA)
+  slopes_ <- slopes(sex_mod_supp, variables = "angle_sc", by = "sex",
+                    newdata = nd, re.form = NA)
+  sdiff <- slopes(sex_mod_supp, variables = "angle_sc", by = "sex",
+                  newdata = nd, re.form = NA, hypothesis = difference ~ pairwise)
+  bind_rows(
+    tibble(quantity = "Sex effect on RT", level = "All trials",
+           estimate = overall$estimate, p = overall$p.value),
+    tibble(quantity = "Sex effect on RT", level = toupper(as.character(bydim$item_group)),
+           estimate = bydim$estimate, p = bydim$p.value),
+    tibble(quantity = "Angle slope", level = as.character(slopes_$sex),
+           estimate = slopes_$estimate, p = slopes_$p.value),
+    tibble(quantity = "Sex difference in angle slope", level = "All trials",
+           estimate = sdiff$estimate, p = sdiff$p.value)
+  ) |> mutate(scheme = scheme)
+}
+
+# ability (one score per run; no angle or stimulus dimension to balance)
+mrot_df_sex_supp <- mrot_df |>
+  inner_join(sex_data_cleaned, by = "user_id") |>
+  filter(!is.na(sex), !is.na(metric_value), !is.na(age)) |>
+  mutate(sex = factor(sex), site_label = factor(site_label)) |>
+  rename(ability = metric_value)
+contrasts(mrot_df_sex_supp$sex) <- contr.sum(levels(mrot_df_sex_supp$sex))
+contrasts(mrot_df_sex_supp$site_label) <- contr.sum(levels(mrot_df_sex_supp$site_label))
+
+ability_mod_supp <- lmer(ability ~ age * sex * site_label + (1 | user_id),
+                         data = mrot_df_sex_supp)
+ability_grid_supp <- tidyr::expand_grid(
+  site_label = levels(mrot_df_sex_supp$site_label),
+  sex = levels(mrot_df_sex_supp$sex),
+  age = seq(min(mrot_df_sex_supp$age), max(mrot_df_sex_supp$age), length.out = 50)) |>
+  mutate(site_label = factor(site_label, levels(mrot_df_sex_supp$site_label)),
+         sex = factor(sex, levels(mrot_df_sex_supp$sex)))
+
+ability_row <- function(nd, scheme) {
+  a <- avg_comparisons(ability_mod_supp, variables = "sex", newdata = nd, re.form = NA)
+  tibble(quantity = "Sex effect on ability", level = "All scores",
+         estimate = a$estimate, p = a$p.value, scheme = scheme)
+}
+
+sex_weight_compare <- bind_rows(
+  sex_row(mrot_lme_data_sex_supp, "observed"),
+  sex_row(sex_grid_supp, "grid"),
+  ability_row(mrot_df_sex_supp, "observed"),
+  ability_row(ability_grid_supp, "grid")
+)
+```
+
+```{r}
+#| label: tbl-sex-weight-compare
+#| tbl-cap: "Sex comparisons from the same fitted model, averaged over the observed trials and over a balanced grid of cells. Estimates for response time are on the log scale. Every conclusion is the same under both schemes apart from the 3D sex effect on response time, which is marginal under observed averaging and non-significant under the balanced grid."
+
+sex_weight_compare |>
+  mutate(cell = sprintf("%+.3f (p %s)", estimate, map_chr(p, fmt_p))) |>
+  select(quantity, level, scheme, cell) |>
+  tidyr::pivot_wider(names_from = scheme, values_from = cell) |>
+  knitr::kable(
+    col.names = c("", "Level", "Observed trials", "Balanced grid"),
+    booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r")
+  )
 ```
