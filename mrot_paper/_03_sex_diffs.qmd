@@ -48,7 +48,7 @@ sex_preds <- avg_predictions(sex_mod,
 
 get_sex_comp <- \(pred) {
   avg_comparisons(sex_mod,
-                  newdata = sex_pred_grid,
+                  newdata = mrot_lme_data_sex,
                   re.form = NA,
                   variables = "sex",
                   by = pred) |>
@@ -76,7 +76,7 @@ sex_comps_tbl <- sex_comps |>
 
 get_sex_slopes <- \(pred) {
   slopes(sex_mod,
-         newdata = sex_pred_grid,
+         newdata = mrot_lme_data_sex,
          re.form = NA,
          variables = "angle_sc",
          by = pred) |> as_tibble() |>
@@ -106,7 +106,7 @@ sex_slopes_tbl <- sex_slopes |>
 #          p.value = map_chr(p.value, fmt_p))
 
 sex_slope_diffs <- slopes(sex_mod,
-                          newdata = sex_pred_grid,
+                          newdata = mrot_lme_data_sex,
                           re.form = NA,
                           variables = "angle_sc",
                           by = "sex",
@@ -226,7 +226,8 @@ mrot_df_sex <- inner_join(mrot_df, sex_data_cleaned, by = "user_id") |>
          # age_sc = (age - mean(age)) / yrs
   ) |>
   rename(ability = metric_value) |>
-  select(site_label, user_id, run_id, age_group, age, sex, ability)
+  mutate(task = "mrot") |>   # constant; marginal effects below group by it
+  select(site_label, user_id, run_id, age_group, age, sex, ability, task)
 
 contrasts(mrot_df_sex$sex) <- contr.sum(levels(mrot_df_sex$sex))
 
@@ -262,7 +263,7 @@ ability_sex_preds <- avg_predictions(ability_sex_mod,
 sd_ability <- sd(mrot_df_sex$ability)
 ability_comps <- comparisons(
   ability_sex_mod,
-  newdata = ability_grid,
+  newdata = mrot_df_sex,
   re.form = NA,
   variables = list(site_label = "pairwise", sex = "pairwise", age = 1),
   by = "task"
@@ -273,7 +274,7 @@ ability_comps <- comparisons(
 
 ability_slope_diffs <- slopes(
   ability_sex_mod,
-  newdata = ability_grid,
+  newdata = mrot_df_sex,
   re.form = NA,
   variables = "age",
   by = "sex",
