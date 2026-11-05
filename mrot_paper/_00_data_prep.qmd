@@ -52,6 +52,17 @@ run_data <- read_rds(here("data/runs_mrot.rds"))
 # RT data
 task_data <- read_rds(here("data/task_data_nested.rds"))
 
+# num_attempted is absent for every run collected on task versions before
+# 1.0.0-beta.20, which in practice means the May-June 2024 uniandes-co-bogota
+# assessments; the field was added to the task's run-level output after that
+# and no other site collected data that early. A missing value therefore marks
+# an early build of the task rather than a run with no trials, and those runs
+# are excluded on the grounds that the early build is not comparable to the
+# version every other site was administered. Flagging them here rather than
+# relying on filter() dropping NA keeps the exclusion explicit and countable.
+run_data <- run_data |>
+  mutate(early_build = is.na(num_attempted))
+
 # IRT data
 mrot_scores <- read_rds(here("models/mrot_scores.rds")) |>
   filter(model_set == "multigroup_dataset") # also contains "multigroup_site"
@@ -71,6 +82,7 @@ sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))
 min_trials <- 10
 min_gap_months <- 3
 run_data_filtered <- run_data |>
+  filter(!early_build) |>
   filter(num_attempted >= min_trials) |>
   filter(!is.na(age), age >= 5, age <= 14) |>
   arrange(user_id, age) |>
@@ -85,9 +97,16 @@ run_data_filtered <- run_data |>
 ages <- run_data_filtered |> pull(age)
 age_breaks <- c(5, 8, 11, 14)
 
+# The bands are half-open, so [5,8) holds children who are 5, 6 or 7. Labelling
+# them by their interval endpoints ("5-8") reads as inclusive and overstates the
+# top of every band by a year, so they are labelled by the ages they contain.
+# Keeping these as factor levels also preserves age ordering in sorted tables,
+# which labelling after the fact as character strings did not.
+age_band_labels <- c("5\u20137", "8\u201310", "11\u201313")
+
 # add age groups and site labels
 runs_filtered <- run_data_filtered |>
-  mutate(age_group = cut(age, breaks = age_breaks,
+  mutate(age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
                          include.lowest = FALSE, right = FALSE),
          site_label = dataset |>
            recode_values(from = site_labels, to = names(site_labels)))
@@ -122,6 +141,62 @@ n_repeat_users <- runs_filtered |>
   summarise(n_assessments = n_distinct(run_id)) |>
   filter(n_assessments > 1) |>
   nrow()
+
+# Breakdown of the excluded assessments by reason. The criteria are applied in
+# the order given in filter-runs and each assessment is attributed to the first
+# criterion it meets, so the reasons partition the excluded set rather than
+# overlapping.
+excl_reasons <- mrot_scores |>
+  distinct(run_id, user_id) |>
+  anti_join(mrot_df |> distinct(run_id), by = "run_id") |>
+  left_join(run_data |> select(run_id, early_build, num_attempted, age, user_id),
+            by = c("run_id", "user_id")) |>
+  arrange(user_id, age) |>
+  group_by(user_id) |>
+  mutate(age_gap = age - lag(age)) |>
+  ungroup() |>
+  mutate(reason = case_when(
+    early_build ~ "collected on an early build of the task",
+    num_attempted < min_trials ~ glue("with fewer than {min_trials} trials"),
+    is.na(age) ~ "with no recorded age",
+    age < 5 | age > 14 ~ "outside the target age range",
+    .default = glue("repeated within {min_gap_months} months of an earlier assessment")) |>
+      # Ordered as applied, not by size, so the reported list and the order of
+      # attribution agree. Attributing in a different order moves assessments
+      # between reasons without changing the total.
+      fct_relevel("collected on an early build of the task",
+                  glue("with fewer than {min_trials} trials"),
+                  "with no recorded age",
+                  "outside the target age range")) |>
+  count(reason)
+
+excl_str <- excl_reasons |>
+  glue_data("{n} {reason}") |>
+  (\(x) glue_collapse(x, sep = ", ", last = " and "))()
+
+# Children partitioned by what happened to their assessments. Exclusions apply
+# to assessments, but some children were assessed twice, so the two units do not
+# correspond one-to-one. These three groups are mutually exclusive and sum to
+# the number of children assessed, which keeps the accounting free of the
+# double counting that reporting "children with an excluded assessment" invites
+# (that set overlaps the final sample).
+n_assessed_users <- n_distinct(mrot_scores$user_id)
+
+child_groups <- mrot_scores |>
+  distinct(run_id, user_id) |>
+  mutate(retained = run_id %in% mrot_df$run_id) |>
+  group_by(user_id) |>
+  summarise(n_kept = sum(retained), n_dropped = sum(!retained), .groups = "drop") |>
+  summarise(none    = sum(n_kept > 0 & n_dropped == 0),
+            partial = sum(n_kept > 0 & n_dropped >  0),
+            wholly  = sum(n_kept == 0))
+
+n_excl_none    <- child_groups$none
+n_excl_partial <- child_groups$partial
+n_excl_wholly  <- child_groups$wholly
+
+stopifnot(n_excl_none + n_excl_partial + n_excl_wholly == n_assessed_users,
+          n_excl_none + n_excl_partial == n_final$n_users)
 ```
 
 ```{r}
@@ -297,4 +372,28 @@ cat_slope_diff <- lme4::lmer(
     REML = FALSE, control = lme4::lmerControl(optimizer = "bobyqa")) |>
   summary() |> coef() |> _["angle_sc:adaptiveTRUE", ] |>
   as.list() |> setNames(c("estimate", "std.error", "statistic"))
+
+# (c) the same check restricted to the three sites that used both formats.
+# uniandes-co-rural was wholly adaptive, so on the full sample format cannot be
+# separated from site at all, and any whole-sample contrast partly reports the
+# differing site composition of the two formats rather than an effect of format.
+cat_within_data <- cat_check |>
+  filter(correct == 1, site_label != "uniandes-co-rural") |>
+  mutate(angle_sc = (angle - mean(angle)) / 40,
+         adaptive = factor(adaptive),
+         site_label = factor(site_label))
+contrasts(cat_within_data$site_label) <- contr.sum(levels(cat_within_data$site_label))
+
+cat_slope_diff_within <- lme4::lmer(
+    log_rt ~ angle_sc * adaptive * site_label + (1 + angle_sc | user_id),
+    data = cat_within_data, REML = FALSE,
+    control = lme4::lmerControl(optimizer = "bobyqa")) |>
+  slopes(newdata = cat_within_data, re.form = NA, variables = "angle_sc",
+         by = "adaptive", hypothesis = difference ~ pairwise) |>
+  as_tibble() |> as.list()
+
+# spelled out, as APA style wants words for counts below 10
+cat_within_sites <- cat_within_data |> distinct(site_label) |> nrow() |>
+  (\(n) if (n < 10) c("one","two","three","four","five","six","seven",
+                     "eight","nine")[n] else as.character(n))()
 ```

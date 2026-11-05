@@ -1,6 +1,8 @@
 ```{r}
 #| label: sex-rt-mods
+#| cache: true
 
+# Cached for the same reason as rt-angle-model, and with the same caveat.
 mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |>
   filter(!is.na(sex)) |>
   mutate(sex = factor(sex))
@@ -27,7 +29,7 @@ sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
   select(rowid, angle_sc, stimulus, site_label, age_sc, sex) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
-         age_group = cut(age, breaks = age_breaks,
+         age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
                          include.lowest = FALSE, right = FALSE),
          task = "mrot") |>
   inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
@@ -57,12 +59,7 @@ get_sex_comp <- \(pred) {
     mutate(predictor = pred, .before = value)
 }
 
-# slope_preds (from _02) includes "adaptive", but the sex model contains no
-# adaptive term and sex_pred_grid has no adaptive column, so comparisons cannot
-# be taken by it. Use the subset of predictors this model actually supports.
-sex_comp_preds <- setdiff(slope_preds, "adaptive")
-
-sex_comps <- map(sex_comp_preds, get_sex_comp) |> list_rbind()
+sex_comps <- map(slope_preds, get_sex_comp) |> list_rbind()
 
 sex_comps_tbl <- sex_comps |>
   select(term, contrast, predictor, value, estimate, std.error, p.value) |>
@@ -246,7 +243,7 @@ ability_grid <- datagrid(site_label = unique,
                          age = age_seq_yrs,
                          newdata = mrot_df_sex) |>
   select(rowid, site_label, sex, age) |>
-  mutate(age_group = cut(age, breaks = age_breaks,
+  mutate(age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
                          include.lowest = TRUE, right = FALSE),
          task = "mrot")
 
@@ -282,6 +279,44 @@ ability_slope_diffs <- slopes(
 ) |> as_tibble() |>
   mutate(p.value = map_chr(p.value, fmt_p))
 
+# The claim that the sex null holds at every site needs testing rather than
+# asserting, so the contrast is taken within each site and the sex-by-site
+# interaction is tested directly. Estimates are rescaled into SDs of ability so
+# they can be read against the effect sizes reported in the meta-analytic
+# literature.
+ability_sex_by_site <- comparisons(
+  ability_sex_mod,
+  newdata = mrot_df_sex,
+  re.form = NA,
+  variables = "sex",
+  by = "site_label"
+) |> as_tibble() |>
+  mutate(across(c(estimate, conf.low, conf.high), \(x) x / sd_ability)) |>
+  select(site_label, estimate, conf.low, conf.high, p.value) |>
+  # fmt_p prefixes "= " for inline use, which reads oddly under a p-value heading
+  mutate(p.value = map_chr(p.value, fmt_p) |> str_remove("^= "))
+
+# likelihood ratio test of the sex-by-site interaction (ML fits, as REML
+# likelihoods are not comparable across different fixed-effect structures)
+ability_sex_site_lrt <- anova(
+  lmer(ability ~ age * sex + age * site_label + (1 | user_id),
+       data = mrot_df_sex, REML = FALSE),
+  lmer(ability ~ age * sex * site_label + (1 | user_id),
+       data = mrot_df_sex, REML = FALSE)
+) |> as_tibble() |> slice(2) |>
+  transmute(chisq = `Chisq`, df = `Df`, p.value = `Pr(>Chisq)`)
+
+# interval on the overall sex effect, in SDs of ability, so the null can be
+# reported as a bound rather than only as a failure to reach significance
+ability_sex_ci <- comparisons(
+  ability_sex_mod,
+  newdata = mrot_df_sex,
+  re.form = NA,
+  variables = "sex",
+  by = "task"
+) |> as_tibble() |>
+  mutate(across(c(estimate, conf.low, conf.high), \(x) x / sd_ability))
+
 # comparisons(
 #   ability_sex_mod,
 #   newdata = ability_grid,
@@ -309,9 +344,9 @@ ability_sex_mod_tbl <- ability_sex_mod_stats |> as_tibble() |>
   select(R2_conditional, R2_marginal, RMSE) |>
   mutate(across(everything(), \(x) round(x, 2)))
 
-# slope_str <- \(s) glue("β = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p {s$p.value}")
+# slope_str <- \(s) glue("$\\beta$ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p {s$p.value}")
 ability_sex_comp <- \(p, v) ability_comps |> filter(term == p, contrast == v)
-# interp_str <- \(s) glue("β = {round(s$estimate, 2)}, {s$interpretation}")
+# interp_str <- \(s) glue("$\\beta$ = {round(s$estimate, 2)}, {s$interpretation}")
 
 # slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
 # slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)

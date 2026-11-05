@@ -1,0 +1,128 @@
+---
+title: "Prior sensitivity of the cross-site invariance comparison"
+---
+
+The multigroup models in `02_fit_irt.qmd` are MAP fits under a slope prior of
+`a1 ~ N(1, 0.3)`, the shared LEVANTE prior applied across all tasks. Because that
+prior shrinks discriminations toward equality, it is doing part of the work in
+selecting among invariance models. This script refits the same five models over a
+range of slope priors so the sensitivity can be reported.
+
+Two things to note.
+
+First, the reported `logLik` is the unpenalized likelihood evaluated at the
+penalized optimum, and the number of prior terms differs across models (the
+configural model applies the slope prior separately in each group). At tight
+priors this makes `logLik` non-monotonic in model nesting, which is expected for
+MAP fits rather than a convergence failure. `logPost` is the quantity actually
+being maximized.
+
+Second, `rlevante:::remove_no_var_items_bygroup` currently tests `n_cat < 0`,
+which `n_distinct()` can never satisfy, so the filter is a no-op. The published
+models were fit when it tested `n_cat < 2`. The patched version below is required
+to reproduce them; without it the overlap set grows from 54 to 81 item instances.
+
+```{r}
+library(glue)
+library(here)
+library(mirt)
+library(rlang)
+library(rlevante)
+library(tidyverse)
+
+# vendored from levante-pilots 02_score_data/02_fit_irt/irt_helpers.R, which moved
+# into the levantemodels package in the July 2026 reorg; the copy here keeps this
+# script runnable against the model specification the published fits used.
+source(here("helper/irt_helpers.R"))
+
+invariances <- list(
+  configural = "",
+  metric     = c("slopes"),
+  scalar     = c("free_means", "free_var", "intercepts", "slopes")
+)
+
+# patched copy of rlevante:::remove_no_var_items_bygroup (see note above)
+remove_no_var_items_bygroup_fixed <- function(df) {
+  df |>
+    group_by(item_inst, group) |>
+    mutate(n_cat = n_distinct(correct)) |>
+    group_by(item_inst) |>
+    mutate(low_cat = any(n_cat < 2)) |>
+    ungroup() |>
+    filter(!low_cat) |>
+    select(-n_cat, -low_cat)
+}
+```
+
+```{r}
+# rebuild the overlap-item data exactly as fit_task_models_multigroup does
+trials <- read_rds(here("data/task_data_nested.rds")) |>
+  filter(item_task == "mrot") |>
+  unnest(data) |>
+  rename(group = dataset) |>
+  mutate(item_uid = as.character(item_uid)) |>
+  filter(!is.na(correct))
+
+df_overlap <- trials |>
+  rlevante:::dedupe_items() |>
+  rlevante:::remove_no_var_items() |>
+  rlevante:::remove_nonshared_items() |>
+  remove_no_var_items_bygroup_fixed()
+
+data_wide <- df_overlap |> rlevante:::to_mirt_shape_grouped()
+data_prepped <- data_wide |> select(-group)
+guess <- df_overlap |> distinct(item_inst, chance) |> pull(chance)
+
+stopifnot(ncol(data_prepped) == 54, sum(!is.na(data_prepped)) == 49603)
+```
+
+```{r}
+models_multigroup <- tribble(
+  ~itemtype, ~invariance,
+      "2PL", "configural",
+      "2PL", "metric",
+      "2PL", "scalar",
+    "Rasch", "configural",
+    "Rasch", "scalar",
+)
+
+fit_one <- function(itemtype, invariance, priors) {
+  model_str <- generate_model_str_numeric(df_overlap, data_prepped, itemtype, 1, priors)
+  mod <- multipleGroup(
+    data = data_prepped,
+    itemtype = itemtype,
+    model = mirt.model(model_str),
+    group = data_wide$group,
+    invariance = invariances[[invariance]],
+    guess = guess,
+    verbose = FALSE,
+    TOL = 1e-5,
+    technical = list(NCYCLES = 30000)
+  )
+  slopes <- mod2values(mod) |> as_tibble() |> filter(name == "a1", item != "GROUP")
+  tibble(itemtype = itemtype, invariance = invariance,
+         n_pars = extract.mirt(mod, "nestpars"),
+         logLik = mod@Fit$logLik, logPrior = mod@Fit$logPrior,
+         logPost = mod@Fit$logLik + mod@Fit$logPrior,
+         AIC = mod@Fit$AIC, BIC = mod@Fit$BIC,
+         converged = extract.mirt(mod, "converged"),
+         a_median = median(slopes$value), a_max = max(slopes$value))
+}
+
+# slope prior SDs to sweep over; NA means no prior at all
+prior_sds <- c(0.3, 0.5, 1, 2, NA)
+
+prior_sensitivity <- prior_sds |>
+  map(\(s) {
+    priors <- if (is.na(s)) NULL else list(d = c("norm", 0, 3), a1 = c("norm", 1, s))
+    models_multigroup |>
+      pmap(\(itemtype, invariance) fit_one(itemtype, invariance, priors)) |>
+      list_rbind() |>
+      mutate(prior_sd = s, .before = everything())
+  }) |>
+  list_rbind() |>
+  mutate(d_BIC = BIC - min(BIC), .by = prior_sd)
+
+write_rds(prior_sensitivity, here("models/mrot_prior_sensitivity.rds"), compress = "gz")
+prior_sensitivity
+```

@@ -37,8 +37,14 @@ mrot_2pl_configural <- mod_tbl |>
 mrot_rasch_scalar <- mod_tbl |>
   filter(itemtype == "rasch", invariance == "scalar")
 
-delta_bic_rasch <- mrot_rasch_scalar$BIC - mrot_2pl_scalar$BIC
-delta_bic_configural <- mrot_2pl_configural$BIC - mrot_2pl_scalar$BIC
+# ΔBIC values are read off the rounded d_BIC column rather than recomputed from
+# the rounded BICs, so that the figures quoted in the text match @tbl-mrot-irt.
+# (Rounding each BIC before subtracting gives 416 where the table shows 417.)
+delta_bic_rasch <- mrot_rasch_scalar$d_BIC
+delta_bic_configural <- mrot_2pl_configural$d_BIC
 bic_2pl_scalar <- as.character(mrot_2pl_scalar$BIC)
 aic_2pl_scalar <- as.character(mrot_2pl_scalar$AIC)
+# AIC favours the metric model even though BIC favours scalar; reported in text.
+aic_2pl_metric <- mod_tbl |>
+  filter(itemtype == "2pl", invariance == "metric") |> pull(AIC) |> as.character()
 ```

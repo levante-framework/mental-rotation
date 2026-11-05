@@ -62,7 +62,12 @@ dim_ratio <- coef(summary(dim_mod)) |>
 
 ```{r}
 #| label: rt-angle-model
+#| cache: true
 
+# Cached because the four-way model takes several minutes to fit and nothing
+# downstream of it changes between most renders. Caching keys on this chunk's
+# code only, so it will NOT notice changes to mrot_lme_data in _00_data_prep;
+# delete mrot_paper_cache/ (or set cache: false) after changing the data.
 full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
                    trial_number * stimulus + 
                    adaptive * stimulus +   # not * site_label: rural is wholly adaptive (see Methods)
@@ -98,7 +103,7 @@ pred_grid <- datagrid(angle_sc = unique,        # each angle
   select(rowid, angle_sc, stimulus, site_label, age_sc, adaptive, trial_number) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
-         age_group = cut(age, breaks = age_breaks,
+         age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
                          include.lowest = FALSE, right = FALSE),
          task = "mrot") |>
   inner_join(stim_map) |> # only items that actually exist (i.e. no shape 160, only rabbit 20)
@@ -163,7 +168,13 @@ full_contrast <- hypotheses(
 #| label: rt-angle-slopes
 
 # extract angle slopes for each predictor
-slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group", "adaptive") # trial-number
+# "adaptive" is deliberately absent. full_mod has no adaptive-by-angle term, so
+# it cannot represent a format difference in angular sensitivity; averaging over
+# the observed trials would report only the differing site composition of the two
+# formats (adaptive trials are 45% from wholly-adaptive uniandes-co-rural, the
+# flattest site, against 0% of fixed-form trials). The format check is reported in
+# the Methods instead, restricted to the sites that used both formats.
+slope_preds <- c("task", "item_group", "stimulus", "site_label", "age_group") # trial-number
 
 # Slopes are average marginal effects over the observed data rather than over
 # pred_grid: balancing upweights cells where a stimulus type is thinly
@@ -180,6 +191,17 @@ get_pred_slopes <- \(pred) {
 }
 
 pred_slopes <- map(slope_preds, get_pred_slopes) |> list_rbind()
+
+# The same item-type slopes averaged over the balanced grid instead of the
+# observed trials. Quoted in the Results and Limitations so the figures there
+# cannot drift from Table S4, which recomputes them from an identical model.
+grid_item_slopes <- slopes(full_mod, newdata = pred_grid, re.form = NA,
+                           variables = "angle_sc", by = "item_group") |>
+  as_tibble() |> select(item_group, estimate) |> deframe()
+
+obs_item_slopes <- pred_slopes |>
+  filter(predictor == "item_group") |>
+  select(value, estimate) |> deframe()
 
 pred_slopes_tbl <- pred_slopes |>
   select(predictor, value, estimate, std.error, p.value) |>
@@ -209,6 +231,52 @@ pred_slope_tests_tbl <- pred_slope_tests |> as_tibble() |>
   mutate(estimate_rt = exp(estimate)) |>
   mutate(interpretation = mult_to_pct(estimate_rt, "steeper", "flatter"),
          p.value = map_chr(p.value, fmt_p))
+```
+
+```{r}
+#| label: angle-accuracy
+
+# Accuracy against angle, the other half of the Shepard and Metzler signature.
+# Fitted on all administered trials rather than correct ones only, so this is
+# built from mrot_rt_trial rather than from mrot_lme_data.
+mrot_acc_data <- mrot_rt_trial |>
+  filter(trial_number != 1, !is.na(angle)) |>
+  mutate(item_group = factor(item_group),
+         site_label = factor(site_label),
+         angle_sc   = (angle - mean(angle)) / deg,
+         age_sc     = (age - mean(age)) / yrs,
+         task       = "mrot")
+contrasts(mrot_acc_data$item_group) <- contr.sum(levels(mrot_acc_data$item_group))
+contrasts(mrot_acc_data$site_label) <- contr.sum(levels(mrot_acc_data$site_label))
+
+# A deliberately simpler specification than full_mod: the purpose here is to
+# establish that accuracy falls as response time rises, not to partition the
+# accuracy effect across the same four-way structure.
+acc_mod <- glmer(correct ~ angle_sc * item_group + site_label + age_sc + (1 | user_id),
+                 data = mrot_acc_data, family = binomial,
+                 control = glmerControl(optimizer = "bobyqa",
+                                        optCtrl = list(maxfun = 2e5)))
+
+# Reported on the probability scale, in percentage points per 40 degrees, since
+# the log-odds slopes differ between stimulus types only because 3D items sit
+# lower on the logistic curve.
+acc_slope <- \(pred) avg_slopes(acc_mod, newdata = mrot_acc_data, re.form = NA,
+                               variables = "angle_sc", by = pred) |>
+  as_tibble() |> rename(value = !!pred) |>
+  mutate(pp = 100 * estimate, pp_se = 100 * std.error,
+         p.value = map_chr(p.value, fmt_p))
+
+acc_overall <- acc_slope("task")
+acc_by_type <- acc_slope("item_group")
+acc_type <- \(g) acc_by_type |> filter(value == g)
+
+# descriptive accuracy at the extremes of each type's administered range
+acc_cells <- mrot_acc_data |>
+  summarise(acc = mean(correct), n = n(), .by = c(item_group, angle)) |>
+  arrange(item_group, angle)
+acc_at <- \(g, a) acc_cells |> filter(item_group == g, angle == a) |> pull(acc)
+acc_stats <- list(n_trials = format(nrow(mrot_acc_data), big.mark = ","),
+                  n_runs = format(n_distinct(mrot_acc_data$run_id), big.mark = ","))
 ```
 
 ```{r}
@@ -255,9 +323,9 @@ mod_stats_tbl <- full_mod_stats |> as_tibble() |>
   mutate(RMSE_exp = exp(RMSE)) |>
   mutate(across(everything(), \(x) round(x, 2)))
 
-slope_str <- \(s) glue("β = {fmt_est(s$estimate)}, SE = {fmt_se(s$std.error)}, p {s$p.value}")
+slope_str <- \(s) glue("$\\beta$ = {fmt_est(s$estimate)}, SE = {fmt_se(s$std.error)}, p {s$p.value}")
 slope <- \(v) pred_slopes_tbl |> filter(value == v)
-interp_str <- \(s) glue("β = {fmt_est(s$estimate)}, {s$interpretation}")
+interp_str <- \(s) glue("$\\beta$ = {fmt_est(s$estimate)}, {s$interpretation}")
 
 slope_diff_str <- \(s) glue("Δ = {fmt_est(s$estimate)}, SE = {fmt_se(s$std.error)}, p {s$p.value}")
 slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
@@ -266,12 +334,31 @@ slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
 ```{r}
 #| label: rt-slopes-tbl
 
+# The (3D) - (2D) row from pred_slope_tests compares each type over its own
+# angle range, which is not a like-for-like comparison (see Results). The
+# shared-range contrast is added alongside it rather than replacing it, so the
+# table shows both and the discrepancy is visible rather than resolved silently.
+common_contrast_row <- tibble(
+  predictor = "item_group",
+  value = "(3D) - (2D), 40-120° only",
+  estimate = common_contrast$estimate,
+  std.error = common_contrast$std.error,
+  p.value = fmt_p(common_contrast$p.value),
+  estimate_rt = exp(common_contrast$estimate),
+  interpretation = mult_to_pct(exp(common_contrast$estimate), "steeper", "flatter")
+)
+
 slopes_tbl <- bind_rows(
   pred_slopes_tbl,
-  pred_slope_tests_tbl |> rename(value = hypothesis)
+  pred_slope_tests_tbl |> rename(value = hypothesis),
+  common_contrast_row
 ) |>
   filter(predictor != "task") |>
   select(-estimate_rt) |>
+  # label the two item-type contrasts by the range each covers, so neither can
+  # be mistaken for the other
+  mutate(value = if_else(predictor == "item_group" & value == "(3d) - (2d)",
+                         "(3d) - (2d), full range", value)) |>
   mutate(predictor = predictor |> fct_inorder()) |>
   arrange(predictor) |>
   mutate(predictor = predictor |>

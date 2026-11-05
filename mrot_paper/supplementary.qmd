@@ -81,7 +81,8 @@ supp_rt_runs <- mrot_rt_trial |>
   filter(correct == 1, trial_number != 1, is.finite(log_rt)) |>
   summarise(rt_med = median(log_rt, na.rm = TRUE),
             .by = c(site_label, user_id, run_id, age, stimulus, item_group, angle)) |>
-  mutate(age_group = cut(age, breaks = age_breaks, include.lowest = TRUE, right = FALSE)) |>
+  mutate(age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
+                         include.lowest = TRUE, right = FALSE)) |>
   drop_na(age_group)   # age_group needed: the figure facets site_label ~ age_group
 
 supp_rt_cells <- supp_rt_runs |>
@@ -119,7 +120,7 @@ knitr::include_graphics("images/mrot_item_examples.pdf")
 
 ```{r}
 #| label: fig-item-info
-#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability (θ), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by rotation angle. Higher rotation angle items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
+#| fig-cap: "**Item information curves (IICs) from the 2PL scalar invariant IRT model.** Each line represents an individual item's information as a function of ability ($\\theta$), grouped by item type (2D/3D) and stimulus (duck/rabbit/shape), and colored by rotation angle. Higher rotation angle items are both more difficult (IICs shifted further right) and more highly discriminating (IICs taller and narrower). Compared to 2D items, 3D items are more difficult and less discriminating."
 #| fig-width: 8
 #| fig-height: 3.5
 
@@ -199,13 +200,83 @@ wrap_plots(pair_plots_d)
 
 ```{r}
 #| label: fig-item-disc
-#| fig-cap: "**Item discrimination parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item discrimination parameters are consistent across sites."
+#| fig-cap: "**Item discrimination parameters across sites (configural model).** Points represent individual items; close alignment along the diagonal indicates that item discrimination parameters are consistent across sites. Alignment is closer for the 2D items than the 3D items, whose discriminations are estimated from three rotations only and vary more across sites."
 #| fig-width: 12
 #| fig-height: 8
 
 pair_plots_a <- map2(site_pairs$s1, site_pairs$s2,
                      partial(coef_scatter, param = "discrimination"))
 wrap_plots(pair_plots_a)
+```
+
+\clearpage
+
+## Sensitivity of the invariance comparison to the slope prior
+
+The multigroup models reported in the main text are maximum a posteriori fits
+under a slope prior of $N(1, 0.3)$ and a difficulty prior of $N(0, 3)$, the
+priors applied across all LEVANTE tasks. Because the slope prior shrinks item
+discriminations toward equality, it contributes to the comparison among
+invariance models, and the strength of that contribution is a choice rather than
+a property of the data. @tbl-prior-sensitivity refits the same five models across
+a range of slope priors, from the published $N(1, 0.3)$ through to no prior at
+all.
+
+Two patterns are worth drawing out. The configural model, in which every item
+parameter is free to vary by site, is rejected under every specification, by
+between 122 and 417 BIC points. The choice between the metric and scalar models
+is far less stable. Scalar is preferred under the two tightest priors and metric
+under the looser ones, and outside the published prior the two are never
+separated by more than roughly four BIC points. We therefore treat the evidence
+for discriminations being shared across sites as strong, and the evidence for the
+additional scalar constraint on difficulties as suggestive only.
+
+The sweep also shows why some prior is needed. As the prior weakens, the largest
+estimated discrimination in the configural model rises from 2.79 to 12.38,
+reflecting item-by-site cells with too few responses to identify a slope. The
+Rasch models are unaffected throughout, since they fix every discrimination at 1
+and the slope prior is therefore inert.
+
+\clearpage
+
+```{r}
+#| label: tbl-prior-sensitivity
+#| tbl-cap: "**Invariance model comparison across slope priors.** Each block refits the five multigroup models under a different prior on item discriminations, holding the difficulty prior at N(0, 3). ΔBIC is measured from the best-fitting model within each block, shown in bold. 'Max a' is the largest estimated discrimination in that model, included because weak priors leave some item-by-site slopes poorly identified. The first block reproduces Table 3 of the main text."
+
+prior_sens <- read_rds(here("models/mrot_prior_sensitivity.rds"))
+
+prior_rows <- prior_sens |>
+  mutate(
+    prior = if_else(is.na(prior_sd), "none", paste0("N(1, ", prior_sd, ")")),
+    # blank the repeated prior labels by hand rather than with collapse_rows,
+    # which does not combine cleanly with the row_spec bolding below
+    prior = if_else(row_number() == 1, prior, ""), .by = prior_sd
+  ) |>
+  mutate(
+    model = paste(itemtype, invariance),
+    BIC = sprintf("%.0f", BIC),
+    d_BIC = sprintf("%.1f", d_BIC),
+    a_max = sprintf("%.2f", a_max)
+  ) |>
+  select(prior, model, n_pars, BIC, d_BIC, a_max)
+
+# the best-fitting model within each prior block, bolded via row_spec below
+best_rows <- which(prior_sens$d_BIC == 0)
+
+prior_tbl <- knitr::kable(
+  prior_rows,
+  col.names = c("Slope prior", "Model", "Parameters", "BIC", "ΔBIC", "Max a"),
+  booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r", "r")
+)
+
+# kableExtra emits HTML, which Quarto rejects when rendering to docx
+if (knitr::is_latex_output()) {
+  prior_tbl <- prior_tbl |>
+    kableExtra::kable_styling(font_size = 9) |>
+    kableExtra::row_spec(best_rows, bold = TRUE) |>
+    kableExtra::row_spec(seq(5, 20, by = 5), extra_latex_after = "\\addlinespace")
+}
+prior_tbl
 ```
 
 <!-- \clearpage -->
@@ -217,7 +288,7 @@ wrap_plots(pair_plots_a)
 <!-- #| include: true -->
 <!-- #| fig-width: 5 -->
 <!-- #| fig-height: 5 -->
-<!-- #| fig-cap: "**Ability (θ) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates." -->
+<!-- #| fig-cap: "**Ability ($\\theta$) distributions across uniandes-co sub-samples.** Ability estimates for the uniandes-co-bogota sample (red) and the uniandes-co-rural sample (blue) under scalar invariance, comparing models that treat the two sub-samples as separate groups (y axis) versus pooled as a single group (x axis). Near-identical distributions indicate that pooling does not substantially distort individual ability estimates." -->
 
 <!-- p_co_theta -->
 <!-- ``` -->
@@ -246,9 +317,7 @@ wrap_plots(pair_plots_a)
 
 n_table <- supp_rt_cells |>
   select(site_label, age_group, item_group, stimulus, angle, n) |>
-  mutate(item_group = str_to_upper(item_group),
-         age_group = as.character(age_group) |>
-           str_replace_all(c("\\[" = "", "\\]" = "", "\\)" = "", "," = "--"))) |>
+  mutate(item_group = str_to_upper(item_group)) |>
   # sort by angle before pivoting: pivot_wider orders new columns by first
   # appearance, which is not numeric order, so the angle headers would otherwise
   # be assigned to the wrong columns
@@ -270,7 +339,7 @@ knitr::kable(
 
 Angle slopes in the main text are average marginal effects computed over the administered trials. They therefore estimate the angle effect for the average trial in this study. A balanced grid instead estimates the effect for a hypothetical population with equal numbers of observations in each site × age × item-type cell.
 
-Cell sizes are substantially unbalanced (Table S2): the largest contains more than 20 times as many trials as the smallest. The sparsest cells all contain 3D items, with the two sparsest comprising 3D items administered to the youngest children. Observed-data averaging weights each cell in proportion to its trial count, whereas a balanced grid weights all cells equally. Thus, compared with observed-data averaging, a balanced grid gives the sparsest cell approximately eight times as much weight and the largest approximately one third as much. Equal weighting also shifts the age composition toward younger children more strongly for 3D than for 2D items. Because the multiplicative angle slope increases with age, this shift affects the 3D estimate more than the 2D estimate. Table S3 reports the angle slopes under both weighting schemes.
+Cell sizes are substantially unbalanced (Table S3): the largest contains more than 20 times as many trials as the smallest. The sparsest cells all contain 3D items, with the two sparsest comprising 3D items administered to the youngest children. Observed-data averaging weights each cell in proportion to its trial count, whereas a balanced grid weights all cells equally. Thus, compared with observed-data averaging, a balanced grid gives the sparsest cell approximately eight times as much weight and the largest approximately one third as much. Equal weighting also shifts the age composition toward younger children more strongly for 3D than for 2D items. Because the multiplicative angle slope increases with age, this shift affects the 3D estimate more than the 2D estimate. Table S4 reports the angle slopes under both weighting schemes.
 
 ```{r}
 #| label: tbl-cell-weights
@@ -284,8 +353,6 @@ cell_weights <- mrot_lme_data |>
          inflation = grid_wt / obs_wt) |>
   arrange(site_label, age_group, item_group) |>
   mutate(item_group = str_to_upper(item_group),
-         age_group = as.character(age_group) |>
-           str_replace_all(c("\\[" = "", "\\]" = "", "\\)" = "", "," = "--")),
          across(c(obs_wt, grid_wt), \(x) sprintf("%.2f", x)),
          inflation = sprintf("%.2f", inflation))
 
@@ -332,7 +399,8 @@ pred_grid_supp <- datagrid(angle_sc = unique, stimulus = unique, site_label = un
   select(rowid, angle_sc, stimulus, site_label, age_sc, adaptive, trial_number) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
-         age_group = cut(age, breaks = age_breaks, include.lowest = FALSE, right = FALSE),
+         age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
+                         include.lowest = FALSE, right = FALSE),
          task = "mrot") |>
   inner_join(stim_map_supp, by = c("angle_sc", "stimulus")) |>
   left_join(mrot_lme_data |> distinct(angle, angle_sc), by = c("angle", "angle_sc"))
@@ -386,8 +454,7 @@ weight_compare |>
     predictor = recode(predictor, task = "Overall", item_group = "Item type",
                        site_label = "Site", age_group = "Age group"),
     value = value |>
-      str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D",
-                        "\\[" = "", "\\]" = "", "\\)" = "", "," = "--")),
+      str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D")),
     across(c(observed, grid), \(x) sprintf("%.3f", x)),
     diff = sprintf("%+.3f", as.numeric(grid) - as.numeric(observed))
   ) |>
@@ -465,8 +532,7 @@ scale_compare |>
   mutate(predictor = recode(predictor, task = "Overall", item_group = "Item type",
                             site_label = "Site", age_group = "Age group"),
          value = value |>
-           str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D",
-                             "\\[" = "", "\\]" = "", "\\)" = "", "," = "--"))) |>
+           str_replace_all(c("^mrot$" = "All trials", "^2d$" = "2D", "^3d$" = "3D"))) |>
   knitr::kable(col.names = c("", "Level", "Log scale (% per 40°)",
                              "Additive scale (ms/degree)", "Rate (°/sec)"),
                booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r"))
@@ -527,7 +593,7 @@ p_mrot_rt_angle_age_2 <- ggplot() +
   .scale_colour_stimulus() +
   labs(
     x = "Rotation angle (°)",
-    y = "Reaction time (s)",
+    y = "Response time (log seconds)",
     colour = "Stimulus",
     linetype = "Item type"
   ) + scale_x_continuous(breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360)) +
@@ -540,9 +606,52 @@ p_mrot_rt_angle_age_2
 
 ## Full 0--360° rotation functions
 
+```{r}
+#| label: supp-full-angle-data
+
+# Cell means across the full 0-360 range, used by both the figure and the
+# mirror-pair table below, and by the counts quoted in this section.
+full_angle_cell <- mrot_rt_trial |>
+  filter(correct == 1, trial_number != 1, is.finite(log_rt), !is.na(angle_full)) |>
+  summarise(m = mean(log_rt), .by = c(user_id, stimulus, angle_full)) |>
+  summarise(n_child = n(), mean_log = mean(m), se = sd(m) / sqrt(n()),
+            .by = c(stimulus, angle_full)) |>
+  mutate(rt = exp(mean_log), lo = exp(mean_log - 1.96 * se), hi = exp(mean_log + 1.96 * se))
+
+# Each rotation below 180 paired with the rotation above it that shortest-path
+# recoding maps to the same disparity. 3D items were only ever administered
+# above 180, so they have no mirror and are dropped.
+mirror_pairs <- full_angle_cell |>
+  filter(stimulus != "shape") |>
+  mutate(disparity = pmin(angle_full, 360 - angle_full),
+         side = if_else(angle_full <= 180, "below", "above")) |>
+  select(stimulus, angle_full, disparity, side, rt, lo, hi) |>
+  pivot_wider(id_cols = c(stimulus, disparity), names_from = side,
+              values_from = c(angle_full, rt, lo, hi)) |>
+  filter(!is.na(rt_below), !is.na(rt_above)) |>
+  mutate(pct = 100 * (rt_above / rt_below - 1),
+         reliable = lo_above > hi_below | lo_below > hi_above,
+         stimulus = recode(stimulus, duck = "2D (duck)", rabbit = "2D (rabbit)")) |>
+  arrange(stimulus, disparity)
+
+# counts and magnitudes quoted in the text, so they track the data
+mp_n <- nrow(mirror_pairs)
+mp_reliable <- sum(mirror_pairs$reliable)
+# a pair is "consistent" when both stimuli deviate in the same direction
+mp_dir <- mirror_pairs |>
+  summarise(consistent = n_distinct(sign(pct)) == 1,
+            both_reliable = all(reliable),
+            mean_pct = mean(abs(pct)), .by = disparity)
+mp_at <- \(d) mp_dir |> filter(disparity == d)
+```
+
 The primary analyses model angular disparity as the shortest path to upright, capped at 180°, on the assumption that children rotate via the shorter available route. A 320° rotation is therefore treated as a 40° disparity. Figure S6 tests that assumption directly by plotting response time across the full 0--360° range.
 
-For the 2D stimuli, which were presented in both rotational directions, response times rise to a peak at 200° and then decline symmetrically, returning to approximately their 40° level by 320°. This is the pattern expected if performance depends on angular disparity rather than on absolute rotation, and it supports the shortest-path recoding.
+For the 2D stimuli, which were presented in both rotational directions, response times rise to a peak and then fall away again, returning to approximately their 40° level by 320°. This inverted-U is the pattern expected if performance depends on angular disparity rather than on absolute rotation, and the data show it unambiguously. Note that 180° was not among the administered rotations, so the observed peak falls at 200°, the nearest sampled angle above the midpoint.
+
+The recoding is a good approximation rather than an exact description, however. @tbl-mirror-pairs compares each pair of rotations that maps to the same disparity, which should be equivalent if the recoding holds exactly. `r mp_reliable` of the `r mp_n` pairs differ by more than their confidence intervals allow.
+
+Direction matters more than count here. The 80°/280° pair is reliably different for both stimuli but in opposite directions, which points to item-specific variation rather than a failure of the recoding. The one deviation that is both reliable and consistent across stimuli is 160° against 200°, where responses above 180° are slower by around `r round(mp_at(160)$mean_pct)`%. The 40°/320° pair leans the same way for both stimuli as well, with responses above 180° faster by around `r round(mp_at(40)$mean_pct)`%, though reliably so for only one of them. Taken together these suggest that the function is not quite symmetric about 180° and peaks somewhat above it, which no recoding capped at 180° can represent. A further minor departure is visible within the ascending limb, where rabbit items at 80° are slower than at 120°, although those intervals overlap.
 
 The 3D stimuli cannot provide the same test. The available Shepard and Metzler [-@shepard1971mental] figures were supplied at only three rotations, all greater than 180°, so 3D items appear only at 240°, 280° and 320° -- the descending limb of the function. The check is therefore restricted to the 2D stimuli.
 
@@ -551,13 +660,6 @@ The 3D stimuli cannot provide the same test. The available Shepard and Metzler [
 #| fig-cap: "Response time by full rotation angle, before shortest-path recoding. Points are geometric means of participant-level mean log response times; ribbons are 95% confidence intervals. Correct responses only, excluding each run's first trial; adaptive and fixed-form runs are pooled. The y-axis is log-scaled, so a constant multiplicative difference appears as a constant vertical distance. 2D stimuli were presented in both rotational directions and show the expected inverted-U about 180°; the available 3D stimuli were supplied only at rotations greater than 180°, so only the descending limb is observed for them."
 #| fig-width: 7
 #| fig-height: 4.5
-
-full_angle_cell <- mrot_rt_trial |>
-  filter(correct == 1, trial_number != 1, is.finite(log_rt), !is.na(angle_full)) |>
-  summarise(m = mean(log_rt), .by = c(user_id, stimulus, angle_full)) |>
-  summarise(n_child = n(), mean_log = mean(m), se = sd(m) / sqrt(n()),
-            .by = c(stimulus, angle_full)) |>
-  mutate(rt = exp(mean_log), lo = exp(mean_log - 1.96 * se), hi = exp(mean_log + 1.96 * se))
 
 stim_labs <- c(duck = "2D (duck)", rabbit = "2D (rabbit)", shape = "3D")
 
@@ -586,10 +688,299 @@ ggplot(full_angle_cell, aes(angle_full, rt, colour = stimulus,
         axis.line = element_line(colour = "grey70", linewidth = .3))
 ```
 
+```{r}
+#| label: tbl-mirror-pairs
+#| tbl-cap: "**Rotations that recode to the same angular disparity.** Each row pairs a rotation below 180° with the rotation above it that shortest-path recoding maps to the same disparity. Response times are geometric means of participant-level means, in seconds. The difference is the second member as a percentage of the first, so a positive value means the rotation above 180° was slower. Pairs whose 95% confidence intervals do not overlap are marked. 3D items are omitted, having been administered only above 180°."
+
+mirror_pairs |>
+  transmute(
+    stimulus,
+    pair = sprintf("%d° vs %d°", angle_full_below, angle_full_above),
+    disparity = sprintf("%d°", disparity),
+    rt_below = sprintf("%.2f", rt_below),
+    rt_above = sprintf("%.2f", rt_above),
+    diff = paste0(sprintf("%+.1f%%", pct), if_else(reliable, "*", ""))
+  ) |>
+  knitr::kable(
+    col.names = c("Stimulus", "Pair", "Disparity", "Below 180°",
+                  "Above 180°", "Difference"),
+    booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r", "r")
+  )
+```
+
+
+## Accuracy and the age gradient in angular sensitivity
+
+```{r}
+#| label: supp-guess-data
+
+# Run-level accuracy must be computed before restricting to correct responses,
+# so it is taken from the full trial set rather than from mrot_lme_data.
+# angle_sc is added here rather than inherited: mrot_rt_trial carries raw angle
+# only, and mrot_lme_data has already dropped incorrect trials, which are needed
+# below to compute each assessment's accuracy.
+guess_trials <- mrot_rt_trial |>
+  filter(is.finite(log_rt), trial_number != 1, !is.na(angle)) |>
+  mutate(angle_sc = (angle - mean(angle)) / deg)
+
+# A flat accuracy cut-off applies the same bar to an assessment of 12 trials and
+# one of 80, where the same proportion correct is far weaker evidence of
+# above-chance performance. The binomial screen instead asks, for each
+# assessment, whether that many correct responses out of that many trials is
+# unlikely under random responding, so the bar adapts to the trial count.
+guess_run_acc <- guess_trials |>
+  summarise(n_tr = n(), n_corr = sum(correct), acc = mean(correct), .by = run_id) |>
+  filter(n_tr >= min_trials) |>
+  mutate(p_chance = pbinom(n_corr - 1, n_tr, 0.5, lower.tail = FALSE),
+         above_chance = p_chance < .05)
+
+guess_acc_by_age <- guess_trials |>
+  distinct(run_id, age_group) |>
+  inner_join(guess_run_acc, by = "run_id") |>
+  summarise(acc = mean(acc), .by = age_group) |>
+  arrange(age_group)
+
+# One angle slope per assessment, from 2D items only. Assessments contributing
+# fewer than three distinct angles or eight trials cannot support a slope.
+guess_run_slopes <- guess_trials |>
+  filter(correct == 1, item_group == "2d") |>
+  inner_join(guess_run_acc |> select(run_id, acc, above_chance), by = "run_id") |>
+  nest(d = -c(run_id, site_label, age_group, acc, above_chance)) |>
+  mutate(slope = map_dbl(d, \(x) if (n_distinct(x$angle_sc) < 3 || nrow(x) < 8) NA_real_
+                         else coef(lm(log_rt ~ angle_sc, data = x))[["angle_sc"]])) |>
+  select(-d) |>
+  filter(!is.na(slope))
+
+stopifnot(nrow(guess_run_slopes) > 0)
+
+# Screens are kept as an ordered list of (label, predicate) pairs so the flat
+# cut-offs and the binomial screen can be reported side by side in one table.
+guess_screens <- list(
+  list(label = "all runs",     f = \(d) d),
+  list(label = "acc >= 0.60",  f = \(d) filter(d, acc >= 0.60)),
+  list(label = "acc >= 0.75",  f = \(d) filter(d, acc >= 0.75)),
+  list(label = "acc >= 0.85",  f = \(d) filter(d, acc >= 0.85)),
+  list(label = "above chance", f = \(d) filter(d, above_chance))
+)
+guess_screen_levels <- map_chr(guess_screens, "label")
+
+guess_summarise <- function(df, ...) {
+  df |> group_by(...) |>
+    summarise(n = dplyr::n(), m = mean(slope),
+              se = sd(slope) / sqrt(dplyr::n()), .groups = "drop") |>
+    mutate(cell = sprintf("%.3f (%.3f, %.3f)", m, m - 1.96 * se, m + 1.96 * se))
+}
+
+guess_by_age <- guess_screens |>
+  map(\(s) guess_run_slopes |> s$f() |> guess_summarise(age_group) |>
+        mutate(thresh = s$label)) |>
+  list_rbind() |>
+  mutate(thresh = factor(thresh, levels = guess_screen_levels))
+
+# assessments surviving each screen, for the retention comparison in the text
+guess_retained <- guess_screens |>
+  map(\(s) tibble(thresh = s$label, n = nrow(s$f(guess_run_slopes)))) |>
+  list_rbind()
+guess_ret <- function(label) {
+  i <- match(label, guess_retained$thresh); stopifnot(!is.na(i))
+  guess_retained[i, ]
+}
+
+# oldest minus youngest band, at each threshold
+guess_gradient <- guess_by_age |>
+  group_by(thresh) |>
+  arrange(age_group, .by_group = TRUE) |>
+  summarise(gradient = last(m) - first(m), .groups = "drop")
+
+# looked up by label rather than by vector name, so a change in factor ordering
+# or threshold labelling fails loudly here rather than silently mismatching
+guess_grad <- function(label) {
+  i <- match(label, guess_gradient$thresh)
+  stopifnot(!is.na(i))
+  guess_gradient$gradient[i]
+}
+
+# Quantitative check on the random-responding account. If low accuracy flattens
+# slopes purely because some correct trials are lucky guesses, the attenuation
+# should follow (2a - 1) / a, which is steep near chance and flat near ceiling.
+acc_bin_tbl <- guess_run_slopes |>
+  mutate(b = cut(acc, c(0.4, 0.6, 0.7, 0.8, 0.9, 1.0), right = FALSE)) |>
+  filter(!is.na(b)) |>
+  summarise(n = dplyr::n(), a = mean(acc), obs = mean(slope),
+            se = sd(slope) / sqrt(dplyr::n()), .by = b) |>
+  arrange(a) |>
+  mutate(atten = (2 * a - 1) / a,
+         pred = atten * last(obs) / last(atten))
+
+# The site-by-age cells are the smallest in the supplement, so this table uses
+# the binomial screen, which retains more assessments than the flat cut-off for
+# the same conclusion. The flat cut-offs remain in @tbl-guess-age.
+guess_site_screen <- "above chance"
+guess_by_site <- bind_rows(
+  guess_run_slopes |> guess_summarise(site_label, age_group) |> mutate(thresh = "all runs"),
+  guess_run_slopes |> filter(above_chance) |>
+    guess_summarise(site_label, age_group) |> mutate(thresh = guess_site_screen)
+) |>
+  mutate(thresh = factor(thresh, levels = c("all runs", guess_site_screen)))
+```
+
+Items have two response options, so chance performance is 50%. A child answering at random still produces correct trials, and the response times on those trials carry no information about angular disparity, which flattens that child's estimated angle slope. Because accuracy rises with age, any such mechanism predicts an age gradient in angular sensitivity even if the underlying process were identical at every age. Mean run accuracy in this sample is `r sprintf("%.2f", guess_acc_by_age$acc[1])` among 5--7 year olds, `r sprintf("%.2f", guess_acc_by_age$acc[2])` among 8--10 year olds and `r sprintf("%.2f", guess_acc_by_age$acc[3])` among 11--13 year olds, so the concern is real.
+
+@tbl-guess-age addresses it by estimating a separate angle slope for each assessment and then averaging those slopes within age bands, progressively excluding assessments whose overall accuracy falls near chance. Slopes are estimated from the 2D items alone, which span the full 20--160° range; pooling across stimulus types would confound the comparison, since 2D and 3D items differ in both baseline response time and the angles at which they were administered. Alongside the flat accuracy cut-offs the table reports a binomial screen, which retains an assessment when its number of correct responses is unlikely under random responding given its own trial count (one-sided *p* < .05). This adapts the bar to assessment length, where a flat cut-off holds a short assessment to the same proportion as a long one on much weaker evidence.
+
+The age gradient shrinks substantially but does not disappear. It falls from `r sprintf("%.3f", guess_grad("all runs"))` log units per 40° across all assessments to `r sprintf("%.3f", guess_grad("acc >= 0.75"))` once assessments below 75% accuracy are excluded, so roughly `r round(100 * (guess_grad("all runs") - guess_grad("acc >= 0.75")) / guess_grad("all runs"))`% of the apparent developmental change in angular sensitivity is attributable to younger children responding at chance on a substantial share of trials. The binomial screen gives the same gradient (`r sprintf("%.3f", guess_grad("above chance"))`) while retaining `r guess_ret("above chance")$n` of the `r guess_ret("all runs")$n` assessments rather than `r guess_ret("acc >= 0.75")$n`, so the result does not depend on where the bar is set. A smaller gradient remains under every screen we examined, and regressing each assessment's slope on its accuracy and age band leaves both predictors significant, so accuracy does not account for the gradient in full.
+
+We are deliberately agnostic about which process produces the accuracy-related part. Random responding is the obvious candidate and makes a quantitative prediction, since a child with accuracy $a$ should have a fraction $(2a-1)/a$ of their correct trials genuinely solved and the estimated slope should be attenuated by that factor. Binning assessments by accuracy and scaling that prediction to match the most accurate band, the observed slopes are `r paste(sprintf("%.3f", acc_bin_tbl$obs), collapse = ", ")` against predicted values of `r paste(sprintf("%.3f", acc_bin_tbl$pred), collapse = ", ")` for bands averaging `r paste(sprintf("%.2f", acc_bin_tbl$a), collapse = ", ")` accuracy. The ordering matches, but the departures average `r sprintf("%.3f", mean(abs(acc_bin_tbl$obs - acc_bin_tbl$pred)))` against a mean standard error of `r sprintf("%.3f", mean(acc_bin_tbl$se))`, and the least accurate band has a slope that is reliably negative rather than merely attenuated. Random responding can move a slope toward zero but cannot reverse it, so something further is going on in that band, most plausibly children abandoning items that look difficult and answering quickly. We therefore describe this part of the gradient as accuracy-related rather than attributing it specifically to guessing.
+
+
+\clearpage
+
+```{r}
+#| label: tbl-guess-age
+#| tbl-cap: "**Angle slopes by age band, excluding assessments near chance accuracy.** Each assessment contributes one slope, estimated from its 2D trials; the table reports the mean of those slopes with a 95% confidence interval, and the number of assessments contributing. The final column is the oldest band minus the youngest. Slopes are in log response time per 40° of rotation."
+
+guess_age_tbl <- guess_by_age |>
+  mutate(entry = sprintf("%s n=%d", cell, n)) |>
+  select(thresh, age_group, entry) |>
+  pivot_wider(names_from = age_group, values_from = entry) |>
+  left_join(guess_gradient, by = "thresh") |>
+  mutate(gradient = sprintf("%+.3f", gradient)) |>
+  rename(Screen = thresh, Gradient = gradient) |>
+  knitr::kable(booktabs = TRUE, linesep = "", align = c("l", "r", "r", "r", "r"))
+
+if (knitr::is_latex_output()) {
+  guess_age_tbl <- kableExtra::kable_styling(
+    guess_age_tbl, latex_options = "HOLD_position", font_size = 8)
+}
+guess_age_tbl
+```
+
+@tbl-guess-site repeats the comparison within each site. In the unrestricted data the youngest children at the two Colombian sites show slopes that are statistically indistinguishable from zero, which is visible as the near-flat 2D functions in those panels of Figure 1 of the main text. Once assessments near chance are excluded, every site-by-age cell shows a clearly positive slope. The angular disparity effect is therefore present in all four sites at all three ages among children who were performing the task above chance, and its apparent absence among the youngest Colombian children reflects chance-level responding rather than an absence of mental rotation. Because the site-by-age cells are the smallest reported here, this table applies the binomial screen rather than a flat cut-off, which retains more assessments for the same conclusion. These restricted cells remain small, however, containing as few as `r min(guess_by_site$n[guess_by_site$thresh == guess_site_screen])` assessments, so the restricted estimates are correspondingly imprecise.
+
+```{r}
+#| label: tbl-guess-site
+#| tbl-cap: "**Angle slopes by site and age band, before and after excluding assessments near chance accuracy.** As in the previous table, each assessment contributes one slope estimated from its 2D trials, and cells give the mean with a 95% confidence interval and the number of assessments."
+
+guess_site_tbl <- guess_by_site |>
+  mutate(entry = sprintf("%s n=%d", cell, n)) |>
+  select(thresh, site_label, age_group, entry) |>
+  pivot_wider(names_from = age_group, values_from = entry) |>
+  arrange(thresh, site_label) |>
+  rename(Screen = thresh, Site = site_label) |>
+  knitr::kable(booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r"))
+
+if (knitr::is_latex_output()) {
+  guess_site_tbl <- kableExtra::kable_styling(
+    guess_site_tbl, latex_options = "HOLD_position", font_size = 8)
+}
+guess_site_tbl
+```
+
+\clearpage
+
+## Accuracy by rotation angle
+
+The main text reports that accuracy falls as angular disparity rises, alongside the increase in response time. @tbl-accuracy-angle gives the underlying cell means, broken down by site and age band, so the pattern can be checked where the aggregate model averages over it.
+
+The decline is present in every site and every age band, and is of broadly similar magnitude across age bands, falling by roughly 15 to 21 percentage points across the 2D range in each. The youngest children sit lower throughout rather than declining more steeply, which places them nearest the guessing floor at every angle and is the accuracy counterpart of the pattern examined above. For the 3D items the decline is not monotonic, with accuracy at 120° close to or slightly above accuracy at 80° in several cells; those items span only three rotations and sit much nearer the guessing floor throughout, so their accuracy gradient is correspondingly less well resolved than their response time gradient.
+
+```{r}
+#| label: supp-accuracy-angle
+
+acc_supp <- mrot_rt_trial |>
+  filter(trial_number != 1, !is.na(angle)) |>
+  summarise(acc = mean(correct), n = n(), .by = c(item_group, site_label, age_group, angle))
+
+acc_supp_overall <- mrot_rt_trial |>
+  filter(trial_number != 1, !is.na(angle)) |>
+  summarise(acc = mean(correct), n = n(), .by = c(item_group, angle))
+```
+
+```{r}
+#| label: tbl-accuracy-angle
+#| tbl-cap: "**Accuracy by rotation angle, site and age band.** Cells give the proportion of correct responses, pooling adaptive and fixed-form administrations and excluding each run's first trial. Dashes mark angles at which a stimulus type was not administered: 3D items were presented only at 40°, 80° and 120°, and the 20° rotation exists only for the rabbit stimulus."
+
+acc_tbl <- bind_rows(
+  acc_supp |> mutate(grp = as.character(site_label)),
+  acc_supp |> summarise(acc = weighted.mean(acc, n), .by = c(item_group, age_group, angle)) |>
+    mutate(grp = "All sites")
+) |>
+  mutate(item_group = str_to_upper(item_group),
+         # site_label is character in mrot_rt_trial, so the ordering is taken
+         # from the values present rather than from levels()
+         grp = factor(grp, levels = c(sort(unique(as.character(acc_supp$site_label))),
+                                      "All sites"))) |>
+  select(item_group, grp, age_group, angle, acc) |>
+  mutate(acc = sprintf("%.2f", acc)) |>
+  pivot_wider(names_from = angle, values_from = acc, values_fill = "--",
+              names_sort = TRUE, values_fn = \(x) if (length(x) == 1) x else
+                stop("duplicate accuracy cells; check the grouping")) |>
+  arrange(item_group, grp, age_group)
+
+acc_tbl_out <- acc_tbl |>
+  rename(`Item type` = item_group, Site = grp, `Age band` = age_group) |>
+  knitr::kable(booktabs = TRUE, linesep = "",
+               align = c("l", "l", "l", rep("r", ncol(acc_tbl) - 3)))
+
+if (knitr::is_latex_output()) {
+  acc_tbl_out <- kableExtra::kable_styling(acc_tbl_out, font_size = 8,
+                                           latex_options = "HOLD_position")
+}
+acc_tbl_out
+```
+
+\clearpage
+
+## Coverage of the sex subsample
+
+```{r}
+#| label: supp-sex-coverage
+
+sex_runs <- mrot_rt_trial |>
+  distinct(run_id, user_id, site_label, age_group) |>
+  mutate(has_sex = user_id %in% (sex_data_cleaned |> filter(!is.na(sex)) |> pull(user_id)))
+
+sex_coverage <- sex_runs |>
+  summarise(assessments = n(), with_sex = sum(has_sex), .by = site_label) |>
+  mutate(coverage = 100 * with_sex / assessments) |>
+  arrange(site_label)
+
+co_sites <- c("uniandes-co-bogota", "uniandes-co-rural")
+sex_cov_co_full <- 100 * mean(sex_runs$site_label %in% co_sites)
+sex_cov_co_sub  <- 100 * mean(sex_runs$site_label[sex_runs$has_sex] %in% co_sites)
+
+# same fitted model, averaged over all trials and over the subsample only, so
+# the comparison isolates composition from model specification
+sex_cov_sub_data <- mrot_lme_data |>
+  semi_join(sex_data_cleaned |> filter(!is.na(sex)), by = "user_id")
+
+sex_cov_slope <- \(nd) slopes(full_mod_supp, newdata = nd, re.form = NA,
+                              variables = "angle_sc", by = "task") |>
+  as_tibble() |> pull(estimate)
+sex_cov_slope_full <- sex_cov_slope(mrot_lme_data)
+sex_cov_slope_sub  <- sex_cov_slope(sex_cov_sub_data)
+```
+
+Sex was not recorded for every child, so the analyses in the third research question rest on a subset of the assessments used elsewhere. Coverage is uneven across sites, as @tbl-sex-coverage shows, and the subsample consequently over-represents the two Colombian sites, which supply `r sprintf("%.0f", sex_cov_co_sub)`% of its assessments against `r sprintf("%.0f", sex_cov_co_full)`% of the full sample. Age composition is almost unchanged.
+
+Because angular sensitivity differs across sites, that shift could in principle bias the angle slopes estimated on the subsample. It does not. Holding the fitted model fixed and averaging its marginal angle slope first over all trials and then over the subsample alone gives `r sprintf("%.3f", sex_cov_slope_full)` and `r sprintf("%.3f", sex_cov_slope_sub)` respectively, a difference well inside one standard error. The angle slope reported in the sex models differs slightly from the one in Table 4 of the main text for a different reason, namely that those models add sex to the interaction structure, not because of who is in the subsample.
+
+
+```{r}
+#| label: tbl-sex-coverage
+#| tbl-cap: "**Availability of sex data by site.** Assessments are those entering the angular sensitivity analysis; the final column is the percentage of them for which sex was recorded."
+
+sex_coverage |>
+  mutate(coverage = sprintf("%.1f%%", coverage)) |>
+  knitr::kable(
+    col.names = c("Site", "Assessments", "With sex recorded", "Coverage"),
+    booktabs = TRUE, linesep = "", align = c("l", "r", "r", "r")
+  )
+```
 
 ## Sex differences under the two averaging schemes
 
-The sex analyses reported in the main text use observed-trial averaging, as elsewhere. Because the sex effect on response time for 3D stimuli falls close to the conventional significance threshold, @tbl-sex-weight-compare reports each sex comparison under both schemes so that readers can see how far the choice of reference grid matters. Every conclusion is unchanged. The overall sex effect on response time is numerically identical under the two schemes, the absence of a sex difference in angle slope holds under both, and the absence of a sex difference in ability holds under both. The single quantity that moves is the 3D sex effect on response time, which is marginal under observed averaging and non-significant under a balanced grid. As with the angle slopes above, the balanced grid gives equal weight to sparse cells in which the five-way interaction is least well identified, which is why the main text reports the observed-trial estimates.
+The sex analyses reported in the main text use observed-trial averaging, as elsewhere. Because the sex effect on response time for 3D stimuli is the one quantity whose significance depends on the choice of reference grid, @tbl-sex-weight-compare reports each sex comparison under both schemes so that readers can see how far that choice matters. Every conclusion is unchanged. The overall sex effect on response time is numerically identical under the two schemes, the absence of a sex difference in angle slope holds under both, and the absence of a sex difference in ability holds under both. The single quantity that moves is the 3D sex effect on response time, which is significant under observed averaging and not under a balanced grid. As with the angle slopes above, the balanced grid gives equal weight to sparse cells in which the five-way interaction is least well identified, which is why the main text reports the observed-trial estimates.
 
 ```{r}
 #| label: supp-sex-weight-models
@@ -672,7 +1063,7 @@ sex_weight_compare <- bind_rows(
 
 ```{r}
 #| label: tbl-sex-weight-compare
-#| tbl-cap: "Sex comparisons from the same fitted model, averaged over the observed trials and over a balanced grid of cells. Estimates for response time are on the log scale. Every conclusion is the same under both schemes apart from the 3D sex effect on response time, which is marginal under observed averaging and non-significant under the balanced grid."
+#| tbl-cap: "Sex comparisons from the same fitted model, averaged over the observed trials and over a balanced grid of cells. Estimates for response time are on the log scale. Every conclusion is the same under both schemes apart from the 3D sex effect on response time, which is significant under observed averaging and not under the balanced grid."
 
 sex_weight_compare |>
   mutate(cell = sprintf("%+.3f (p %s)", estimate, map_chr(p, fmt_p))) |>
