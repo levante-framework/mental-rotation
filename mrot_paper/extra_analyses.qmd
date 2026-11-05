@@ -612,8 +612,8 @@ kable(sx_site, booktabs = TRUE, align = c("l", "r", "r"))
 
 ## Response time
 
-The paper's sex contrasts average predictions over a balanced grid of angle, stimulus, site and age. Here they are averaged over the
-observed trials instead, the weighting the paper argues for elsewhere.
+The paper's first draft averaged the sex contrasts over a balanced grid of angle, stimulus, site and age. The current draft (and this
+section) averages over the observed trials, the weighting the paper uses elsewhere; the supplement compares the two.
 
 ```{r sex-rt}
 sx_rt <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id") |> filter(!is.na(sex)) |> mutate(sex = factor(sex))
@@ -644,8 +644,8 @@ sx_tab |>
 ```
 
 Averaged over observed trials, boys respond `{r} abs(round(100 * (exp(sx_tab$estimate[1]) - 1), 1))`% faster
-(*p* = `{r} fmt3(sx_tab$p.value[1])`), the same as the grid-based figure in the paper, so the weighting makes no difference to this result.
-By stimulus type, the 3D contrast has *p* = `{r} fmt3(sx_tab$p.value[sx_tab$Level == "3D"])` here, against .103 in the paper, so the statement that the effect "holds within stimulus type"
+(*p* = `{r} fmt3(sx_tab$p.value[1])`), the same as under the balanced grid, so the weighting makes no difference to this result.
+By stimulus type, the 3D contrast has *p* = `{r} fmt3(sx_tab$p.value[sx_tab$Level == "3D"])` here, against .103 under the balanced grid, so whether the effect "holds within stimulus type"
 depends on the weighting for 3D. All four sites show faster boys, and the sex × site interaction is not significant
 (χ²(`{r} sx_rt_lrt$Df[2]`) = `{r} fmt2(sx_rt_lrt$Chisq[2])`, *p* = `{r} fmt2(sx_rt_lrt[["Pr(>Chisq)"]][2])`). The sex difference in angle slope is
 `{r} fmt3(sx_slope_diff$estimate)` (SE = `{r} fmt3(sx_slope_diff$std.error)`, *p* = `{r} fmt2(sx_slope_diff$p.value)`).

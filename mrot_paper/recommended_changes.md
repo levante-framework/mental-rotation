@@ -1,14 +1,35 @@
 # Recommended changes to the manuscript
 
 Compiled from `suggested_edits.md` and the analyses in `extra_analyses.qmd` (results in the sections named below).
-Line numbers refer to `mrot_paper.qmd` and its included files at commit `82fcd5f`. Items are grouped by where the
+Line numbers refer to `mrot_paper.qmd` and its included files at commit `82fcd5f`; they have shifted slightly since main
+moved to `8ef51d8`, so search for the quoted text. Items marked **Done on main** were made in `8ef51d8` and are kept for the record. Items are grouped by where the
 change goes, and marked **[must]** (a statement that the analyses contradict or that a reviewer will catch), **[should]**
 (a gap worth closing) or **[could]** (polish). Evidence is in `extra_analyses.qmd` ("EA §") and `suggested_edits.md` ("SE").
 
+## Status after merging main (8ef51d8)
+
+Main already made these changes, which agree with the review's findings:
+
+- `fmt_p` now prints three fixed decimals (SE B10).
+- Sex comparisons use observed-trial averaging, with a supplement table showing both schemes (SE B2). My refit gives the same numbers (boys 7.4% faster, p = .004; 3D −5.7%, p = .0499).
+- The Abstract reports the 7.4% RT advantage for boys, and the Results describe the 3D effect as marginal.
+- The mpieva-de paragraph no longer argues from absolute slopes. It now says the multiplicative slope is already relative to baseline, so a genuine difference remains.
+- The age paragraph argues the steeper slope is not a log-scale artefact and offers a strategy-shift reading. The supplement adds rotation rates in °/s (Table S4).
+- The Limitations mention the restricted 3D angle range, and the abstract guard checks the RT sex strings.
+
+Checked against the data (`checks/main_update_claims.R`): the new claims hold. Boys' accuracy is the same as girls' (male − female = −0.0004 in probability, 95% CI ±0.02), so "boys were no more accurate" is supported. The additive angle cost rises with age (2D 0.42, 0.60, 0.62 s per 40° and 3D 0.96, 1.05, 1.36 s at ages 5–7, 8–10, 11–13), and the overall rotation rates are about 72°/s (2D) and 35°/s (3D), consistent with the supplement's "about half the adult figure" for 3D.
+
+Still open, including three new points raised by the merged text:
+
+- **[must]** The new age explanation does not address guessing. My sensitivity analysis (EA §2) shows the age gradient in the log slope shrinks when only above-chance runs are kept, so a strategy-shift reading is one of two readings. Also, the additive rates by age are in the opposite direction to "rotation rate speeds up with age" (the youngest 2D rate is about 95°/s against 65°/s for the oldest). Table S4 should not present them as developmental rotation rates without saying so.
+- **[should]** The Results now say uncorrected tests are "the more stringent standard" for the null sex claim. That reasoning is fine for the RT and slope tests (uncorrected tests are more likely to flag a difference), but a non-significant test is still not evidence of absence. The paper still has no CI or equivalence bound on the ability result (EA §7: ±0.11 SD).
+- **[should]** The Discussion still says the null sex finding "held across all four international study sites" and that the RT result is "not evidence of a spatial advantage". Add the accuracy result that supports the second statement (accuracy difference −0.0004, CI ±0.02) and the sex × site tests and per-site CIs for the first.
+- **[should]** The sex-by-stimulus statement "marginal for 3D" is right (p = .0499), but its dependence on weighting (p = .103 on the balanced grid) is now only in the supplement. A clause in the Results would do.
+
 ## Abstract and Lay Summary
 
-- **[must]** Replace "ΔBIC = 416 vs. configural" (l.14). The exact value is 416.57, so use "417" (the Table 3 value), but note that the margin shrinks to 117 once the priors are removed (EA §5). Either report the unpenalised comparison or say the comparison is under the paper's priors. Update the `delta_bic` guard in the abstract check (l.468).
-- **[must]** Sex: add that boys responded about 7% faster (β = −0.08 log units, 95% CI [−0.13, −0.02], p = .004; EA §7) alongside "θ did not differ by sex". Say "no difference in θ (female − male = −0.002 SD, 95% CI ±0.11 SD)". Apply the same change to the Lay Summary (l.16) and drop "sex differences are absent" (l.432).
+- **[must]** Replace "ΔBIC = 416 vs. configural" (l.14; unchanged on main). The exact value is 416.57, so use "417" (the Table 3 value), but note that the margin shrinks to 117 once the priors are removed (EA §5). Either report the unpenalised comparison or say the comparison is under the paper's priors. Update the `delta_bic` guard in the abstract check (l.468).
+- **Sex. Done on main for the Abstract RT result** (7.4% faster, p = .004). **[must]** Still open: add a CI to the ability result ("female − male = −0.002 SD, 95% CI ±0.11 SD", EA §7); the Lay Summary (l.16: "we found no difference between boys and girls") and the Conclusion ("sex differences are absent", l.432) have not been changed.
 - **[should]** Report the angle effect separately for 2D and 3D (2D 0.156, 3D 0.148 per 40°, SE 0.011 and 0.017 with exemplar random intercepts; EA §6) instead of one pooled β, and say the effect is multiplicative ("about 17% slower per 40°"). Avoid "replicated for both 2D and 3D" unless the youngest 3D result is qualified (see Results).
 - **[should]** State units for the age effect ("0.33 θ per year, about 0.22 SD") and say the gain slows with age (EA §6).
 - **[could]** Report 1,037 children and 1,158 assessments together.
@@ -48,17 +69,17 @@ change goes, and marked **[must]** (a statement that the analyses contradict or 
 - **Accuracy.** **[should]** Add a short accuracy-by-angle result (accuracy falls about 6 points per 40° for 2D and 7 for 3D at every site, and on fixed-form runs alone; EA §2), since the Methods promise accuracy and latency (l.171).
 - **Guessing and the age gradient.** **[should]** Add the sensitivity analysis (EA §2): the age gradient in the angle slope survives every exclusion (difference 0.060–0.096, all p < .001) but is smallest when only above-chance runs are kept.
 - **Sex on θ (l.339–345).** **[must]** Add a CI ("female − male = −0.002 SD, 95% CI ±0.11 SD") and a statement of what it excludes (effects ≥ 0.11 SD, including g ≈ 0.20). Report sex × site (p = .33) and per-site CIs (±0.16 to ±0.28 SD; EA §7).
-- **Sex on RT (l.352).** **[must]** Report the faster boys in the Abstract and Discussion. "This effect holds within stimulus type" is true for 2D (−8.0%, p = .002), but for 3D it is −5.7% with p = .0499 under observed-trial averaging and p = .103 under the balanced grid, so say so. Fix "This effects holds" and "boys being … being".
+- **Sex on RT (l.352). Done on main** (observed-trial averaging, "marginal for 3D", typos fixed, Abstract updated). **[could]** Mention in one clause that the 3D result is p = .103 under the balanced grid (now only in the supplement).
 
 ## Discussion and Conclusion
 
 - **[must]** Remove "common/universal" (l.411) and "the same general set of spatial abilities" (l.432). Say "shared across these sites".
 - **[must]** Revise the invariance paragraph (l.411–414) to match the Results: approximate rather than exact scalar invariance, a two-dimensional structure, and DIF concentrated in the 40° classes.
-- **[must]** Sex (l.411, l.425, l.432): drop the claim that the null sex result is part of the validity evidence, replace "held across all four sites" with the sex × site test and CIs, and discuss the 7% RT advantage (speed–accuracy trade-off, device or familiarity effects, strategy). Reconcile "consistent with the meta-analytic picture" with Lauer's g ≈ 0.20 using the CI.
-- **[must]** mpieva-de paragraph (l.419): the argument that steeper slopes follow from slower baselines cannot hold in a log-RT model, where slopes are already proportional. Say the larger 3D − 2D difference and steeper slope at mpieva-de are unexplained, and offer format, device timing or age mix as hypotheses.
-- **[should]** Age (l.423): note that older children show steeper proportional slopes, the opposite of the usual finding that rotation rate speeds up with age. Offer the log-scale and guessing explanations, and cite the guess-robust analysis (EA §2). Say the θ gain per year slows from 0.55 at age 5 to 0.08 at 13.
+- **Sex (l.411, l.425, l.432). Partly done on main** (the Discussion now notes the RT difference and a speed–accuracy reading). **[must]** Still open: drop the claim that the null sex result is part of the validity evidence, replace "held across all four sites" with the sex × site test and CIs, and discuss the 7% RT advantage (speed–accuracy trade-off, device or familiarity effects, strategy). Reconcile "consistent with the meta-analytic picture" with Lauer's g ≈ 0.20 using the CI.
+- **mpieva-de paragraph (l.419). Done on main** (the log-slope argument was removed and a residual genuine difference acknowledged). **[could]** Add that the 3D − 2D slope difference is also confined to mpieva-de (+0.060, against about 0 at the other three sites; EA §1), which makes a site-specific format effect on 3D items a candidate explanation.
+- **Age (l.423). Partly done on main** (the log-scale and strategy-shift reading is now there). **[must]** Add the guessing alternative and cite the guess-robust analysis (EA §2), and see the status section on rates. **[should]** Say the θ gain per year slows from 0.55 at age 5 to 0.08 at 13.
 - **[should]** Replace "spatially continuous transformation" (l.417) with a statement that only a monotonic dependence is shown.
-- **[should]** Limitations (l.429): add administration mode and device confounded with site, CAT vs fixed form (the rural site is CAT only), sex missing for 199 children, the 3D evidence resting on three angle classes, no strategy data, and a two-factor structure that the one-factor θ ignores.
+- **[should]** Limitations (l.429; the restricted 3D angle range was added on main): add administration mode and device confounded with site, CAT vs fixed form (the rural site is CAT only), sex missing for 199 children, the 3D evidence resting on three angle classes, no strategy data, and a two-factor structure that the one-factor θ ignores.
 - **[should]** Reconcile "foundation for meaningful cross-cultural comparisons" (l.432) with l.101: invariance supports comparing relations (age slopes), not absolute levels. Reconsider the title word "comparison".
 
 ## Supplement
@@ -71,7 +92,7 @@ change goes, and marked **[must]** (a statement that the analyses contradict or 
 
 ## Typos and small fixes
 
-l.10 `<hhttps://` → `<https://`; l.12 "The author has" → "The authors have"; l.83 "tasks … presents"; l.150 "Leipzig a mid-sized" → "Leipzig is a mid-sized"; l.153 "most population" → "most populous"; l.147 "Chiquinquira" → "Chiquinquirá"; l.352 "This effects holds", "boys being … being"; the "sex.147" footnote marker (check the render); Fig 1 caption uses "points" for two things; Fig S2 caption θ missing in the render (the source has it). Also set `fmt_p` to print three decimals (SE B10).
+l.10 `<hhttps://` → `<https://`; l.12 "The author has" → "The authors have"; l.83 "tasks … presents"; l.150 "Leipzig a mid-sized" → "Leipzig is a mid-sized"; l.153 "most population" → "most populous"; l.147 "Chiquinquira" → "Chiquinquirá"; l.352 "This effects holds", "boys being … being"; the "sex.147" footnote marker (check the render); Fig 1 caption uses "points" for two things; Fig S2 caption θ missing in the render (the source has it). The `fmt_p` three-decimal fix and the "This effects holds" and "boys being … being" typos are done on main.
 
 ## Not resolved
 
