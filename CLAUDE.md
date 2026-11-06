@@ -1,1 +1,1 @@
-@../../levante-data-meta/CLAUDE.md
+@../levante-data-meta/CLAUDE.md

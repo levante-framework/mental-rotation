@@ -397,3 +397,46 @@ cat_within_sites <- cat_within_data |> distinct(site_label) |> nrow() |>
   (\(n) if (n < 10) c("one","two","three","four","five","six","seven",
                      "eight","nine")[n] else as.character(n))()
 ```
+
+```{r}
+#| label: irt-rxx
+
+# Lives here rather than in _01 because the supplement needs it too and only
+# includes this file.
+
+# subset must be filtered as well as model_set: the file holds both the 81-item
+# and 54-item fits, and taking only model_set would silently double every site.
+task_rxx <- read_rds(here("models/mrot_rxx.rds"))
+site_rxx <- task_rxx |>
+  filter(model_set == "multigroup_dataset", subset == "all_items") |>
+  rename(dataset = group) |>
+  mutate(site_label = dataset |>
+           recode_values(from = site_labels, to = names(site_labels))) |>
+  select(itemtype, site_label, var_theta, rxx, rxx_fitted, rxx_empirical)
+
+stopifnot(nrow(site_rxx) == 2 * length(site_labels))
+
+# rxx_fitted is the reported value. The rxx column is what mirt::marginal_rxx
+# returns by default, kept so the supplement can show both.
+rxx_rng <- site_rxx |>
+  summarise(fitted    = sprintf("%.2f to %.2f", min(rxx_fitted), max(rxx_fitted)),
+            empirical = sprintf("%.2f to %.2f", min(rxx_empirical), max(rxx_empirical)),
+            default   = sprintf("%.2f to %.2f", min(rxx), max(rxx)),
+            .by = itemtype) |>
+  nest(d = -itemtype) |> deframe()
+
+# Range over which the configural model is rejected across the slope-prior sweep.
+# Shared so the abstract, the Results and the supplement quote one set of numbers.
+prior_sens <- read_rds(here("models/mrot_prior_sensitivity.rds"))
+configural_dbic <- prior_sens |>
+  filter(itemtype == "2PL", invariance == "configural") |>
+  summarise(lo = round(min(d_BIC)), hi = round(max(d_BIC)))
+
+# Extremes of the default computation, used in the supplement to show that the
+# apparent spread across sites tracks the latent variance rather than the data.
+rxx_default_ends <- site_rxx |>
+  filter(itemtype == "2pl") |>
+  summarise(lo = sprintf("%.2f", min(rxx)), hi = sprintf("%.2f", max(rxx)),
+            lo_site = as.character(site_label[which.min(rxx)]),
+            hi_site = as.character(site_label[which.max(rxx)]))
+```

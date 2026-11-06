@@ -224,7 +224,7 @@ all.
 
 Two patterns are worth drawing out. The configural model, in which every item
 parameter is free to vary by site, is rejected under every specification, by
-between 122 and 417 BIC points. The choice between the metric and scalar models
+between `r configural_dbic$lo` and `r configural_dbic$hi` BIC points. The choice between the metric and scalar models
 is far less stable. Scalar is preferred under the two tightest priors and metric
 under the looser ones, and outside the published prior the two are never
 separated by more than roughly four BIC points. We therefore treat the evidence
@@ -1072,5 +1072,64 @@ sex_weight_compare |>
   knitr::kable(
     col.names = c("", "Level", "Observed trials", "Balanced grid"),
     booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r")
+  )
+```
+
+\clearpage
+
+## Marginal reliability and the latent scale
+
+Reliability is the share of the variation between children that is systematic rather
+than measurement error. Both model types measure the same children on the same items,
+so they should not differ greatly in reliability, yet the values returned by
+`mirt::marginal_rxx` do differ sharply, at `r rxx_rng[["2pl"]]$default` for the 2PL
+model and `r rxx_rng[["rasch"]]$default` for the Rasch model.
+
+That gap is a property of the scale rather than of the models. The ability scale has no
+natural unit. The 2PL model estimates item discriminations freely, and they come out
+near 1.8 with the latent variance close to 1. The Rasch model fixes every discrimination
+at 1, so the latent scale stretches to absorb the same spread of performance and the
+variance rises to around 6. The two are the same picture at different magnifications.
+
+Marginal reliability is true-score variance over true-score plus error variance. With a
+conditional error variance of $1/I(\theta)$ and a latent variance of $v$, that is
+$vI(\theta) / (vI(\theta) + 1)$. `marginal_rxx` integrates $I(\theta) / (I(\theta) + v)$,
+which places $v$ where $1/v$ belongs. The two expressions coincide exactly when $v = 1$
+and diverge otherwise. Holding information fixed and letting $v$ grow, reliability should
+approach 1, because measurement error becomes negligible beside the real variation; the
+first expression does this and the second approaches 0. Supplying `mean` and `sd` to
+`marginal_rxx` does not address this, since those arguments change only the density
+integrated against and not the ratio.
+
+@tbl-rxx reports both computations with the fitted latent variance alongside, together
+with empirical reliabilities from the EAP scores, which make no distributional assumption.
+The default and corrected values agree to three decimal places for exactly those groups
+whose variance is 1, and nowhere else, which is what identifies the discrepancy as an
+artefact of the formula. On the corrected figures the two model types are comparable,
+and the empirical reliabilities agree with them.
+
+The default values also create a misleading impression of differences between sites. Under
+`marginal_rxx` the 2PL reliabilities run from `r rxx_default_ends$lo` at
+`r rxx_default_ends$lo_site` to `r rxx_default_ends$hi` at `r rxx_default_ends$hi_site`,
+which would suggest the task measures least well at the rural Colombian site and best in
+Leipzig. That ordering simply tracks the estimated latent variances, which are in turn
+relative to the reference group whose variance is fixed at 1. Evaluated against each site's
+own distribution the four sites are close together, and the rural site is indistinguishable
+from Leipzig. The empirical reliabilities, which make no distributional assumption, show no
+systematic ordering across sites either.
+
+```{r}
+#| label: tbl-rxx
+#| tbl-cap: "**Marginal reliability by site and model type.** `marginal_rxx` is the value returned by that function's default. Fitted evaluates the same quantity against each group's estimated latent distribution. Empirical is computed from the EAP scores. Values are from the 81-item scalar models."
+
+site_rxx |>
+  mutate(itemtype = itemtype |> fct_recode("Rasch" = "rasch", "2PL" = "2pl")) |>
+  arrange(itemtype, site_label) |>
+  mutate(across(c(var_theta), \(x) sprintf("%.2f", x)),
+         across(c(rxx, rxx_fitted, rxx_empirical), \(x) sprintf("%.3f", x))) |>
+  select(itemtype, site_label, var_theta, rxx, rxx_fitted, rxx_empirical) |>
+  knitr::kable(
+    col.names = c("Model", "Site", "var(theta)", "marginal_rxx", "Fitted", "Empirical"),
+    booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r", "r")
   )
 ```

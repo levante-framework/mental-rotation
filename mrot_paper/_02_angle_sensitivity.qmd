@@ -76,6 +76,17 @@ full_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc +
                  REML = FALSE,
                  control = lmerControl(optimizer = "bobyqa"))
 full_mod_stats <- model_performance(full_mod, estimator = "ML")
+
+# Adaptive administration and the angle slope. The check reported in the Methods
+# of earlier drafts came from a model containing only angle and format, which
+# cannot separate format from site (uniandes-co-rural is wholly adaptive) and
+# omits stimulus and age. Adding the interaction to the full model reverses the
+# sign of the estimate, so both are reported.
+cat_angle_mod <- update(full_mod, . ~ . + angle_sc:adaptive)
+cat_angle_int <- coef(summary(cat_angle_mod))["angle_sc:adaptiveTRUE", ] |>
+  as.list() |> setNames(c("estimate", "std.error", "statistic"))
+cat_angle_lrt <- anova(full_mod, cat_angle_mod)
+cat_angle_int$p.value <- cat_angle_lrt$`Pr(>Chisq)`[2]
 ```
 
 ```{r}

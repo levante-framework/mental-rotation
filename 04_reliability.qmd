@@ -1,0 +1,70 @@
+---
+title: "Marginal reliability of the mental rotation IRT models"
+format: html
+---
+
+Regenerates `models/mrot_rxx.rds` from the saved scalar model records, adding
+reliabilities evaluated against each group's fitted latent distribution and
+empirical reliabilities from the EAP scores. See `helper/reliability.R` for why
+`mirt::marginal_rxx` is not used on its own.
+
+Reads the fitted model records rather than refitting, so this is cheap to rerun.
+
+```{r}
+#| label: setup
+#| message: false
+
+library(tidyverse)
+library(here)
+library(mirt)
+source(here("helper/reliability.R"))
+```
+
+```{r}
+#| label: rebuild-and-score
+
+# Rebuild each multigroup model from its saved record, then split it into the
+# per-group single-group models that the reliability functions require.
+model_files <- tibble(
+  path = list.files(here("models/mrot"), pattern = "_f1_scalar\\.rds$",
+                    recursive = TRUE, full.names = TRUE)) |>
+  mutate(rel       = fs::path_rel(path, here("models/mrot")),
+         model_set = fs::path_split(rel) |> map_chr(1),
+         subset    = fs::path_split(rel) |> map_chr(2),
+         itemtype  = str_match(basename(path), "mrot_(.+?)_f1_scalar")[, 2])
+
+group_rxx <- function(path) {
+  rec <- read_rds(path)
+  mod <- multipleGroup(rec@data, group = rec@groups, pars = rec@model_vals,
+                       TOL = NaN, verbose = FALSE)
+  map(mod@Data$groupNames, \(g) {
+    mg <- extract.group(mod, g)
+    tibble(group         = g,
+           var_theta     = as.vector(coef(mg, simplify = TRUE)$cov)[1],
+           rxx_default   = marginal_rxx(mg),
+           rxx_fitted    = marginal_rxx_fitted(mg),
+           rxx_empirical = empirical_rxx(fscores(mg, method = "EAP",
+                                                 full.scores.SE = TRUE)))
+  }) |> list_rbind()
+}
+
+mod_rxx <- model_files |>
+  mutate(res = map(path, group_rxx)) |>
+  select(model_set, subset, itemtype, res) |>
+  unnest(res) |>
+  mutate(invariance = "scalar",
+         # kept under its original name so existing code that reads this file
+         # keeps working; rxx_fitted is the value the paper reports
+         rxx = rxx_default) |>
+  select(model_set, subset, group, itemtype, invariance,
+         var_theta, rxx, rxx_fitted, rxx_empirical)
+
+# The default and the corrected value must agree wherever the latent variance is
+# 1, and nowhere else. That identity is what shows the discrepancy is a property
+# of the formula rather than a difference between the models.
+stopifnot(all(abs(mod_rxx$rxx - mod_rxx$rxx_fitted)[
+  abs(mod_rxx$var_theta - 1) < 1e-6] < 1e-6))
+
+write_rds(mod_rxx, here("models/mrot_rxx.rds"), compress = "gz")
+print(as.data.frame(mod_rxx), digits = 3)
+```
