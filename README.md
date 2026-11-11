@@ -18,12 +18,10 @@ Run the notebooks in order from the project root. Each step reads the outputs of
 | Step | Reads | Writes |
 |---|---|---|
 | `01_fetch_trials.qmd` | LEVANTE Redivis datasets (needs Redivis login) | `data/task_data_nested.rds`, `data/runs_mrot.rds` |
-| `02_fit_irt.qmd` | `data/` | `models/mrot/` (model records), `models/mrot_{scores,coef,anova,rxx,info}.rds` |
+| `02_fit_irt.qmd` | `data/` | `models/mrot/` (model records), `models/mrot_{scores,coef,anova,info}.rds` |
 | `03_prior_sensitivity.qmd` | `data/task_data_nested.rds` | `models/mrot_prior_sensitivity.rds` |
 | `04_reliability.qmd` | `models/mrot/` | `models/mrot_rxx.rds` |
 | `mrot_paper/mrot_paper.qmd`, `mrot_paper/supplementary.qmd` | `data/`, `models/` | the manuscript and supplement |
-
-`02` and `04` both write `models/mrot_rxx.rds`; the paper uses the version from `04`, so rerun `04` after any rerun of `02`.
 
 The committed `data/` and `models/` files are enough to render the paper without rerunning the pipeline. Rerunning `01` fetches the current versions of the datasets, which may differ from the committed snapshot (last fetched 2026-04-09).
 

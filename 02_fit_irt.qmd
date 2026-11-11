@@ -173,11 +173,8 @@ mod_obj_group <- mod_obj |>
   select(model_set, itemtype, invariance, group, group_model) |>
   unnest(cols = c("group_model", "group"))
 
-mod_rxx <- mod_obj_group |>
-  mutate(rxx = map_dbl(group_model, marginal_rxx)) |>
-  select(model_set, group, itemtype, invariance, rxx)
-
-write_rds(mod_rxx, here("models/mrot_rxx.rds"), compress = "gz")
+# marginal reliability is computed in 04_reliability.qmd, which writes
+# models/mrot_rxx.rds
 ```
 
 ```{r}
