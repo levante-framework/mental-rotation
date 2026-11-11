@@ -6,9 +6,8 @@ library(rlang)
 library(levantemodels)
 library(tidyverse)
 
-# list_models() / load_models() (not in levantemodels); sourced before regdir
-# is set because this file assigns its own regdir
-source(here("../levante-pilots/02_score_data/02_extract_irt/registry_helper.R"))
+# list_models() / load_models() (not in levantemodels)
+source(here("helper/registry_helper.R"))
 
 # separator between item_uid and instance number (see levantemodels::dedupe_items)
 item_sep <- "-"
