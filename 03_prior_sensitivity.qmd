@@ -17,41 +17,23 @@ priors this makes `logLik` non-monotonic in model nesting, which is expected for
 MAP fits rather than a convergence failure. `logPost` is the quantity actually
 being maximized.
 
-Second, `rlevante:::remove_no_var_items_bygroup` currently tests `n_cat < 0`,
-which `n_distinct()` can never satisfy, so the filter is a no-op. The published
-models were fit when it tested `n_cat < 2`. The patched version below is required
-to reproduce them; without it the overlap set grows from 54 to 81 item instances.
+Second, the overlap-item data below are built with the same `levantemodels`
+helpers that `fit_task_models_multigroup()` uses, so they match the published
+fits exactly (54 item instances; checked by the `stopifnot()` below).
 
 ```{r}
 library(glue)
 library(here)
 library(mirt)
 library(rlang)
-library(rlevante)
+library(levantemodels)
 library(tidyverse)
-
-# vendored from levante-pilots 02_score_data/02_fit_irt/irt_helpers.R, which moved
-# into the levantemodels package in the July 2026 reorg; the copy here keeps this
-# script runnable against the model specification the published fits used.
-source(here("helper/irt_helpers.R"))
 
 invariances <- list(
   configural = "",
   metric     = c("slopes"),
   scalar     = c("free_means", "free_var", "intercepts", "slopes")
 )
-
-# patched copy of rlevante:::remove_no_var_items_bygroup (see note above)
-remove_no_var_items_bygroup_fixed <- function(df) {
-  df |>
-    group_by(item_inst, group) |>
-    mutate(n_cat = n_distinct(correct)) |>
-    group_by(item_inst) |>
-    mutate(low_cat = any(n_cat < 2)) |>
-    ungroup() |>
-    filter(!low_cat) |>
-    select(-n_cat, -low_cat)
-}
 ```
 
 ```{r}
@@ -64,12 +46,12 @@ trials <- read_rds(here("data/task_data_nested.rds")) |>
   filter(!is.na(correct))
 
 df_overlap <- trials |>
-  rlevante:::dedupe_items() |>
-  rlevante:::remove_no_var_items() |>
-  rlevante:::remove_nonshared_items() |>
-  remove_no_var_items_bygroup_fixed()
+  dedupe_items() |>
+  remove_no_var_items() |>
+  remove_nonshared_items() |>
+  remove_no_var_items_bygroup()
 
-data_wide <- df_overlap |> rlevante:::to_mirt_shape_grouped()
+data_wide <- df_overlap |> to_mirt_shape_grouped()
 data_prepped <- data_wide |> select(-group)
 guess <- df_overlap |> distinct(item_inst, chance) |> pull(chance)
 

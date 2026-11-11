@@ -5225,6 +5225,96 @@
       "Repository": "https://packagemanager.posit.co/cran/latest",
       "Encoding": "UTF-8"
     },
+    "levante": {
+      "Package": "levante",
+      "Version": "0.1.0.9001",
+      "Source": "GitHub",
+      "Title": "Download LEVANTE Data",
+      "Authors@R": "c(person(\"Michael\", \"Frank\", , \"mcfrank@stanford.edu\", role = c(\"aut\"), comment = c(ORCID = \"0000-0002-7551-4378\")), person(\"Mika\", \"Braginsky\", , \"mika.br@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-9039-3220\")), person(\"Theresa\", \"Cheng\", , \"twcheng@stanford.edu\", role = c(\"aut\"), comment = c(ORCID = \"0000-0002-8557-565X\")))",
+      "Description": "Download data from LEVANTE, a global project for studying child development.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://levante-framework.github.io/levante-r/",
+      "Depends": [
+        "R (>= 4.1.0)"
+      ],
+      "Imports": [
+        "dplyr",
+        "purrr",
+        "redivis"
+      ],
+      "Encoding": "UTF-8",
+      "Roxygen": "list(markdown = TRUE)",
+      "RoxygenNote": "7.3.3",
+      "Suggests": [
+        "ggplot2",
+        "knitr",
+        "rmarkdown"
+      ],
+      "VignetteBuilder": "knitr",
+      "Author": "Michael Frank [aut] (ORCID: <https://orcid.org/0000-0002-7551-4378>), Mika Braginsky [aut, cre] (ORCID: <https://orcid.org/0000-0001-9039-3220>), Theresa Cheng [aut] (ORCID: <https://orcid.org/0000-0002-8557-565X>)",
+      "Maintainer": "Mika Braginsky <mika.br@gmail.com>",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "levante-framework",
+      "RemoteRepo": "levante-r",
+      "RemoteRef": "094a3ec25d1ba39dd85c8e368849d29680c6ebae",
+      "RemoteSha": "094a3ec25d1ba39dd85c8e368849d29680c6ebae",
+      "Remotes": "redivis=redivis/redivis-r"
+    },
+    "levantemodels": {
+      "Package": "levantemodels",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "Type": "Package",
+      "Title": "LEVANTE Data Processing and Modeling",
+      "Authors@R": "c(person(\"Michael\", \"Frank\", , \"mcfrank@stanford.edu\", role = c(\"aut\"), comment = c(ORCID = \"0000-0002-7551-4378\")), person(\"Mika\", \"Braginsky\", , \"mika.br@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-9039-3220\")), person(\"Theresa\", \"Cheng\", , \"twcheng@stanford.edu\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-8557-565X\")))",
+      "Description": "Internal tooling for processing LEVANTE data and fitting and serving its psychometric (IRT) scoring models. Holds the trial recoding, scoring pipeline, model registry, and ModelRecord machinery. For loading LEVANTE data, see the levante package.",
+      "License": "MIT + file LICENSE",
+      "Encoding": "UTF-8",
+      "LazyData": "true",
+      "URL": "https://levante-framework.github.io/levantemodels/",
+      "Depends": [
+        "R (>= 4.1.0)"
+      ],
+      "Imports": [
+        "dplyr (>= 1.2.0)",
+        "glue",
+        "methods",
+        "purrr",
+        "redivis"
+      ],
+      "Suggests": [
+        "forcats",
+        "jsonlite",
+        "levante",
+        "lubridate",
+        "readr",
+        "rlang",
+        "stringr",
+        "tibble",
+        "tidyr",
+        "ggplot2",
+        "knitr",
+        "mirt",
+        "rmarkdown",
+        "testthat (>= 3.0.0)",
+        "withr"
+      ],
+      "Roxygen": "list(markdown = TRUE)",
+      "VignetteBuilder": "knitr",
+      "Config/testthat/edition": "3",
+      "Config/roxygen2/version": "8.0.0",
+      "RoxygenNote": "7.3.3",
+      "Author": "Michael Frank [aut] (ORCID: <https://orcid.org/0000-0002-7551-4378>), Mika Braginsky [aut, cre] (ORCID: <https://orcid.org/0000-0001-9039-3220>), Theresa Cheng [ctb] (ORCID: <https://orcid.org/0000-0002-8557-565X>)",
+      "Maintainer": "Mika Braginsky <mika.br@gmail.com>",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "levante-framework",
+      "RemoteRepo": "levantemodels",
+      "RemoteRef": "44246c7cb2a13ebe21cbd2032a5756f0cd1b115f",
+      "RemoteSha": "44246c7cb2a13ebe21cbd2032a5756f0cd1b115f",
+      "Remotes": "levante=levante-framework/levante-r, redivis=redivis/redivis-r"
+    },
     "lifecycle": {
       "Package": "lifecycle",
       "Version": "1.0.5",
@@ -7717,55 +7807,6 @@
       "Author": "Lionel Henry [aut, cre], Hadley Wickham [aut], mikefc [cph] (Hash implementation based on Mike's xxhashlite), Yann Collet [cph] (Author of the embedded xxHash library), Posit, PBC [cph, fnd]",
       "Maintainer": "Lionel Henry <lionel@posit.co>",
       "Repository": "CRAN"
-    },
-    "rlevante": {
-      "Package": "rlevante",
-      "Version": "0.1.0",
-      "Source": "GitHub",
-      "Type": "Package",
-      "Title": "Download LEVANTE Data",
-      "Authors@R": "c(person(\"Michael\", \"Frank\", , \"mcfrank@stanford.edu\", role = c(\"aut\"), comment = c(ORCID = \"0000-0002-7551-4378\")), person(\"Mika\", \"Braginsky\", , \"mika.br@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0001-9039-3220\")), person(\"Theresa\", \"Cheng\", , \"twcheng@stanford.edu\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-8557-565X\")))",
-      "Description": "Download data from LEVANTE, a global project for studying child development.",
-      "License": "MIT + file LICENSE",
-      "Encoding": "UTF-8",
-      "LazyData": "true",
-      "URL": "https://levante-framework.github.io/rlevante/",
-      "Depends": [
-        "R (>= 4.1.0)"
-      ],
-      "Imports": [
-        "dplyr",
-        "glue",
-        "methods",
-        "purrr",
-        "redivis"
-      ],
-      "Suggests": [
-        "forcats",
-        "jsonlite",
-        "lubridate",
-        "readr",
-        "rlang",
-        "stringr",
-        "tibble",
-        "tidyr",
-        "ggplot2",
-        "knitr",
-        "mirt",
-        "rmarkdown"
-      ],
-      "Roxygen": "list(markdown = TRUE)",
-      "RoxygenNote": "7.3.3",
-      "VignetteBuilder": "knitr",
-      "Author": "Michael Frank [aut] (ORCID: <https://orcid.org/0000-0002-7551-4378>), Mika Braginsky [aut, cre] (ORCID: <https://orcid.org/0000-0001-9039-3220>), Theresa Cheng [ctb] (ORCID: <https://orcid.org/0000-0002-8557-565X>)",
-      "Maintainer": "Mika Braginsky <mika.br@gmail.com>",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "levante-framework",
-      "RemoteRepo": "rlevante",
-      "RemoteRef": "f3c639b6088725844e3c699671aaff5b8dd7173f",
-      "RemoteSha": "f3c639b6088725844e3c699671aaff5b8dd7173f",
-      "Remotes": "redivis=redivis/redivis-r"
     },
     "rmarkdown": {
       "Package": "rmarkdown",

@@ -3,14 +3,15 @@ library(glue)
 library(here)
 library(mirt)
 library(rlang)
-library(rlevante)
+library(levantemodels)
 library(tidyverse)
 
-# TODO: functions in these files should be put in a package
-source(here("../levante-pilots/02_score_data/02_fit_irt/irt_helpers.R"))
-source(here("../levante-pilots/02_score_data/02_fit_irt/irt_modular.R"), chdir = TRUE)
-source(here("../levante-pilots/02_score_data/02_fit_irt/registry_helper.R"))
-source(here("../levante-pilots/02_score_data/02_fit_irt/anova_mirt.R"))
+# list_models() / load_models() (not in levantemodels); sourced before regdir
+# is set because this file assigns its own regdir
+source(here("../levante-pilots/02_score_data/02_extract_irt/registry_helper.R"))
+
+# separator between item_uid and instance number (see levantemodels::dedupe_items)
+item_sep <- "-"
 
 # directory in which to save model records
 regdir <- here("models")
@@ -54,7 +55,7 @@ fit_task_models_multigroup(task_data = task_data_nested,
 
 ```{r}
 # read in all models in regdir
-mods <- list_models() |> load_models() |> filter(task == "mrot")
+mods <- list_models(regdir) |> filter(task == "mrot") |> load_models(regdir)
 
 # extract model specifications from filenames
 mods_coded <- mods |>
