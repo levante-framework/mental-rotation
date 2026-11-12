@@ -11,7 +11,7 @@ author-note:
     conflict-of-interest: "The authors have no conflicts of interest to declare."
     financial-support: "This work was supported by the Jacobs Foundation."
 
-abstract: "Mental rotation — the ability to mentally transform an object’s orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across four international study sites in three countries (Colombia, Germany, and Canada) for 1,037 children aged 5–13 years (411 girls, 427 boys, 199 unknown). Item parameters were shared across sites, with models constraining discriminations strongly preferred over a configural model (2PL scalar invariance model; ΔBIC = 417 vs. configural invariance model under the priors used here, and at least 122 across the range of priors examined). The angular disparity effect (Shepard and Metzler, 1971) replicated for both 2D and 3D stimuli ($\\beta$ = 0.16, SE = 0.004, p < .001), with response times being approximately 16.9% slower per 40° of stimulus rotation angle. Mental rotation abilities increased with age ($\\beta$ = 0.33, SE = 0.02, p < .001) and did not differ by sex ($\\beta$ = -0.00, SE = 0.08, p = .998). Boys responded 7.4% faster than girls ($\\beta$ = -0.08, SE = 0.03, p = .004). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning. "
+abstract: "Mental rotation — the ability to mentally transform an object’s orientation in space — is one of the most studied spatial skills in cognitive psychology, yet evidence for its cross-cultural validity in children remains limited. We examined performance on the LEVANTE (Learning Variability Network Exchange) mental rotation task across four international study sites in three countries (Colombia, Germany, and Canada) for 1,037 children aged 5–13 years (411 girls, 427 boys, 199 unknown). Item parameters were shared across sites, with models constraining discriminations strongly preferred over a configural model (2PL scalar invariance model; ΔBIC = 379 vs. configural invariance model under the priors used here, and at least 136 across the range of priors examined). The angular disparity effect (Shepard and Metzler, 1971) replicated for both 2D and 3D stimuli ($\\beta$ = 0.16, SE = 0.004, p < .001), with response times being approximately 16.9% slower per 40° of stimulus rotation angle. Mental rotation abilities increased with age ($\\beta$ = 0.34, SE = 0.02, p < .001) and did not differ by sex ($\\beta$ = -0.00, SE = 0.08, p = .965). Boys responded 7.4% faster than girls ($\\beta$ = -0.08, SE = 0.03, p = .004). These findings establish that the task captures a consistent, spatially-driven construct across culturally diverse samples — a necessary precondition for using cross-cultural data to understand variation in spatial reasoning. "
 
 impact-statement: "Mental rotation is the ability to imagine turning an object in your mind. We tested this skill in 1,037 children aged 5–13 in Colombia, Germany and Canada. The test measured the same underlying skill across all four study sites, supporting its use to compare children across these settings. Boys answered somewhat faster than girls, but were no more accurate. Children took longer to respond when objects needed more mental turning, whether the shapes were two-dimensional or three-dimensional. Performance improved with age, and we found no difference in accuracy between boys and girls. These findings provide a foundation for studying how spatial thinking develops and varies across different cultural settings."
 
@@ -223,7 +223,50 @@ The better fit of the 2PL model compared to the Rasch model indicates that menta
 
 Both invariance models that constrain discriminations across sites are strongly preferred over the configural model, meaning that items are ordered similarly in difficulty and discriminate similarly wherever they are administered. The stricter scalar model, which additionally constrains difficulties, has the lowest BIC here and would further imply that the absolute spacing between items on the latent scale is preserved across sites.
 
-That last step is less secure than the rest. These are maximum a posteriori fits under a slope prior of N(1, 0.3) shared across all LEVANTE tasks, and because that prior shrinks discriminations toward equality it contributes to the selection among invariance models. Refitting the same five models across a range of slope priors shows that the rejection of configural invariance is robust, holding under every specification we examined, whereas the narrower choice between metric and scalar is not. Scalar is preferred under the N(1, 0.3) and N(1, 0.5) priors and metric under weaker ones, and outside the tightest prior the two are never separated by more than about four BIC points (Table S1). We therefore treat the evidence for shared discriminations as strong and the evidence for the stricter scalar constraint as suggestive rather than settled. Reassuringly, the substantive conclusions reported below do not depend on this choice. Taking $\theta$ from the metric model instead of the scalar model leaves the age effect (0.24 against 0.23 standard deviations per year), the absence of a sex difference, and the absence of an age-by-sex interaction essentially unchanged. What does change is the apparent size of site-level mean differences, which we do not interpret in any case.
+```{r}
+#| label: metric-theta-robustness
+
+# The age and sex results use theta from the scalar model. Refit the same
+# ability model (as in _03_sex_diffs.qmd) with theta from the metric model, so
+# the robustness sentence below is computed rather than typed.
+metric_scores <- read_rds(here("models/mrot/multigroup_dataset/all_items/mrot_2pl_f1_metric.rds"))@scores |>
+  select(run_id, metric_value = ability)
+
+theta_robustness <- function(scores) {
+  d <- scores |>
+    select(run_id, metric_value) |>
+    inner_join(runs_filtered, by = "run_id") |>
+    inner_join(sex_data_cleaned, by = "user_id") |>
+    filter(!is.na(sex)) |>
+    mutate(sex = factor(sex), site_label = factor(site_label), task = "mrot") |>
+    rename(ability = metric_value)
+  contrasts(d$sex) <- contr.sum(levels(d$sex))
+  m <- lmer(ability ~ age * sex * site_label + (1 | user_id), data = d)
+  comps <- comparisons(m, newdata = d, re.form = NA,
+                       variables = list(sex = "pairwise", age = 1), by = "task") |>
+    as_tibble()
+  slope_diff <- slopes(m, newdata = d, re.form = NA, variables = "age",
+                       by = "sex", hypothesis = difference ~ pairwise) |>
+    as_tibble()
+  list(age_sd = sprintf("%.2f", comps$estimate[comps$term == "age"] / sd(d$ability)),
+       sex_p = comps$p.value[comps$term == "sex"],
+       age_sex_p = slope_diff$p.value)
+}
+
+theta_rob <- list(scalar = theta_robustness(mrot_df),
+                  metric = theta_robustness(metric_scores))
+theta_scalar_metric_r <- mrot_df |>
+  select(run_id, scalar = metric_value) |>
+  inner_join(metric_scores, by = "run_id") |>
+  summarise(r = cor(scalar, metric_value)) |>
+  pull(r)
+
+# the text says the sex null and the age-by-sex null hold under both
+stopifnot(all(map_dbl(theta_rob, "sex_p") > .05),
+          all(map_dbl(theta_rob, "age_sex_p") > .05))
+```
+
+That last step is less secure than the rest. These are maximum a posteriori fits under a slope prior of N(1, 0.3) shared across all LEVANTE tasks, and because that prior shrinks discriminations toward equality it contributes to the selection among invariance models. Refitting the same five models across a range of slope priors shows that the rejection of configural invariance is robust, holding under every specification we examined, whereas the narrower choice between metric and scalar is not. Scalar is preferred only under the N(1, 0.3) prior; under every weaker prior, and with no prior, metric is preferred by `r metric_gap$lo` to `r metric_gap$hi` BIC points (Table S1). We therefore treat the evidence for shared discriminations as strong and the evidence for the stricter scalar constraint as suggestive rather than settled. Reassuringly, the substantive conclusions reported below do not depend on this choice. Taking $\theta$ from the metric model instead of the scalar model leaves the age effect (`r theta_rob$metric$age_sd` against `r theta_rob$scalar$age_sd` standard deviations per year), the absence of a sex difference, and the absence of an age-by-sex interaction essentially unchanged. What does change is the apparent size of site-level mean differences, which we do not interpret in any case.
 
 Measurement invariance is a psychometric property of the instrument. It establishes that scores can be meaningfully compared across contexts, though it does not license inferences about the causes of any absolute differences, and it does not by itself speak to what cognitive process is driving performance. Evidence that children are engaging the spatial demands the task was designed to capture — specifically, the predicted increase in response time with angular disparity — is addressed in the angular sensitivity analysis below.
 
@@ -487,13 +530,13 @@ abstract_now <- list(
 abstract_yaml <- list(
   angle_str  = "$\\beta$ = 0.16, SE = 0.004, p < .001",
   angle_pct  = "16.9% slower per 40°",
-  age_str    = "$\\beta$ = 0.33, SE = 0.02, p < .001",
-  sex_str    = "$\\beta$ = -0.00, SE = 0.08, p = .998",
+  age_str    = "$\\beta$ = 0.34, SE = 0.02, p < .001",
+  sex_str    = "$\\beta$ = -0.00, SE = 0.08, p = .965",
   rt_sex_str = "$\\beta$ = -0.08, SE = 0.03, p = .004",
   rt_sex_pct = "7.4% faster",
   n_children = "1037",
-  delta_bic  = "417",
-  delta_bic_min = "122"
+  delta_bic  = "379",
+  delta_bic_min = "136"
 )
 stale <- names(abstract_now)[unlist(abstract_now) != unlist(abstract_yaml)]
 if (length(stale) > 0) {

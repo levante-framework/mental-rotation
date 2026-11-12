@@ -225,9 +225,9 @@ all.
 Two patterns are worth drawing out. The configural model, in which every item
 parameter is free to vary by site, is rejected under every specification, by
 between `r configural_dbic$lo` and `r configural_dbic$hi` BIC points. The choice between the metric and scalar models
-is far less stable. Scalar is preferred under the two tightest priors and metric
-under the looser ones, and outside the published prior the two are never
-separated by more than roughly four BIC points. We therefore treat the evidence
+is far less stable. Scalar is preferred only under the published prior, and
+metric under every looser prior and with no prior, by `r metric_gap$lo` to
+`r metric_gap$hi` BIC points. We therefore treat the evidence
 for discriminations being shared across sites as strong, and the evidence for the
 additional scalar constraint on difficulties as suggestive only.
 

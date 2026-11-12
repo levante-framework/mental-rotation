@@ -78,19 +78,11 @@ sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))
 ```{r}
 #| label: filter-runs
 
-# apply filters to runs for use in all subsequent analyses
-min_trials <- 10
-min_gap_months <- 3
+# apply filters to runs for use in all subsequent analyses; the same filter
+# selects the runs the IRT models are calibrated on (02, 03)
+source(here("helper", "filter_runs.R"))
 run_data_filtered <- run_data |>
-  filter(!early_build) |>
-  filter(num_attempted >= min_trials) |>
-  filter(!is.na(age), age >= 5, age <= 14) |>
-  arrange(user_id, age) |>
-  group_by(user_id) |>
-  mutate(run_number = row_number(),
-         age_gap = age - lag(age)) |>
-  ungroup() |>
-  filter_out(age_gap < min_gap_months / 12) |>
+  filter_runs() |>
   select(site, dataset, user_id, run_id, age, adaptive)
 
 # create age groups based on roughly equal sample sizes
@@ -127,8 +119,10 @@ site_n <- site_n_df |> nest(ns = -site_label) |> deframe()
 
 mrot_df <- mrot_scores |> inner_join(runs_filtered)
 
-n_excluded <- mrot_scores |>
-  anti_join(mrot_df) |>
+# Exclusions are counted from run_data, the full set of assessments. The IRT
+# scores cover only the retained runs, since the models are calibrated on them.
+n_excluded <- run_data |>
+  anti_join(mrot_df, by = "run_id") |>
   summarise(n_users = n_distinct(user_id),
             n_runs = n_distinct(run_id))
 
@@ -146,7 +140,7 @@ n_repeat_users <- runs_filtered |>
 # the order given in filter-runs and each assessment is attributed to the first
 # criterion it meets, so the reasons partition the excluded set rather than
 # overlapping.
-excl_reasons <- mrot_scores |>
+excl_reasons <- run_data |>
   distinct(run_id, user_id) |>
   anti_join(mrot_df |> distinct(run_id), by = "run_id") |>
   left_join(run_data |> select(run_id, early_build, num_attempted, age, user_id),
@@ -180,9 +174,9 @@ excl_str <- excl_reasons |>
 # the number of children assessed, which keeps the accounting free of the
 # double counting that reporting "children with an excluded assessment" invites
 # (that set overlaps the final sample).
-n_assessed_users <- n_distinct(mrot_scores$user_id)
+n_assessed_users <- n_distinct(run_data$user_id)
 
-child_groups <- mrot_scores |>
+child_groups <- run_data |>
   distinct(run_id, user_id) |>
   mutate(retained = run_id %in% mrot_df$run_id) |>
   group_by(user_id) |>
@@ -431,6 +425,20 @@ prior_sens <- read_rds(here("models/mrot_prior_sensitivity.rds"))
 configural_dbic <- prior_sens |>
   filter(itemtype == "2PL", invariance == "configural") |>
   summarise(lo = round(min(d_BIC)), hi = round(max(d_BIC)))
+
+# Metric vs scalar at each slope prior; gap < 0 means metric has the lower BIC.
+# The Results and the supplement say scalar wins only under the published
+# N(1, 0.3) prior, so that is checked here rather than assumed.
+metric_scalar <- prior_sens |>
+  filter(itemtype == "2PL", invariance %in% c("metric", "scalar")) |>
+  mutate(prior = if_else(is.na(prior_sd), "none", as.character(prior_sd))) |>
+  select(prior, invariance, BIC) |>
+  pivot_wider(names_from = invariance, values_from = BIC) |>
+  mutate(gap = metric - scalar)
+stopifnot(identical(metric_scalar$prior[metric_scalar$gap > 0], "0.3"))
+metric_gap <- metric_scalar |>
+  filter(gap < 0) |>
+  summarise(lo = round(min(-gap)), hi = round(max(-gap)))
 
 # Extremes of the default computation, used in the supplement to show that the
 # apparent spread across sites tracks the latent variance rather than the data.

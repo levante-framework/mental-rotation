@@ -19,7 +19,7 @@ being maximized.
 
 Second, the overlap-item data below are built with the same `levantemodels`
 helpers that `fit_task_models_multigroup()` uses, so they match the published
-fits exactly (54 item instances; checked by the `stopifnot()` below).
+fits exactly (checked against the 02 model record by the `stopifnot()` below).
 
 ```{r}
 library(glue)
@@ -38,9 +38,14 @@ invariances <- list(
 
 ```{r}
 # rebuild the overlap-item data exactly as fit_task_models_multigroup does
+# calibrate on the runs the paper analyses, as 02 does (see helper/filter_runs.R)
+source(here("helper/filter_runs.R"))
+retained_runs <- filter_runs(read_rds(here("data/runs_mrot.rds")))$run_id
+
 trials <- read_rds(here("data/task_data_nested.rds")) |>
   filter(item_task == "mrot") |>
   unnest(data) |>
+  filter(run_id %in% retained_runs) |>
   rename(group = dataset) |>
   mutate(item_uid = as.character(item_uid)) |>
   filter(!is.na(correct))
@@ -55,7 +60,10 @@ data_wide <- df_overlap |> to_mirt_shape_grouped()
 data_prepped <- data_wide |> select(-group)
 guess <- df_overlap |> distinct(item_inst, chance) |> pull(chance)
 
-stopifnot(ncol(data_prepped) == 54, sum(!is.na(data_prepped)) == 49603)
+# must match the data of the scalar model fitted in 02
+rec_02 <- read_rds(here("models/mrot/multigroup_dataset/overlap_items/mrot_2pl_f1_scalar.rds"))
+stopifnot(identical(dim(data_prepped), dim(rec_02@data)),
+          sum(!is.na(data_prepped)) == sum(!is.na(rec_02@data)))
 ```
 
 ```{r}

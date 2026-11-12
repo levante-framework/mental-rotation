@@ -23,6 +23,8 @@ Run the notebooks in order from the project root. Each step reads the outputs of
 | `04_reliability.qmd` | `models/mrot/` | `models/mrot_rxx.rds` |
 | `mrot_paper/mrot_paper.qmd`, `mrot_paper/supplementary.qmd` | `data/`, `models/` | the manuscript and supplement |
 
+The run exclusions are defined once, in `helper/filter_runs.R`. `02` and `03` calibrate the IRT models on the same runs the paper analyses.
+
 The committed `data/` and `models/` files are enough to render the paper without rerunning the pipeline. Rerunning `01` fetches the current versions of the datasets, which may differ from the committed snapshot (last fetched 2026-04-09).
 
 Render the paper from `mrot_paper/` with `quarto render mrot_paper.qmd` and `quarto render supplementary.qmd`.

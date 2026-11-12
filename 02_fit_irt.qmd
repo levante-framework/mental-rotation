@@ -15,8 +15,13 @@ item_sep <- "-"
 # directory in which to save model records
 regdir <- here("models")
 
-task_data_nested <- read_rds("data/task_data_nested.rds")
 runs_mrot <- read_rds("data/runs_mrot.rds")
+
+# calibrate on the runs the paper analyses (see helper/filter_runs.R)
+source(here("helper/filter_runs.R"))
+retained_runs <- filter_runs(runs_mrot)$run_id
+task_data_nested <- read_rds("data/task_data_nested.rds") |>
+  mutate(data = map(data, \(d) filter(d, run_id %in% retained_runs)))
 ```
 
 ```{r}
