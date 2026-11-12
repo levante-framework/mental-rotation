@@ -128,14 +128,9 @@ max(constrain)                          # number of free parameters
 
 ## Starting value for Ter
 
-By default diffIRT starts from EZ-diffusion estimates. For these data that start is poor: the optimiser ran into a local
-optimum with several non-decision times at exactly 0, and the fit was worse than a fit from a better start. Raising the
-fast-response cutoff does not cure this, since $T_{er}$ simply follows the cutoff (about 0.7 s below it). A start of 0.3 s works. Passing a value
-in `start` for the $T_{er}$ slots (and `NA` for everything else, which keeps the default) does that:
-
-```{r start}
-start <- c(rep(NA, 2 * nit), rep(0.3, nit), NA, NA)
-```
+With the current diffIRT (`fast-kernel`, commit `6fc0173`) the default EZ-diffusion start is fine and no `start` is needed. An earlier build (`b244ac4`) did need one: it ran into a local optimum with several
+non-decision times at exactly 0, which a start of 0.3 s for the $T_{er}$ slots cured (`start <- c(rep(NA, 2 * nit), rep(0.3, nit), NA, NA)`; `NA` keeps the default for everything else). Raising the fast-response cutoff is
+not a fix: $T_{er}$ simply follows the cutoff (about 0.7 s below it), and a cutoff of 0.25 s leaves the 3D non-decision times at about 0 because the fastest responses are contaminants.
 
 ## The fit
 
@@ -144,20 +139,19 @@ cheap coarse fit followed by a finer one. `se = TRUE` gives standard errors from
 
 ```{r fit}
 fit_time <- system.time(
-  fit <- diffIRT(rt, x, model = "Q", constrain = constrain, start = start, se = TRUE,
+  fit <- diffIRT(rt, x, model = "Q", constrain = constrain, se = TRUE,
                  control = list(nq = c(7, 15), trace = 0))
 )
 c(elapsed_s = unname(fit_time["elapsed"]), converged = fit$conv == 0, minus2LL = fit$totLL,
   n_par = fit$npars, AIC = fit$AIC, BIC = fit$BIC)
 ```
 
-This is the optimised build of diffIRT (branch `fast-kernel`). The same fit with the original package did not finish
+This is the optimised build of diffIRT (branch `fast-kernel`, commit `6fc0173`). The same fit with the original package did not finish
 a 70-person subset in 20 minutes; see `README.md`.
 
 ## Is 0.3 s sensible?
 
-Fixing $T_{er}$ at a grid of values (same data, same model) gives a profile with a minimum near 0.3 s, so the data support the start value rather than
-merely tolerating it:
+Fixing $T_{er}$ at a grid of values (same data, same model) gives a profile with a minimum near 0.3 s, so the data support the fitted value:
 
 ```{r profile}
 prof <- tibble(ter = c(0.1, 0.2, 0.3, 0.4)) |>
@@ -165,7 +159,7 @@ prof <- tibble(ter = c(0.1, 0.2, 0.3, 0.4)) |>
          minus2LL = map_dbl(file, \(f) if (file.exists(f)) read_rds(f)$fit$totLL else NA_real_)) |>
   select(-file)
 prof <- bind_rows(prof, tibble(ter = NA, minus2LL = fit$totLL)) |>
-  mutate(model = c(rep("Ter fixed", 4), "Ter free (2D/3D, started at 0.3 s)"), .before = 1)
+  mutate(model = c(rep("Ter fixed", 4), "Ter free (2D/3D)"), .before = 1)
 prof
 ```
 
@@ -385,8 +379,8 @@ pr$effects |>
 
 * **Age.** Drift $\log\theta$ grows by 0.26 SD per year, close to the 2PL value of 0.23. The age $\times$ sex interaction is null for every score. $\log\gamma$ has only a small age trend (0.06 SD per year) and mean log RT none, so the age
   gain is carried by $\theta$.
-* **Sex.** There is no sex difference in 2PL ability or in drift $\theta$ (boys +0.07 SD, $p$ = .18), and none in accuracy. Boys have lower $\gamma$ (−0.13 SD, $p$ = .036) and shorter mean log RT (−0.17 SD, $p$ = .009). This
-  matches the paper's finding that boys are faster but not more accurate, and it puts the speed difference in the boundary/response-level parameter, not in ability. The $\gamma$ result is nominal ($p$ = .036 among five scores), and $\gamma$ is highly correlated with mean log RT
+* **Sex.** There is no sex difference in 2PL ability or in drift $\theta$ (boys +0.07 SD, $p$ = .18), and none in accuracy. Boys have lower $\gamma$ (−0.13 SD, $p$ = .035) and shorter mean log RT (−0.17 SD, $p$ = .009). This
+  matches the paper's finding that boys are faster but not more accurate, and it puts the speed difference in the boundary/response-level parameter, not in ability. The $\gamma$ result is nominal ($p$ = .035 among five scores), and $\gamma$ is highly correlated with mean log RT
   (Spearman .89 across runs), so it adds little beyond the RT result itself.
 
 ```{r paper-sex-site, fig.height=4.2}
@@ -428,19 +422,163 @@ ggplot(sites |> filter(measure != "2PL theta") |>
 * **Repeated runs.** The random-intercept model reaches a conditional $R^2$ of `r f3(pr$fits$R2_conditional[pr$fits$measure == "2PL theta"])` for the 2PL and `r f3(pr$fits$R2_conditional[pr$fits$measure == "Diffusion log theta (drift)"])` for drift $\theta$ (marginal `r f3(pr$fits$R2_marginal[pr$fits$measure == "2PL theta"])` vs `r f3(pr$fits$R2_marginal[pr$fits$measure == "Diffusion log theta (drift)"])`). The difference is the user-level share, which comes from a small group of children
   with more than one run. Treat it as a hint that drift is less stable across runs, not as a result.
 
-# 8. Summary and caveats
+# 8. Q or D? The additive variant
 
-* The recipe is: build person-by-item matrices, constrain parameters within item classes, start $T_{er}$ at about 0.3 s, and run `diffIRT(model = "Q")` with a couple of quadrature settings. The
-  optimised build fits all 1,158 assessments in about 10 s.
+The D-diffusion model replaces the multiplicative person-by-item drift with an additive one, as in the Rasch/2PL: $\mathrm{logit}\,P = (\gamma_p/a_i)(\theta_p - v_i)$, with
+$\theta_p$ normal and $v_i$ a difficulty on the same scale as $\theta_p$. In this model $1/a_i$ is a discrimination-like slope that is separate from the difficulty, which the Q model does not allow. It needs no new code:
+the same `constrain` vector, with `model = "D"`.
+
+```{r d-fit}
+fit_d_time <- system.time(
+  fit_d <- diffIRT(rt, x, model = "D", constrain = constrain, se = TRUE, control = list(nq = c(7, 15), trace = 0))
+)
+tibble(model = c("Q-diffusion", "D-diffusion"), elapsed_s = c(fit_time[["elapsed"]], fit_d_time[["elapsed"]]),
+       converged = c(fit$conv, fit_d$conv) == 0, minus2LL = c(fit$totLL, fit_d$totLL), n_par = c(fit$npars, fit_d$npars),
+       AIC = c(fit$AIC, fit_d$AIC), BIC = c(fit$BIC, fit_d$BIC)) |> mutate(across(where(is.numeric), \(z) round(z, 1)))
+```
+
+The D model is no harder to fit: similar time, same convergence, same number of parameters. It fits the joint accuracy and RT data much worse, however: its $-2LL$ is about 1,900 higher with the same 28 parameters, so
+the Q model is strongly preferred on likelihood, AIC and BIC.
+
+```{r d-items}
+items_d <- tibble(item_uid = levels(factor(cls)), a_D = fit_d$par[first], v_D = fit_d$par[nit + first], v_D_se = fit_d$std.err[nit + first]) |>
+  left_join(cmp |> select(item_uid, type, b, a1, v_Q = v), by = "item_uid") |>
+  mutate(discrim_D = 1 / a_D)
+items_d |> select(item_uid, `2PL b` = b, `D: v` = v_D, `D: se` = v_D_se, `2PL a1` = a1, `D: 1/a` = discrim_D) |> mutate(across(-item_uid, f3))
+two_d <- filter(items_d, type == "2D")
+tibble(comparison = c("2PL b vs D v (12 classes)", "2PL b vs D v (2D, n = 9)", "2PL a1 vs D 1/a (12 classes)", "2PL a1 vs D 1/a (2D)"),
+       r = c(cor(items_d$b, items_d$v_D), cor(two_d$b, two_d$v_D), cor(items_d$a1, items_d$discrim_D), cor(two_d$a1, two_d$discrim_D))) |>
+  mutate(r = round(r, 2))
+```
+
+The D difficulties line up with the 2PL difficulties even more closely than the Q ones do ($r$ = .99 over the 12 classes and .97 within the 2D classes, against .96 and .89 for Q), as expected from an additive structure. The D slope $1/a_i$ is not
+the 2PL discrimination: it is nearly constant across the 2D classes ($r$ with $a_1$ = .27 there) and slightly higher for the 3D ones. D person drift correlates .92 with the 2PL ability (Q: .87) and .40 with age (Q: .43).
+Person drift under the D model:
+
+```{r d-scores}
+sc_d <- factest(fit_d)
+persons$theta_D <- sc_d[, 2]; persons$gamma_D <- sc_d[, 1]
+persons |> select(`D: theta` = theta_D, `D: gamma` = gamma_D, `Q: log theta` = theta, `2PL theta` = theta_irt, age) |>
+  mutate(`Q: log theta` = log(`Q: log theta`)) |> cor(use = "pairwise", method = "spearman") |> round(2)
+```
+
+# 9. How well does the model fit the response times?
+
+A posterior predictive check (`06_rt_fit_checks.R`): for every observed person-by-item cell, ten data sets are simulated from each fitted model, drawing the person's $(\gamma,\theta)$ from the approximate posterior (so shrinkage does not make the
+simulated people too alike), then trimmed like the data (RT $\geq$ 0.5 s). Observed and simulated data are compared per item class and separately for correct and incorrect responses. The check covers the Q model (Ter by 2D/3D, as above),
+the Q model with a $T_{er}$ per class, and the D model.
+
+```{r ppc-load}
+ppc <- read_rds(here("models/diffirt_rt_ppc.rds"))
+qn <- c("q10", "q30", "q50", "q70", "q90")
+ppc_long <- imap_dfr(ppc$models, \(r, nm) {
+  inner_join(ppc$observed$quant, r$quant, by = c("item_uid", "correct"), suffix = c("_o", "_s")) |>
+    pivot_longer(c(ends_with("_o"), ends_with("_s")) & !starts_with("n"), names_to = c("q", "src"), names_pattern = "(q\\d+)_(o|s)") |>
+    pivot_wider(names_from = src, values_from = value) |>
+    mutate(model = nm, n = n_o, group = ifelse(grepl("_3d_", item_uid), "3D", "2D"), resp = ifelse(correct == 1, "correct", "incorrect"))
+})
+ppc_long |> group_by(model, q) |> summarise(`RMSE (s)` = sqrt(weighted.mean((o - s)^2, n)), .groups = "drop") |>
+  pivot_wider(names_from = q, values_from = `RMSE (s)`) |> mutate(across(where(is.numeric), \(z) round(z, 2)))
+```
+
+```{r ppc-plot, fig.height=6, fig.width=8}
+ppc_long |> filter(model == "Q, Ter by 2D/3D") |>
+  ggplot(aes(o, s, colour = q)) + geom_abline(colour = "grey70") + geom_point(alpha = .8) +
+  facet_grid(resp ~ group, scales = "free") +
+  labs(x = "Observed RT quantile (s)", y = "Simulated RT quantile (s)", colour = NULL,
+       title = "Q-diffusion model, one point per item class and response type")
+```
+
+```{r ppc-bias}
+ppc_long |> summarise(bias = weighted.mean(s - o, n), .by = c(model, group, resp, q)) |>
+  pivot_wider(names_from = q, values_from = bias) |> arrange(model, group, resp) |> mutate(across(where(is.numeric), \(z) round(z, 2)))
+```
+
+(Predicted minus observed, in seconds.) Reading the Q model:
+
+* **2D classes fit well.** Quantiles are within about 0.1--0.2 s of the data for correct responses. The one clear miss is that the long right tail of incorrect responses is under-predicted (90th percentile 0.5 s too fast).
+* **3D classes do not fit well.** The model spreads the 3D RT distribution too widely: for correct responses the fast quantiles are about 0.6 s too fast and the 90th percentile about 0.8 s too slow. The data have a higher floor
+  and a narrower spread than a Wiener process with these parameters can produce. A single non-decision time per class cannot absorb that (the per-class $T_{er}$ model has the same pattern), which is the usual sign that
+  non-decision time varies from trial to trial, or that some responses are contaminant guesses. diffIRT has neither.
+* **Accuracy.** The Q model over-predicts accuracy for the hard 2D classes by 4--7 points (duck 160$^\circ$: .845 vs .774 observed) and is accurate for the easy and 3D classes. The D model gets accuracy nearly right (mean absolute error .010 vs .030) but is worse on the RT quantiles, especially the middle ones
+  (median RMSE 0.35 s vs 0.26 s). This matches what the 2PL comparison showed: the multiplicative Q structure gives up some accuracy fit to fit RT.
+
+```{r ppc-acc}
+a_o <- ppc$observed$acc
+tibble(item_uid = a_o$item_uid, observed = a_o$acc,
+       `Q` = ppc$models[[1]]$acc$acc[match(a_o$item_uid, ppc$models[[1]]$acc$item_uid)],
+       `Q, Ter per class` = ppc$models[[2]]$acc$acc[match(a_o$item_uid, ppc$models[[2]]$acc$item_uid)],
+       `D` = ppc$models[[3]]$acc$acc[match(a_o$item_uid, ppc$models[[3]]$acc$item_uid)]) |>
+  arrange(item_uid) |> mutate(across(-item_uid, f3))
+```
+
+Errors versus correct responses. In a Wiener model with an unbiased start, correct and incorrect responses have the same mean decision time for a given person and item. Differences in the pooled data come only from mixing over people. The observed pattern is that errors are
+slower than correct responses for easy 2D items and faster for the 3D items (by 0.7--1.0 s). The Q model reproduces the sign of both effects but under-predicts the 3D size, which again points to fast guesses in the 3D errors.
+
+```{r ppc-err}
+d_err <- \(b) b |> pivot_wider(names_from = correct, values_from = mean_rt, names_prefix = "c") |> mutate(diff = c0 - c1) |> select(item_uid, diff)
+reduce(c(list(d_err(ppc$observed$by) |> rename(observed = diff)),
+         map(ppc$models, \(r) d_err(r$acc_by) |> rename(!!r$name := diff))), left_join, by = "item_uid") |>
+  mutate(across(-item_uid, \(z) round(z, 2)))
+```
+
+Free $T_{er}$ per class improves the likelihood slightly ($-2LL$ 253,334 vs 253,391, AIC lower, BIC higher) and fits only a little better on the RT quantiles. The 3D $T_{er}$ values then fall with angle (0.23, 0.15, 0.07 s), which is the model compensating
+for the misfit, not a result.
+
+# 10. Does the response time add information?
+
+The check is whether the extra information in the RT makes the person scores more reliable or more valid than accuracy alone (`07_rt_information.R`). Each run's trials are split at random into two halves (balanced within person, 1,052 runs with at least 16 trials, 20 random splits). Each half is
+scored with the 2PL (item parameters fixed at the paper's, accuracy only, $N(0,1)$ prior) and with the Q-diffusion model (item parameters fixed at the full fit, accuracy and RT). Both see the same trials.
+
+```{r info-load}
+ri <- read_rds(here("models/diffirt_rt_information.rds"))
+ri$reliability |> mutate(score = recode(score, irt = "2PL theta (accuracy only)", q_theta = "Q log theta (accuracy + RT)",
+                                        q_gamma = "Q log gamma", acc = "proportion correct", mlrt = "mean log RT")) |>
+  mutate(across(where(is.numeric), \(z) round(z, 3)))
+```
+
+* **Reliability is the same.** Split-half reliability is .90 (Spearman-Brown) for both the 2PL and the Q drift score. Using the RT does not make the person estimate more reliable, at this test length (about 21 trials per half).
+* **The added prediction is small.** When the score from one half predicts the 2PL ability in the other half, adding the Q drift and boundary scores to the 2PL score raises $R^2$ from .668 to .681 (and mean log RT alone to .671). Predicting
+  the other half's raw accuracy goes from .430 to .456. In the other direction (predicting Q drift from the other half) the 2PL adds .005.
+* **Cross-prediction does not favour the diffusion score.** The Q drift score from one half predicts the other half's 2PL ability less well (r = .76) than the 2PL score does (.82).
+
+```{r info-retest}
+ri$retest |> mutate(across(where(is.numeric), \(z) round(z, 2)))
+```
+
+Test-retest, for the `r ri$n_pairs` children with two runs at least three months apart (median gap 0.3 years): stability is .70 for both the 2PL ability and the Q drift (CIs are wide). Adjusting for age at each run, the stability falls to .62 (2PL) and .52 (Q drift), and the intervals overlap.
+The $\gamma$ score is stable only at .41, which is consistent with it being a run-level response-time level that moves with testing conditions. None of this shows an advantage for the RT-based score.
+
+```{r info-age}
+# validity against age: does the Q score add to the 2PL score in explaining age?
+age_r2 <- c(`2PL` = summary(lm(age ~ theta_irt, persons))$r.squared,
+            `+ Q log theta` = summary(lm(age ~ theta_irt + log(theta), persons))$r.squared,
+            `+ Q log theta and log gamma` = summary(lm(age ~ theta_irt + log(theta) + log(gamma), persons))$r.squared)
+round(age_r2, 3)
+```
+
+Against age, adding the Q scores raises $R^2$ for age from `r round(age_r2[1], 2)` to `r round(age_r2[3], 2)`. That is a hint that the RT carries developmental signal, but speeding up with age is expected for any task, so it does not show a better measure of mental rotation.
+
+**Conclusion.** For these data the RT adds little over accuracy for measuring ability: equal reliability, a gain of one to three points of explained variance in cross-half prediction, and no gain in retest stability. The diffusion model
+is still useful for describing how responses are produced (drift versus response level, differences in the speed of the sexes) but it does not justify replacing the 2PL as the paper's ability score.
+
+# 11. Summary and caveats
+
+* The recipe is: build person-by-item matrices, constrain parameters within item classes, trim responses faster than 0.5 s, and run `diffIRT(model = "Q")` with a couple of quadrature settings. The
+  optimised build fits all 1,158 assessments in a few seconds.
 * The difficulty-like parameter $v_i$ orders the item classes like the 2PL difficulty ($r = .96$; $.89$ within the 2D classes). The 2PL discrimination does not carry over to a Q-diffusion
   parameter, because difficulty and slope are not separate parameters in the Q model, and the two disagree in direction (section 5).
 * The Q-diffusion person drift $\theta$ is highly correlated with the 2PL ability and a bit more strongly related to age ($R^2$ .20 vs .13 with a spline in age). The 2PL predicts accuracy slightly better,
   and the Q model also predicts the class mean RTs reasonably well.
 * The paper's age, sex and site results carry over to the diffusion drift score (section 7): same age trend, no sex or age $\times$ sex effect on ability, and the same site ordering. The boys-are-faster result shows up in $\gamma$,
   which is mostly a response-time level parameter (r = .89 with mean log RT) and is not a separate caution trait.
-* Caveats: standard errors are probably optimistic; 3D non-decision time is weakly identified (the 3D RTs are long); the section-5 comparison
-  is across 12 classes; person scores are EAP estimates and the fit checks are in-sample; and equality of estimates between the optimised and the original diffIRT could
-  not be checked because the original never finished.
+* The D (additive) variant fits as easily as Q but much worse overall ($-2LL$ about 1,900 higher). It matches the 2PL difficulties more closely (r = .99) and predicts accuracy better than Q, but its RT quantiles are worse (section 8).
+* RT fit (section 9): good for the 2D classes. For the 3D classes a single Wiener process spreads the RT distribution too widely, and the Q model overpredicts accuracy on the hard 2D classes by 4--7 points. A trial-to-trial varying non-decision
+  time or a contaminant (fast guess) component would be the natural next models; diffIRT has neither.
+* RT adds little for measuring ability (section 10): equal split-half reliability (.90), one to three points more explained variance in cross-half prediction, no better test-retest stability. The diffusion model describes how responses are produced
+  and gives a speed/response-level parameter, but it does not justify replacing the 2PL.
+* Caveats: standard errors are probably optimistic; 3D non-decision time is weakly identified; the section-5 comparison is across 12 classes; person scores are EAP estimates and the fit checks are in-sample; the optimised and the original diffIRT
+  were never compared on the same fit, because the original never finished; and the retest sample is only about 120 children.
 
 ```{r session, echo=FALSE}
 sessionInfo()$otherPkgs$diffIRT$Version

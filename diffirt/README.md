@@ -25,7 +25,7 @@ The build used OpenMP (Homebrew `libomp`).
    item class (stimulus x angle, 12 classes), as in the paper's IRT models. Set `DIFFIRT_MATS` to use a different matrix file.
 3. `03_diffirt_checks.R` scores persons from a fit with `factest` and compares them with the paper's 2PL scores. `04_diffirt_summary.R` tabulates the preferred fit (item-class parameters with SEs) and saves its scores.
 
-4. `05_diffirt_paper_analyses.R` re-runs the paper's age x sex x site ability model with the diffusion scores (writes `models/diffirt_paper_results.rds`). `diffirt_report.Rmd` is the walkthrough report: data preparation, constraints and start values, the fit, item parameters, the comparison with the
+4. `06_rt_fit_checks.R` simulates data from the fitted models (Q, Q with Ter per class, D) and compares RT quantiles and accuracy; `07_rt_information.R` tests whether RT adds information (split-half and test-retest). `05_diffirt_paper_analyses.R` re-runs the paper's age x sex x site ability model with the diffusion scores (writes `models/diffirt_paper_results.rds`). `diffirt_report.Rmd` is the walkthrough report: data preparation, constraints and start values, the fit, item parameters, the comparison with the
    paper's 2PL estimates, the person parameters, and the replication of the paper's age, sex and site results. Render it with `Rscript --vanilla -e 'rmarkdown::render("diffirt/diffirt_report.Rmd")'`
    (it refits the model, about 10 s, and reads `models/mrot_coef.rds` and `models/mrot_scores.rds`).
 
@@ -34,7 +34,7 @@ The build used OpenMP (Homebrew `libomp`).
 Timing (1,158 assessments, 81 columns, Q model): 3 s at 7 quadrature points, 19 s for 7, 15, 25. The original package did not finish a 70-person subset in 20 minutes
 (0.7 s with the optimised build).
 
-**Ter.** With the default EZ-diffusion start, several item classes ended with Ter = 0. This was a local optimum, not a feature of the data:
+**Ter.** (Update: with diffIRT commit `6fc0173` the default start finds the same optimum and the 0.3 s start is no longer needed; the numbers below are from the earlier build `b244ac4`, kept in `~/Library/R/diffirt-fast-b244ac4`.) With the default EZ-diffusion start, several item classes ended with Ter = 0. This was a local optimum, not a feature of the data:
 
 - Raising the fast-response cutoff does not fix it properly. With cutoffs of 1.5, 2 and 3 s, Ter rises to about 1.1, 1.5 and 2.3 s, tracking the cutoff (about 0.7 s below it), because the model is fitting the truncated left edge of the RT distribution. Do not use such cutoffs.
 - Starting Ter at 0.3 s instead gives a better fit than any default-start run. At a 0.5 s cutoff, free per-class Ter has -2LL = 253,147 (38 parameters), against 254,121 from the default start. Fixing Ter at 0.1, 0.2, 0.3 and 0.4 s gives -2LL = 255,243, 254,238, 253,789 and 254,651, so the profile is minimised near 0.3 s.
@@ -56,3 +56,7 @@ Person theta relates more strongly to age than the 2PL score (R-squared .20 vs .
 Diffusion drift log-theta: age 0.26 SD/yr (p < .001), sex +0.07 (SE 0.05, p = .18), age x sex 0.01 (p = .66), and the site contrasts match the 2PL ones to within about 0.1 SD
 (Bogota - Leipzig -0.79 vs -0.82; rural - Leipzig -1.10 vs -1.20). Boys are faster but not more accurate, and in the diffusion model that shows up in gamma (-0.13 SD, p = .036, uncorrected) not theta.
 gamma is mostly a response-time level parameter (Spearman .89 with a run's mean log RT), and it separates Leipzig (remote home testing, slowest) from the other sites.
+
+**D vs Q, RT fit, and whether RT adds information** (new build, details in the report sections 8-10). The D model fits as easily as Q (6 s, 28 parameters) but with -2LL 255,282 vs 253,391, so Q is strongly preferred; D difficulties match the 2PL ones better (r = .99). Posterior predictive checks:
+2D RT quantiles are within about 0.1-0.2 s; for 3D the Wiener process spreads the RT distribution too widely (fast quantiles 0.6 s too fast, 90th percentile 0.8 s too slow), and Q overpredicts accuracy on hard 2D classes by 4-7 points (D does not).
+Split-half reliability is .90 for both the 2PL and the Q drift score, RT adds 1-3 points of explained variance in cross-half prediction, and test-retest stability is .70 for both (n = 121): RT adds little for measuring ability.
