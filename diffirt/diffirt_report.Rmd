@@ -1,0 +1,447 @@
+---
+title: "Diffusion IRT for the LEVANTE mental rotation task"
+subtitle: "How to fit a Q-diffusion IRT model with diffIRT, and what its item and person parameters tell us"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    df_print: paged
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 7.5, fig.height = 4.5, dpi = 110)
+suppressMessages({library(dplyr); library(tidyr); library(readr); library(purrr); library(ggplot2); library(here)})
+# the optimised diffIRT is installed in its own library (see README.md)
+.libPaths(c(path.expand("~/Library/R/diffirt-fast"), .libPaths()))
+suppressMessages(library(diffIRT))
+theme_set(theme_minimal(base_size = 11))
+f3 <- \(x) formatC(x, digits = 3, format = "f")
+```
+
+# 1. What the model is
+
+Standard IRT uses only the accuracy of each response. A diffusion IRT model also uses the response time. Each response
+is the outcome of a noisy evidence-accumulation (Wiener) process between a correct and an incorrect boundary, which
+gives a joint likelihood for accuracy and response time. The **Q-diffusion** model of Molenaar, Tuerlinckx and van der Maas
+(2015) is meant for ability data. It splits the usual diffusion parameters into a person part and an item part:
+
+| quantity | person | item |
+|---|---|---|
+| boundary separation | $\gamma_p$ | $1/a_i$ |
+| drift rate | $\theta_p$ | $1/v_i$ |
+| non-decision time | | $T_{er,i}$ |
+
+so that the person-by-item boundary separation is $\gamma_p / a_i$ and the drift rate is $\theta_p / v_i$. Because the
+process starts midway between the boundaries, the probability of a correct response is
+
+$$P(x_{pi}=1) = \operatorname{logistic}\!\left(\frac{\gamma_p}{a_i}\cdot\frac{\theta_p}{v_i}\right).$$
+
+Two things follow that matter for interpreting the parameters:
+
+* **Larger $v_i$ means a harder item** (lower drift), so $v_i$ plays the role of difficulty.
+* **Accuracy has a floor of 0.5** (as the drift goes to zero, the process becomes a coin flip). That matches the
+  guessing parameter fixed at 0.5 in the paper's 2PL models for this two-alternative task.
+
+The person parameters are log-normal, $\log\gamma_p \sim N(0,\omega_\gamma^2)$ and $\log\theta_p \sim N(0,\omega_\theta^2)$,
+so $\theta_p$ is a person's *speed of information accumulation* (the analogue of ability) and $\gamma_p$ is their *caution*
+(speed-accuracy trade-off). Both are integrated out by Gauss-Hermite quadrature, with item parameters estimated by
+marginal maximum likelihood.
+
+# 2. Data
+
+`data/mrot_rt_trial.rds` has one row per trial (run, item, correct, reaction time in seconds). diffIRT needs a
+persons $\times$ items matrix of responses and one of response times, with `NA` for unseen items.
+
+* **Persons** are assessments (runs) with at least one usable trial.
+* **Items.** The task is adaptive, so a run sees only a few of the 81 concrete stimuli (some twice). Columns are
+  *stimulus $\times$ occurrence within the run*, the same unit as in the paper's `all_items` IRT models, so that
+  repeated stimuli are separate items.
+* **Item classes.** Parameters are shared by the columns of a class (stimulus $\times$ angle: 2D duck, 2D rabbit, 3D shape,
+  12 classes in all), exactly as the paper's 2PL does. This gives 12 $a_i$, 12 $v_i$ and a few $T_{er}$ values
+  rather than 243 free item parameters.
+* **Trimming.** Responses faster than 0.5 s are dropped as anticipations (1.3% of trials), as are responses at the 30 s time limit.
+  Section 3 explains why 0.5 s.
+
+```{r data}
+trials <- read_rds(here("data/mrot_rt_trial.rds"))
+rt_min <- 0.5; rt_max <- 29.9
+
+d <- trials |>
+  filter(rt_s >= rt_min, rt_s < rt_max) |>
+  arrange(run_id, trial_number) |>
+  mutate(occ = row_number(), .by = c(run_id, item_original),
+         col = paste(item_uid, item_original, occ, sep = "|"))
+
+cols <- d |> distinct(col, item_uid, item_group) |> arrange(item_uid, col)
+runs <- d |> distinct(run_id, user_id, site, dataset, adaptive, age) |> arrange(run_id)
+
+to_mat <- \(v) d |> select(run_id, col, all_of(v)) |>
+  pivot_wider(names_from = col, values_from = all_of(v)) |>
+  arrange(run_id) |> select(-run_id) |> as.matrix() |> _[, cols$col]
+rt <- to_mat("rt_s")
+x  <- to_mat("correct"); storage.mode(x) <- "numeric"
+stopifnot(identical(is.na(rt), is.na(x)))
+
+cat(nrow(rt), "persons,", ncol(rt), "item columns,", n_distinct(cols$item_uid), "item classes;",
+    sum(!is.na(rt)), "trials,", round(100 * (1 - nrow(d) / nrow(trials)), 1), "% dropped\n")
+```
+
+```{r classes}
+class_obs <- d |>
+  summarise(n = n(), accuracy = mean(correct), mean_rt = mean(rt_s), median_rt = median(rt_s),
+            .by = item_uid) |>
+  arrange(item_uid)
+class_obs |> mutate(across(c(accuracy, mean_rt, median_rt), f3))
+```
+
+Accuracy falls and response time rises with the rotation angle, and the 3D shapes are much slower than the 2D animals.
+
+# 3. Fitting the model
+
+## Constraints
+
+`diffIRT(rt, x, model, constrain, start, se, control)` takes a `constrain` vector of length $3 n_{items}+2$ giving, for each
+column, which parameter it uses: first the $a$'s, then the $v$'s, then the $T_{er}$'s, then the two scale parameters
+$\omega_\gamma$ and $\omega_\theta$. Columns with the same integer share a parameter, ids must run consecutively from 1, and 0 means *fixed* (at the
+value in `start`). Sharing parameters within an item class is therefore just a matter of building the vector:
+
+```{r constrain}
+cls <- cols$item_uid
+nit <- ncol(rt)
+k   <- as.integer(factor(cls))      # item class of each column (1..12)
+nc  <- max(k)
+
+# non-decision time shared within 2D and within 3D classes (see below)
+kt  <- as.integer(factor(grepl("_3d_", cls)))
+nt  <- max(kt)
+
+constrain <- c(k,                       # a_i: one per class
+               nc + k,                  # v_i: one per class
+               2 * nc + kt,             # Ter: one per 2D/3D group
+               2 * nc + nt + 1,         # omega_gamma
+               2 * nc + nt + 2)         # omega_theta
+length(constrain) == 3 * nit + 2
+max(constrain)                          # number of free parameters
+```
+
+## Starting value for Ter
+
+By default diffIRT starts from EZ-diffusion estimates. For these data that start is poor: the optimiser ran into a local
+optimum with several non-decision times at exactly 0, and the fit was worse than a fit from a better start. Raising the
+fast-response cutoff does not cure this, since $T_{er}$ simply follows the cutoff (about 0.7 s below it). A start of 0.3 s works. Passing a value
+in `start` for the $T_{er}$ slots (and `NA` for everything else, which keeps the default) does that:
+
+```{r start}
+start <- c(rep(NA, 2 * nit), rep(0.3, nit), NA, NA)
+```
+
+## The fit
+
+The optimiser runs once for each number of quadrature points in `nq`, restarting from the previous solution, so `c(7, 15)` is a
+cheap coarse fit followed by a finer one. `se = TRUE` gives standard errors from the numerical Hessian.
+
+```{r fit}
+fit_time <- system.time(
+  fit <- diffIRT(rt, x, model = "Q", constrain = constrain, start = start, se = TRUE,
+                 control = list(nq = c(7, 15), trace = 0))
+)
+c(elapsed_s = unname(fit_time["elapsed"]), converged = fit$conv == 0, minus2LL = fit$totLL,
+  n_par = fit$npars, AIC = fit$AIC, BIC = fit$BIC)
+```
+
+This is the optimised build of diffIRT (branch `fast-kernel`). The same fit with the original package did not finish
+a 70-person subset in 20 minutes; see `README.md`.
+
+## Is 0.3 s sensible?
+
+Fixing $T_{er}$ at a grid of values (same data, same model) gives a profile with a minimum near 0.3 s, so the data support the start value rather than
+merely tolerating it:
+
+```{r profile}
+prof <- tibble(ter = c(0.1, 0.2, 0.3, 0.4)) |>
+  mutate(file = here("models", sprintf("diffirt_q_rtmin0.5_fast_nall_nq7-15_terfixed%s.rds", ter)),
+         minus2LL = map_dbl(file, \(f) if (file.exists(f)) read_rds(f)$fit$totLL else NA_real_)) |>
+  select(-file)
+prof <- bind_rows(prof, tibble(ter = NA, minus2LL = fit$totLL)) |>
+  mutate(model = c(rep("Ter fixed", 4), "Ter free (2D/3D, started at 0.3 s)"), .before = 1)
+prof
+```
+
+# 4. Item parameters
+
+```{r items}
+first <- match(1:nc, k)
+items <- tibble(
+  item_uid = levels(factor(cls)),
+  a = fit$par[first],           a_se = fit$std.err[first],
+  v = fit$par[nit + first],     v_se = fit$std.err[nit + first],
+  ter = fit$par[2 * nit + first], ter_se = fit$std.err[2 * nit + first]) |>
+  separate(item_uid, c(NA, "type", "stimulus", "angle"), sep = "_", remove = FALSE, convert = TRUE) |>
+  mutate(label = paste(type, stimulus, angle), type = toupper(type))
+omega <- tibble(parameter = c("omega_gamma", "omega_theta"), estimate = tail(fit$par, 2), se = tail(fit$std.err, 2))
+items |> select(item_uid, a, a_se, v, v_se, ter, ter_se) |> mutate(across(-item_uid, f3))
+omega |> mutate(across(-parameter, f3))
+```
+
+Drift-based difficulty $v$ rises with angle within every stimulus and is roughly four times larger for the 3D shape than the 2D animals.
+Boundary separation $a$ is nearly constant across classes, and the non-decision time is shared within 2D/3D by construction.
+Standard errors are small. They come from a numerical Hessian at 15 quadrature points, so treat them as a lower bound.
+
+```{r items-plot}
+ggplot(items, aes(angle, v, colour = stimulus, shape = type)) +
+  geom_pointrange(aes(ymin = v - 2 * v_se, ymax = v + 2 * v_se)) +
+  geom_line() +
+  scale_x_continuous(breaks = unique(items$angle)) +
+  labs(x = "Rotation angle (degrees)", y = expression(paste("Item difficulty ", v[i])), colour = NULL, shape = NULL)
+```
+
+# 5. Comparison with the paper's 2PL item estimates
+
+The paper fits a multigroup 2PL (guessing fixed at 0.5, scalar invariance across datasets) with the same twelve item
+classes. The coefficients are in `models/mrot_coef.rds`. In `mirt`'s parameterisation
+$P = g + (1-g)\,\mathrm{logistic}(a_1\theta + d)$, with difficulty $b=-d/a_1$.
+
+```{r irt-items}
+irt <- read_rds(here("models/mrot_coef.rds")) |>
+  filter(model_set == "multigroup_dataset", subset == "all_items", itemtype == "2pl", invariance == "scalar") |>
+  distinct(item_uid = item, a1, d, b = difficulty, g)
+cmp <- items |> left_join(irt, by = "item_uid") |>
+  mutate(av = a * v,                       # product enters the Q-model logit as theta*gamma / (a*v)
+         slope_q = 1 / (a * v))           # change in logit per unit of gamma*theta
+stopifnot(!anyNA(cmp$b))
+cmp |> select(item_uid, `2PL b` = b, `2PL a1` = a1, `Q: v` = v, `Q: a` = a, `Q: a*v` = av) |>
+  mutate(across(-item_uid, f3))
+```
+
+## Correlations across the 12 classes
+
+In the Q model the logit is $(\gamma_p\theta_p)/(a_i v_i)$, so the product $a_i v_i$ is the item's overall hardness, and its
+reciprocal is the item's *slope* relative to the person's speed. Difficulty and discrimination are therefore tied together in
+a way they are not in the 2PL: a larger $v_i$ lowers accuracy and also flattens the item's response to $\theta$.
+
+```{r cor}
+cor_tab <- function(x, y, label) tibble(
+  comparison = label,
+  pearson  = cor(x, y), spearman = cor(x, y, method = "spearman"))
+bind_rows(
+  cor_tab(cmp$b,  log(cmp$v),         "2PL difficulty b vs log v"),
+  cor_tab(cmp$b,  log(cmp$av),        "2PL difficulty b vs log(a*v)"),
+  cor_tab(cmp$b,  cmp$ter,            "2PL difficulty b vs Ter"),
+  cor_tab(cmp$a1, cmp$slope_q,        "2PL discrimination a1 vs Q slope 1/(a*v)"),
+  cor_tab(cmp$a1, cmp$a,              "2PL discrimination a1 vs Q boundary a"),
+  cor_tab(cmp$a1, log(cmp$v),         "2PL discrimination a1 vs log v")) |>
+  mutate(across(-comparison, \(z) round(z, 2)))
+```
+
+The difficulty-like parameter lines up very closely with the 2PL difficulty: $r = .96$ over the 12 classes. The 2D/3D gap drives part of
+that, so the within-2D values below matter, and they are still high. Non-decision time is also lower for the harder (3D) classes, but with
+only two estimated values ($T_{er}$ is shared within 2D and within 3D) that correlation carries no information. Discrimination does not match: across all classes the 2PL $a_1$ is weakly and *negatively* related
+to the Q slope $1/(a_i v_i)$, and within the 2D classes the sign is clearly opposite, because 2PL slopes rise with angle while the Q-model slope falls as $v_i$ rises.
+
+```{r cor-2d}
+two <- filter(cmp, type == "2D")
+c(`within 2D (n = 9): b vs log v` = cor(two$b, log(two$v)),
+  `within 2D: b vs log(a*v)`     = cor(two$b, log(two$av)),
+  `within 2D: a1 vs 1/(a*v)`     = cor(two$a1, two$slope_q),
+  `within 2D: a1 vs log v`       = cor(two$a1, log(two$v))) |> round(2)
+```
+
+```{r cmp-plot, fig.height=4}
+p1 <- ggplot(cmp, aes(b, log(v), colour = stimulus, shape = type)) +
+  geom_point(size = 3) + geom_smooth(aes(group = 1), method = "lm", se = FALSE, colour = "grey50", linewidth = .4) +
+  labs(x = "2PL difficulty b", y = "Q-diffusion log v", colour = NULL, shape = NULL)
+p2 <- ggplot(cmp, aes(a1, slope_q, colour = stimulus, shape = type)) +
+  geom_point(size = 3) +
+  labs(x = "2PL discrimination a1", y = "Q-diffusion slope 1/(a*v)", colour = NULL, shape = NULL)
+patchwork::wrap_plots(p1, p2, guides = "collect")
+```
+
+## Predicted accuracy and response time
+
+The parameters are not on the same scale, so compare what they predict. For each person with both scores, compute the
+probability of a correct response to each item class from (i) the 2PL with the paper's $\hat\theta$ and (ii) the Q-diffusion model with the person's
+own $(\hat\gamma_p,\hat\theta_p)$ from `factest()`, and compare both with the observed accuracy. The scores are the same persons' EAP estimates,
+so both models are evaluated in-sample.
+
+```{r scores}
+sc <- factest(fit)                     # EAP gamma (col 1) and theta (col 2) for each person
+persons <- bind_cols(runs, tibble(gamma = sc[, 1], theta = sc[, 2])) |>
+  left_join(read_rds(here("models/mrot_scores.rds")) |> filter(model_set == "multigroup_dataset") |>
+              select(run_id, theta_irt = metric_value), by = "run_id")
+colSums(is.na(persons[c("gamma", "theta", "theta_irt")]))
+```
+
+```{r predict}
+pred <- d |>
+  select(run_id, item_uid, correct, rt_s) |>
+  left_join(persons |> select(run_id, gamma, theta, theta_irt), by = "run_id") |>
+  left_join(cmp |> select(item_uid, a, v, ter, a1, d, g), by = "item_uid") |>
+  mutate(p_2pl = g + (1 - g) * plogis(a1 * theta_irt + d),
+         A  = gamma / a,                        # person x item boundary separation
+         nu = theta / v,                        # person x item drift rate
+         p_q = plogis(A * nu),
+         # mean RT of the Wiener process starting midway: Ter + A/(2 nu) * tanh(A nu / 2)
+         rt_q = ter + ifelse(abs(nu) < 1e-8, A^2 / 4, A / (2 * nu) * tanh(A * nu / 2)))
+
+by_class <- pred |>
+  summarise(observed = mean(correct), `2PL` = mean(p_2pl, na.rm = TRUE), `Q-diffusion` = mean(p_q),
+            .by = item_uid) |>
+  pivot_longer(-c(item_uid, observed), names_to = "model", values_to = "predicted")
+ggplot(by_class, aes(observed, predicted, colour = model)) +
+  geom_abline(colour = "grey70") + geom_point(size = 2) +
+  coord_equal(xlim = c(.5, 1), ylim = c(.5, 1)) +
+  labs(x = "Observed accuracy of class", y = "Mean predicted accuracy", colour = NULL)
+```
+
+```{r fit-stats}
+fit_stats <- pred |> filter(!is.na(p_2pl)) |>
+  summarise(across(c(p_2pl, p_q), list(
+    brier = \(p) mean((correct - p)^2),
+    logloss = \(p) -mean(correct * log(p) + (1 - correct) * log(1 - p))), .names = "{.col}_{.fn}"))
+fit_stats |> pivot_longer(everything(), names_to = c("model", "stat"), names_pattern = "p_(.*)_(.*)") |>
+  pivot_wider(names_from = stat, values_from = value) |>
+  mutate(model = recode(model, `2pl` = "2PL", q = "Q-diffusion"), across(-model, \(z) round(z, 4)))
+```
+
+The 2PL predicts accuracy a little better (Brier 0.127 vs 0.133, log loss 0.386 vs 0.404). That is expected: it is fit to accuracy alone, whereas the
+Q-diffusion model also has to account for the response times and gives up a little accuracy fit to do so. The 2PL cannot predict response times at all. The
+model-implied mean response time can be checked per class. Plug-in scores compress person variance, so these predictions are rough: they are close for the
+2D classes (within about 0.15 s) and about 0.3--0.4 s too slow for the 3D classes.
+
+```{r rt-check}
+pred |> summarise(`observed mean RT (s)` = mean(rt_s), `predicted mean RT (s)` = mean(rt_q), .by = item_uid) |>
+  arrange(item_uid) |> mutate(across(-item_uid, \(z) round(z, 2)))
+```
+
+# 6. Person parameters
+
+```{r person-desc}
+persons |> summarise(across(c(gamma, theta, theta_irt, age), list(mean = mean, sd = sd), na.rm = TRUE)) |>
+  pivot_longer(everything(), names_to = c("variable", "stat"), names_pattern = "(.*)_(mean|sd)") |>
+  pivot_wider(names_from = stat) |> mutate(across(-variable, f3))
+```
+
+## Relation to the paper's ability score and to age
+
+```{r person-cor}
+persons |> select(`Q: theta (speed of accumulation)` = theta, `Q: gamma (caution)` = gamma,
+                  `2PL theta` = theta_irt, age) |>
+  cor(use = "pairwise", method = "spearman") |> round(2)
+```
+
+```{r person-plot, fig.height=4.5}
+long <- persons |>
+  mutate(`Q-diffusion: log theta` = log(theta), `Q-diffusion: log gamma` = log(gamma), `2PL theta` = theta_irt) |>
+  pivot_longer(c(`Q-diffusion: log theta`, `Q-diffusion: log gamma`, `2PL theta`), names_to = "score") |>
+  group_by(score) |> mutate(z = as.numeric(scale(value))) |> ungroup()
+ggplot(long, aes(age, z, colour = score, fill = score)) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 5)) +
+  labs(x = "Age (years)", y = "Standardised score", colour = NULL, fill = NULL)
+```
+
+```{r person-scatter, fig.height=4}
+ggplot(persons, aes(theta_irt, log(theta), colour = age)) + geom_point(alpha = .5, size = .8) +
+  scale_colour_viridis_c() + labs(x = "2PL theta (paper)", y = "Q-diffusion log theta")
+```
+
+Drift rate $\theta$ tracks the paper's ability scores (Spearman .87) and increases with age (.43, against .35 for the 2PL score). The boundary
+parameter $\gamma$ is unrelated to age (.02), so the age gain here comes from faster accumulation of evidence rather than from a shift in
+the speed-accuracy trade-off. $\gamma$ also correlates positively with ability (.35 with $\theta$, .56 with the 2PL score). Section 7 shows that $\gamma$ is mostly an overall
+response-speed parameter: it correlates .89 with a run's mean log RT. Read it as the *level* of the child's response times (slow, careful responders have a high $\gamma$), not as a clean
+caution trait.
+
+## Differences between datasets
+
+```{r person-groups}
+persons |> summarise(n = n(), age = mean(age), `2PL theta` = mean(theta_irt, na.rm = TRUE),
+                      `log theta` = mean(log(theta)), `log gamma` = mean(log(gamma)), .by = dataset) |>
+  mutate(across(-c(dataset, n), \(z) round(z, 2)))
+```
+
+```{r age-r2}
+# Dataset order of log theta matches the 2PL ordering (mpieva-de > western-ca > bogota > rural); log gamma differs little.
+# How much of each score does age explain (spline in age)?
+r2 <- \(y) summary(lm(y ~ splines::ns(age, 3), data = persons))$r.squared
+c(`2PL theta` = r2(persons$theta_irt), `Q: log theta` = r2(log(persons$theta)), `Q: log gamma` = r2(log(persons$gamma))) |> round(3)
+```
+
+# 7. Do the paper's age, sex and site results replicate with the diffusion scores?
+
+`05_diffirt_paper_analyses.R` runs the paper's ability model, `score ~ age * sex * site + (1 | user_id)` with sex sum-coded and average marginal effects over the observed runs,
+on five scores: the 2PL $\theta$, the diffusion $\log\theta$ and $\log\gamma$, and, as descriptive anchors, each run's accuracy and mean log RT. Effects are in SD units of each score. The model is
+fit on the `r nrow(read_rds(here("models/diffirt_paper_results.rds"))$data)` runs the paper uses for this analysis. The 2PL row reproduces the paper (age 0.33 per year in raw units = 0.23 SD; sex difference 0.00, $p$ = .998).
+
+```{r paper-main}
+pr <- read_rds(here("models/diffirt_paper_results.rds"))
+pr$effects |>
+  filter(effect %in% c("age (per year)", "sex (Male - Female)", "age slope: Male - Female")) |>
+  transmute(measure, effect, est = sprintf("%.3f (%.3f)%s", estimate_sd, se_sd, ifelse(p < .05, "*", ""))) |>
+  pivot_wider(names_from = effect, values_from = est)
+```
+
+(`*` = $p < .05$, uncorrected for the five scores.)
+
+* **Age.** Drift $\log\theta$ grows by 0.26 SD per year, close to the 2PL value of 0.23. The age $\times$ sex interaction is null for every score. $\log\gamma$ has only a small age trend (0.06 SD per year) and mean log RT none, so the age
+  gain is carried by $\theta$.
+* **Sex.** There is no sex difference in 2PL ability or in drift $\theta$ (boys +0.07 SD, $p$ = .18), and none in accuracy. Boys have lower $\gamma$ (−0.13 SD, $p$ = .036) and shorter mean log RT (−0.17 SD, $p$ = .009). This
+  matches the paper's finding that boys are faster but not more accurate, and it puts the speed difference in the boundary/response-level parameter, not in ability. The $\gamma$ result is nominal ($p$ = .036 among five scores), and $\gamma$ is highly correlated with mean log RT
+  (Spearman .89 across runs), so it adds little beyond the RT result itself.
+
+```{r paper-sex-site, fig.height=4.2}
+pr$effects |>
+  filter(startsWith(effect, "sex within") | effect == "sex (Male - Female)",
+         measure %in% c("2PL theta", "Diffusion log theta (drift)", "Diffusion log gamma (boundary)", "Mean log RT")) |>
+  mutate(where = ifelse(effect == "sex (Male - Female)", "All sites", sub("sex within ", "", effect)),
+         where = factor(where, levels = rev(c("All sites", "mpieva-de", "uniandes-co-bogota", "uniandes-co-rural", "western-ca"))),
+         measure = factor(measure, levels = c("2PL theta", "Diffusion log theta (drift)", "Diffusion log gamma (boundary)", "Mean log RT"))) |>
+  ggplot(aes(estimate_sd, where, colour = where == "All sites")) +
+  geom_vline(xintercept = 0, colour = "grey60") +
+  geom_pointrange(aes(xmin = estimate_sd - 1.96 * se_sd, xmax = estimate_sd + 1.96 * se_sd)) +
+  facet_wrap(~measure, nrow = 1, labeller = label_wrap_gen(18)) +
+  scale_colour_manual(values = c(`TRUE` = "black", `FALSE` = "grey45"), guide = "none") +
+  labs(x = "Male - Female (SD units, 95% CI)", y = NULL)
+```
+
+Sex differences by site are small and imprecise for every score. Drift shows a nominally positive male difference in Bogotá (+0.21 SD, SE 0.10) that the 2PL does not (+0.10, SE 0.11). With 16 site-by-score
+estimates this is not distinguishable from noise.
+
+```{r paper-site, fig.height=4}
+sites <- pr$effects |> filter(startsWith(effect, "site:")) |>
+  filter(measure %in% c("2PL theta", "Diffusion log theta (drift)", "Diffusion log gamma (boundary)", "Mean log RT")) |>
+  mutate(contrast = sub("site: ", "", effect))
+sites |> select(measure, contrast, estimate_sd) |> pivot_wider(names_from = measure, values_from = estimate_sd) |>
+  mutate(across(where(is.numeric), \(z) round(z, 2)))
+ggplot(sites |> filter(measure != "2PL theta") |>
+         left_join(sites |> filter(measure == "2PL theta") |> select(contrast, theta_2pl = estimate_sd), by = "contrast"),
+       aes(theta_2pl, estimate_sd, colour = contrast)) +
+  geom_abline(colour = "grey70") + geom_point(size = 2.5) +
+  facet_wrap(~measure, nrow = 1, labeller = label_wrap_gen(18)) +
+  labs(x = "Site contrast in 2PL theta (SD)", y = "Site contrast in diffusion score or RT (SD)", colour = NULL) +
+  theme(legend.position = "bottom")
+```
+
+* **Sites.** The drift contrasts are almost identical to the 2PL contrasts (for example Bogotá − Leipzig −0.79 vs −0.82 SD; rural − Leipzig −1.10 vs −1.20 SD), so the site ordering is unchanged. $\log\gamma$ and mean log RT
+  instead separate Leipzig (mpieva-de, remote home testing) from the other three sites, which fits the paper's account of slower baseline RTs there. The model therefore puts the site difference in
+  RT level into $\gamma$, not into drift, so $\theta$ is not inflated or deflated by the slow-RT site. The paper does not interpret site differences in ability, and this does not change that.
+* **Repeated runs.** The random-intercept model reaches a conditional $R^2$ of `r f3(pr$fits$R2_conditional[pr$fits$measure == "2PL theta"])` for the 2PL and `r f3(pr$fits$R2_conditional[pr$fits$measure == "Diffusion log theta (drift)"])` for drift $\theta$ (marginal `r f3(pr$fits$R2_marginal[pr$fits$measure == "2PL theta"])` vs `r f3(pr$fits$R2_marginal[pr$fits$measure == "Diffusion log theta (drift)"])`). The difference is the user-level share, which comes from a small group of children
+  with more than one run. Treat it as a hint that drift is less stable across runs, not as a result.
+
+# 8. Summary and caveats
+
+* The recipe is: build person-by-item matrices, constrain parameters within item classes, start $T_{er}$ at about 0.3 s, and run `diffIRT(model = "Q")` with a couple of quadrature settings. The
+  optimised build fits all 1,158 assessments in about 10 s.
+* The difficulty-like parameter $v_i$ orders the item classes like the 2PL difficulty ($r = .96$; $.89$ within the 2D classes). The 2PL discrimination does not carry over to a Q-diffusion
+  parameter, because difficulty and slope are not separate parameters in the Q model, and the two disagree in direction (section 5).
+* The Q-diffusion person drift $\theta$ is highly correlated with the 2PL ability and a bit more strongly related to age ($R^2$ .20 vs .13 with a spline in age). The 2PL predicts accuracy slightly better,
+  and the Q model also predicts the class mean RTs reasonably well.
+* The paper's age, sex and site results carry over to the diffusion drift score (section 7): same age trend, no sex or age $\times$ sex effect on ability, and the same site ordering. The boys-are-faster result shows up in $\gamma$,
+  which is mostly a response-time level parameter (r = .89 with mean log RT) and is not a separate caution trait.
+* Caveats: standard errors are probably optimistic; 3D non-decision time is weakly identified (the 3D RTs are long); the section-5 comparison
+  is across 12 classes; person scores are EAP estimates and the fit checks are in-sample; and equality of estimates between the optimised and the original diffIRT could
+  not be checked because the original never finished.
+
+```{r session, echo=FALSE}
+sessionInfo()$otherPkgs$diffIRT$Version
+```
