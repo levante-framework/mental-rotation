@@ -34,16 +34,16 @@ The build used OpenMP (Homebrew `libomp`).
 Timing (1,158 assessments, 81 columns, Q model): 3 s at 7 quadrature points, 19 s for 7, 15, 25. The original package did not finish a 70-person subset in 20 minutes
 (0.7 s with the optimised build).
 
-**Ter.** (Update: with diffIRT commit `6fc0173` the default start finds the same optimum and the 0.3 s start is no longer needed; the numbers below are from the earlier build `b244ac4`, kept in `~/Library/R/diffirt-fast-b244ac4`.) With the default EZ-diffusion start, several item classes ended with Ter = 0. This was a local optimum, not a feature of the data:
+**Ter.** (Update: with diffIRT commit `6fc0173` (and later) the default start finds the same optimum and the 0.3 s start is no longer needed; the numbers below are from the earlier build `b244ac4`, kept in `~/Library/R/diffirt-fast-b244ac4`.) With the default EZ-diffusion start, several item classes ended with Ter = 0. This was a local optimum, not a feature of the data:
 
 - Raising the fast-response cutoff does not fix it properly. With cutoffs of 1.5, 2 and 3 s, Ter rises to about 1.1, 1.5 and 2.3 s, tracking the cutoff (about 0.7 s below it), because the model is fitting the truncated left edge of the RT distribution. Do not use such cutoffs.
 - Starting Ter at 0.3 s instead gives a better fit than any default-start run. At a 0.5 s cutoff, free per-class Ter has -2LL = 253,147 (38 parameters), against 254,121 from the default start. Fixing Ter at 0.1, 0.2, 0.3 and 0.4 s gives -2LL = 255,243, 254,238, 253,789 and 254,651, so the profile is minimised near 0.3 s.
 - Per-class Ter is about 0.33-0.39 s for 2D classes and 0.07-0.22 s for the 3D classes, whose RTs are so long that Ter is poorly determined.
 
 Preferred model: cutoff 0.5 s (1.3% of trials dropped), Ter shared within 2D and within 3D and started at 0.3 s, nq = 7, 15. -2LL = 253,385 with 28 parameters.
-2D Ter = 0.354 s (SE 0.003), 3D Ter = 0.155 s (SE 0.015). Item drift `v` rises with angle within each stimulus and is far larger for the 3D classes
-(1.2-3.4 for 2D, 5.8-11.5 for 3D), matching the difficulty ordering of the paper's IRT models. Standard errors now work (`models/diffirt_item_params.rds`). They come from the
-numerical Hessian at 15 quadrature points and are probably optimistic.
+2D Ter = 0.354 s (SE 0.004), 3D Ter = 0.155 s (SE 0.011). Item drift `v` rises with angle within each stimulus and is far larger for the 3D classes
+(1.2-3.4 for 2D, 5.8-11.5 for 3D), matching the difficulty ordering of the paper's IRT models. Standard errors work (`models/diffirt_item_params.rds`); with diffIRT commit `7968a61` they are 0.03-0.09 for the 2D drift parameters and 0.16-0.43 for the 3D ones. Earlier builds reported wrong standard errors for constrained models
+(drift SEs about five times too small, Ter and omega SEs about two times too large); the point estimates were unaffected. The SEs come from the numerical Hessian at 15 quadrature points.
 
 Person drift (`theta`) correlates .87 with the paper's 2PL scores (Spearman) and .43 with age. Boundary separation (`gamma`) is unrelated to age (.02).
 

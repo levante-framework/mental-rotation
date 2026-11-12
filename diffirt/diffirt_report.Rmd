@@ -128,7 +128,7 @@ max(constrain)                          # number of free parameters
 
 ## Starting value for Ter
 
-With the current diffIRT (`fast-kernel`, commit `6fc0173`) the default EZ-diffusion start is fine and no `start` is needed. An earlier build (`b244ac4`) did need one: it ran into a local optimum with several
+With the current diffIRT (`fast-kernel`, commit `7968a61`) the default EZ-diffusion start is fine and no `start` is needed. An earlier build (`b244ac4`) did need one: it ran into a local optimum with several
 non-decision times at exactly 0, which a start of 0.3 s for the $T_{er}$ slots cured (`start <- c(rep(NA, 2 * nit), rep(0.3, nit), NA, NA)`; `NA` keeps the default for everything else). Raising the fast-response cutoff is
 not a fix: $T_{er}$ simply follows the cutoff (about 0.7 s below it), and a cutoff of 0.25 s leaves the 3D non-decision times at about 0 because the fastest responses are contaminants.
 
@@ -146,7 +146,7 @@ c(elapsed_s = unname(fit_time["elapsed"]), converged = fit$conv == 0, minus2LL =
   n_par = fit$npars, AIC = fit$AIC, BIC = fit$BIC)
 ```
 
-This is the optimised build of diffIRT (branch `fast-kernel`, commit `6fc0173`). The same fit with the original package did not finish
+This is the optimised build of diffIRT (branch `fast-kernel`, commit `7968a61`). The same fit with the original package did not finish
 a 70-person subset in 20 minutes; see `README.md`.
 
 ## Is 0.3 s sensible?
@@ -181,7 +181,9 @@ omega |> mutate(across(-parameter, f3))
 
 Drift-based difficulty $v$ rises with angle within every stimulus and is roughly four times larger for the 3D shape than the 2D animals.
 Boundary separation $a$ is nearly constant across classes, and the non-decision time is shared within 2D/3D by construction.
-Standard errors are small. They come from a numerical Hessian at 15 quadrature points, so treat them as a lower bound.
+Standard errors come from the numerical Hessian (delta method) at 15 quadrature points: about 0.03--0.09 for the 2D drift parameters and 0.16--0.43 for the 3D ones. They are the sampling error of the item-class parameters given
+the model and treat the trials as independent. The package's own recovery simulation finds that 7 quadrature points understate $\omega_\gamma$ by about 13%, against 2--3% at 15 points, so the final fit uses 15. diffIRT versions before commit `7968a61` reported wrong standard errors for constrained models (drift SEs about five times too
+small here); the point estimates were never affected.
 
 ```{r items-plot}
 ggplot(items, aes(angle, v, colour = stimulus, shape = type)) +
@@ -577,7 +579,7 @@ is still useful for describing how responses are produced (drift versus response
   time or a contaminant (fast guess) component would be the natural next models; diffIRT has neither.
 * RT adds little for measuring ability (section 10): equal split-half reliability (.90), one to three points more explained variance in cross-half prediction, no better test-retest stability. The diffusion model describes how responses are produced
   and gives a speed/response-level parameter, but it does not justify replacing the 2PL.
-* Caveats: standard errors are probably optimistic; 3D non-decision time is weakly identified; the section-5 comparison is across 12 classes; person scores are EAP estimates and the fit checks are in-sample; the optimised and the original diffIRT
+* Caveats: standard errors are conditional on the model being right (and the RT misfit above shows it is not exactly); 3D non-decision time is weakly identified; the section-5 comparison is across 12 classes; person scores are EAP estimates and the fit checks are in-sample; the optimised and the original diffIRT
   were never compared on the same fit, because the original never finished; and the retest sample is only about 120 children.
 
 ```{r session, echo=FALSE}
