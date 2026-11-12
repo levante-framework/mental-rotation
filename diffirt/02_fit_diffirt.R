@@ -1,5 +1,5 @@
 # Fit the diffusion IRT model to the mental rotation data.
-#   Rscript --vanilla diffirt/02_fit_diffirt.R [model=Q] [n_persons=all] [lib=fast|orig] [nq=7] [se=FALSE] [ter=class|group|one|fixed:<seconds>]
+#   Rscript --vanilla diffirt/02_fit_diffirt.R [model=Q] [n_persons=all] [lib=fast|orig] [nq=7] [se=FALSE] [ter=class|group|one[:<start s>]|fixed:<s>]
 # lib=fast uses the optimised local diffIRT (installed in ~/Library/R/diffirt-fast, built from
 # ~/Documents/GitHub/diffIRT, branch fast-kernel); lib=orig the original commit 1fdcda4 (installed in
 # ~/Library/R/diffirt-orig). Note that the default library's diffIRT is also the optimised build.
@@ -21,15 +21,18 @@ nit <- ncol(rt); cat("persons:", nrow(rt), " items:", nit, " model:", model, " n
 
 # parameters shared across the columns of an item class: a_i, v_i, Ter_i (3 x classes) + 2 scale parameters
 k <- as.integer(factor(cls)); nc <- max(k)
+# ter: "class" | "group" (2D/3D) | "one", each optionally followed by ":<s>" to start Ter there instead of at the
+# EZ-diffusion value (e.g. "one:0.3"), or "fixed:<s>" to fix Ter at <s> seconds
 start <- NULL
-if (startsWith(ter_mode, "fixed:")) {   # non-decision time fixed (0 in constrain; value in start)
-  ter_fix <- as.numeric(sub("fixed:", "", ter_mode))
+tm <- strsplit(ter_mode, ":")[[1]]
+if (tm[1] == "fixed") {   # non-decision time fixed (0 in constrain; value in start)
   constrain <- c(k, nc + k, rep(0L, nit), 2 * nc + 1, 2 * nc + 2)
-  start <- c(rep(NA, 2 * nit), rep(ter_fix, nit), NA, NA)
+  start <- c(rep(NA, 2 * nit), rep(as.numeric(tm[2]), nit), NA, NA)
 } else {
-  kt <- switch(ter_mode, class = k, group = as.integer(factor(grepl("_3d_", cls))), one = rep(1L, nit))
+  kt <- switch(tm[1], class = k, group = as.integer(factor(grepl("_3d_", cls))), one = rep(1L, nit))
   nt <- max(kt)
   constrain <- c(k, nc + k, 2 * nc + kt, 2 * nc + nt + 1, 2 * nc + nt + 2)
+  if (length(tm) > 1) start <- c(rep(NA, 2 * nit), rep(as.numeric(tm[2]), nit), NA, NA)
 }
 
 t <- system.time(fit <- diffIRT(rt, x, model = model, constrain = constrain, start = start, se = se,
