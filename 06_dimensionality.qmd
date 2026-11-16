@@ -1,0 +1,137 @@
+---
+title: "Dimensionality of the mental rotation task"
+---
+
+Tests the single-factor assumption behind the IRT models (supplementary Table
+S15). Fits five models to the 53 overlapping item instances and the runs used
+in the invariance comparison, with the same priors and fixed guessing parameter
+as `02_fit_irt.qmd`: one factor; correlated 2D and 3D factors; a bifactor model
+(general + 3D-specific); a testlet model (general + one factor per item class,
+for dependence among repeated presentations of the same item); and a two-tier
+model (correlated 2D and 3D factors + item-class factors). Also estimates the
+2D-3D correlation separately by site, in a multigroup model with the paper's
+scalar constraints.
+
+Reads the overlap-item data from the 02 model record, so run 02 first. Takes a
+few minutes, most of it the multigroup fit.
+
+```{r}
+library(here)
+library(tidyverse)
+library(mirt)
+mirtCluster(4)
+```
+
+```{r}
+rec <- read_rds(here("models/mrot/multigroup_dataset/overlap_items/mrot_2pl_f1_scalar.rds"))
+dat <- as.data.frame(rec@data)
+items <- colnames(dat)
+is3d <- grepl("_3d_", items)
+item_class <- sub("-[0-9]+$", "", items)
+i2 <- which(!is3d)
+i3 <- which(is3d)
+idx <- \(i) paste(i, collapse = ",")
+guess <- rep(0.5, length(items))
+tech <- list(NCYCLES = 10000)
+
+# the priors used in 02: slopes ~ N(1, 0.3), intercepts ~ N(0, 3)
+add_priors <- function(vals) {
+  slope <- grepl("^a", vals$name) & vals$est
+  icpt <- vals$name == "d" & vals$est
+  vals$prior.type[slope] <- "norm"; vals$prior_1[slope] <- 1; vals$prior_2[slope] <- 0.3
+  vals$prior.type[icpt] <- "norm"; vals$prior_1[icpt] <- 0; vals$prior_2[icpt] <- 3
+  vals
+}
+fit_mirt <- function(model) {
+  v <- mirt(dat, model, itemtype = "2PL", guess = guess, pars = "values")
+  mirt(dat, model, itemtype = "2PL", guess = guess, pars = add_priors(v),
+       verbose = FALSE, technical = tech)
+}
+fit_bf <- function(specific, model2 = paste0("G = 1-", ncol(dat))) {
+  v <- bfactor(dat, specific, model2 = model2, itemtype = "2PL", guess = guess, pars = "values")
+  bfactor(dat, specific, model2 = model2, itemtype = "2PL", guess = guess,
+          pars = add_priors(v), verbose = FALSE, technical = tech)
+}
+two_factor <- paste0("F2D = ", idx(i2), "\nF3D = ", idx(i3), "\nCOV = F2D*F3D")
+class_id <- as.integer(factor(item_class))
+```
+
+```{r}
+fits <- list(
+  one_factor = fit_mirt(mirt.model(paste0("F = 1-", ncol(dat)))),
+  two_factor = fit_mirt(mirt.model(two_factor)),
+  bifactor   = fit_bf(if_else(is3d, 1L, NA_integer_)),
+  testlet    = fit_bf(class_id),
+  two_tier   = fit_bf(class_id, two_factor)
+)
+stopifnot(all(map_lgl(fits, \(m) extract.mirt(m, "converged"))))
+
+slopes <- \(m) {
+  it <- coef(m, simplify = TRUE)$items
+  it[, grep("^a", colnames(it)), drop = FALSE]
+}
+comparison <- imap(fits, \(m, nm) tibble(
+  model = nm, n_pars = extract.mirt(m, "nest"),
+  logLik = extract.mirt(m, "logLik"), BIC = extract.mirt(m, "BIC"),
+  AIC = extract.mirt(m, "AIC"), max_a = max(abs(slopes(m)))
+)) |>
+  list_rbind() |>
+  mutate(dBIC = BIC - min(BIC), dAIC = AIC - min(AIC))
+
+factor_r <- \(m) { v <- coef(m, simplify = TRUE)$cov; v[2, 1] / sqrt(v[1, 1] * v[2, 2]) }
+```
+
+```{r}
+# Bifactor summaries from the general + 3D-specific model, on standardised
+# (normal-ogive) loadings, ignoring the fixed guessing parameter.
+std_loadings <- \(m) { a <- slopes(m) / 1.702; a / sqrt(1 + rowSums(a^2)) }
+lam <- std_loadings(fits$bifactor)
+uniq <- sum(1 - rowSums(lam^2))
+common_g <- sum(lam[, 1])^2
+common_s <- sum(lam[i3, 2])^2
+bifactor_indices <- list(
+  ecv = sum(lam[, 1]^2) / sum(lam^2),
+  ecv_3d_items = sum(lam[i3, 1]^2) / sum(lam[i3, ]^2),
+  omega_h = common_g / (common_g + common_s + uniq),
+  omega_total = (common_g + common_s) / (common_g + common_s + uniq),
+  loading_2d_general = mean(lam[i2, 1]),
+  loading_3d_general = mean(lam[i3, 1]),
+  loading_3d_specific = mean(lam[i3, 2])
+)
+bifactor_indices$omega_ratio <- bifactor_indices$omega_h / bifactor_indices$omega_total
+
+# Share of each item class's common variance that is class-specific, from the
+# testlet model.
+lt <- std_loadings(fits$testlet)
+class_specific <- tibble(item_class, type = if_else(is3d, "3D", "2D"),
+                         g = lt[, 1]^2, s = rowSums(lt[, -1, drop = FALSE]^2)) |>
+  summarise(share_specific = sum(s) / sum(g + s), .by = c(type, item_class))
+```
+
+```{r}
+# 2D-3D correlation by site: multigroup two-factor model with the paper's scalar
+# constraints and free latent means and variances.
+mg_vals <- multipleGroup(dat, mirt.model(two_factor), group = rec@groups, itemtype = "2PL",
+                         guess = guess, pars = "values",
+                         invariance = c("slopes", "intercepts", "free_means", "free_var"))
+mg <- multipleGroup(dat, mirt.model(two_factor), group = rec@groups, itemtype = "2PL",
+                    guess = guess, pars = add_priors(mg_vals), verbose = FALSE, technical = tech,
+                    invariance = c("slopes", "intercepts", "free_means", "free_var"))
+stopifnot(extract.mirt(mg, "converged"))
+site_r <- map(coef(mg, simplify = TRUE), \(g) g$cov[2, 1] / sqrt(g$cov[1, 1] * g$cov[2, 2])) |>
+  unlist() |> enframe("dataset", "r")
+```
+
+```{r}
+dimensionality <- list(
+  comparison = comparison,
+  r_two_factor = factor_r(fits$two_factor),
+  r_two_tier = factor_r(fits$two_tier),
+  site_r = site_r,
+  bifactor = bifactor_indices,
+  class_specific = class_specific
+)
+write_rds(dimensionality, here("models/mrot_dimensionality.rds"))
+print(comparison)
+str(dimensionality[-1])
+```
