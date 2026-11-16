@@ -1,1 +1,1 @@
-Demographics data are not shared here as they are potentially sensitive and have not been fully processed for quasi-identifiers. Only aggregated sex data are stored in the public repository. 
+Demographics data are not shared here as they are potentially sensitive and have not been fully processed for quasi-identifiers. The repository stores the per-child sex variable derived from these files and from the caregiver survey (`data/sex_data_cleaned.rds`); the site files themselves are not shared. 

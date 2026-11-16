@@ -7,14 +7,16 @@ library(levante)
 ```
 
 ```{r}
-# list of processed datasets to fetch
-data_sources <- list("pilot_uniandes_co_rural_processed:bxgv",
-                     "pilot_uniandes_co_bogota_processed:d0c5",
-                     "pilot_mpieva_de_main_processed:8wjx",
-                     "pilot_western_ca_main_processed:bgcj")
+# processed datasets to fetch, pinned to the versions the committed data/ was
+# fetched from (verified; see README)
+data_sources <- list("pilot_uniandes_co_rural:bxgv",
+                     "pilot_uniandes_co_bogota:d0c5",
+                     "pilot_mpieva_de_main:8wjx",
+                     "pilot_western_ca_main:bgcj")
+data_versions <- list("v4.0", "v3.0", "v2.0", "v2.0")
 
 # fetch processed trials data
-trials <- map(data_sources, get_trials)
+trials <- map2(data_sources, data_versions, get_trials)
 
 # subset to mental rotation
 trials_mrot <- trials |>
@@ -27,7 +29,7 @@ task_data_nested <- trials_mrot |>
 
 write_rds(task_data_nested, "data/task_data_nested.rds", compress = "gz")
 
-runs <- map(data_sources, get_scores)
+runs <- map2(data_sources, data_versions, get_scores)
 
 runs_mrot <- runs |>
   list_rbind() |>
