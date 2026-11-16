@@ -7,19 +7,34 @@
 # assessments. A missing value therefore marks an early build of the task, and
 # those runs are excluded because the early build is not comparable to the
 # version every other site was administered.
+#
+# The exclusion sensitivity analysis (05_exclusion_sensitivity.qmd) reruns the
+# pipeline with MROT_EXCLUSIONS=relaxed, which keeps every run with a recorded
+# age. Unset, or "main", gives the paper's exclusions.
 
 min_trials <- 10
 min_gap_months <- 3
 
-filter_runs <- function(run_data) {
-  run_data |>
-    dplyr::filter(!is.na(num_attempted)) |>
-    dplyr::filter(num_attempted >= min_trials) |>
-    dplyr::filter(!is.na(age), age >= 5, age <= 14) |>
+filter_runs <- function(run_data,
+                        exclusions = Sys.getenv("MROT_EXCLUSIONS", "main")) {
+  exclusions <- match.arg(exclusions, c("main", "relaxed"))
+  if (exclusions == "main") {
+    run_data <- run_data |>
+      dplyr::filter(!is.na(num_attempted)) |>
+      dplyr::filter(num_attempted >= min_trials) |>
+      dplyr::filter(!is.na(age), age >= 5, age <= 14)
+  } else {
+    run_data <- run_data |>
+      dplyr::filter(!is.na(age))
+  }
+  run_data <- run_data |>
     dplyr::arrange(user_id, age) |>
     dplyr::group_by(user_id) |>
     dplyr::mutate(run_number = dplyr::row_number(),
                   age_gap = age - dplyr::lag(age)) |>
-    dplyr::ungroup() |>
-    dplyr::filter_out(age_gap < min_gap_months / 12)
+    dplyr::ungroup()
+  if (exclusions == "main") {
+    run_data <- run_data |> dplyr::filter_out(age_gap < min_gap_months / 12)
+  }
+  run_data
 }

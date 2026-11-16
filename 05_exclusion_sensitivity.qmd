@@ -1,0 +1,110 @@
+---
+title: "Sensitivity of the headline results to the run exclusions"
+---
+
+Reruns the whole analysis twice: once with the paper's exclusions, and once
+keeping every run with a recorded age (see `helper/filter_runs.R`). Each run
+executes 02, 03 and 04 and then the paper's own code, so the sensitivity
+results come from exactly the analysis the paper reports, not a copy of it.
+
+Each run happens in a fresh temporary directory holding a copy of `data/` and
+`helper/`, so nothing in the project is touched apart from the output,
+`models/mrot_exclusion_sensitivity.rds`. The "main" row must reproduce the
+paper; `mrot_paper.qmd` checks this when it renders.
+
+Takes about 15 minutes, most of it the prior sweep in 03.
+
+```{r}
+library(here)
+library(tidyverse)
+library(parallel)
+```
+
+```{r}
+# The paper's code, with its Quarto includes expanded so it runs as one script.
+paper_code <- function() {
+  dir <- here("mrot_paper")
+  qmd <- read_file(file.path(dir, "mrot_paper.qmd")) |>
+    str_remove_all(regex("<!--.*?-->", dotall = TRUE)) |>
+    str_replace_all("\\{\\{< include (\\S+) >\\}\\}",
+                    \(m) map_chr(str_match(m, "include (\\S+)")[, 2],
+                                 \(f) read_file(file.path(dir, f))))
+  qmd_file <- tempfile(fileext = ".qmd")
+  write_file(qmd, qmd_file)
+  r_file <- tempfile(fileext = ".R")
+  knitr::purl(qmd_file, output = r_file, quiet = TRUE)
+  read_lines(r_file)
+}
+
+# Appended to the paper's code: collect the headline results it computed.
+extract_code <- '
+p_num <- \\(s) if (is.numeric(s)) s else if (grepl("<", s)) 0.0005 else as.numeric(gsub("[^0-9.]", "", s))
+age <- ability_sex_comp("age", "+1")
+sex <- ability_sex_comp("sex", "Male - Female")
+ang <- slope("mrot")
+rts <- rt_sex_comp("mrot")
+best <- mod_tbl |> filter(d_BIC == 0)
+headline <- tibble(
+  exclusions      = Sys.getenv("MROT_EXCLUSIONS"),
+  n_children      = n_final$n_users,
+  n_runs          = n_final$n_runs,
+  best_model      = paste(best$itemtype, best$invariance),
+  dbic_configural = delta_bic_configural,
+  age_str         = slope_str(age),
+  age_p           = p_num(age$p.value),
+  sex_str         = slope_str(sex),
+  sex_p           = p_num(sex$p.value),
+  sex_sd          = ability_sex_ci$estimate[1],
+  sex_sd_lo       = ability_sex_ci$conf.low[1],
+  sex_sd_hi       = ability_sex_ci$conf.high[1],
+  age_sex_p       = p_num(ability_slope_diffs$p.value[1]),
+  sex_site_chisq  = ability_sex_site_lrt$chisq,
+  sex_site_df     = ability_sex_site_lrt$df,
+  sex_site_p      = ability_sex_site_lrt$p.value,
+  angle_str       = slope_str(ang),
+  angle_pct       = as.character(ang$interpretation),
+  angle_p         = p_num(ang$p.value),
+  rt_sex_str      = slope_str(rts),
+  rt_sex_pct      = as.character(rts$interpretation),
+  rt_sex_p        = p_num(rts$p.value)
+)
+saveRDS(headline, "headline.rds")
+'
+```
+
+```{r}
+run_scenario <- function(exclusions, paper) {
+  dir <- file.path(tempdir(), paste0("mrot_", exclusions))
+  dir.create(file.path(dir, "models"), recursive = TRUE)
+  file.create(file.path(dir, ".here"))  # makes here() resolve to this directory
+  file.copy(here("data"), dir, recursive = TRUE)
+  file.copy(here("helper"), dir, recursive = TRUE)
+  for (nb in c("02_fit_irt", "03_prior_sensitivity", "04_reliability")) {
+    knitr::purl(here(paste0(nb, ".qmd")), output = file.path(dir, paste0(nb, ".R")),
+                quiet = TRUE)
+  }
+  write_lines(c(paper, extract_code), file.path(dir, "paper.R"))
+
+  for (s in c("02_fit_irt", "03_prior_sensitivity", "04_reliability", "paper")) {
+    cmd <- sprintf("cd %s && MROT_EXCLUSIONS=%s R_LIBS=%s Rscript %s.R > %s.log 2>&1",
+                   shQuote(dir), exclusions, shQuote(paste(.libPaths(), collapse = ":")),
+                   s, s)
+    if (system(cmd) != 0) {
+      stop(exclusions, ": ", s, " failed\n",
+           paste(tail(read_lines(file.path(dir, paste0(s, ".log"))), 20), collapse = "\n"))
+    }
+  }
+  read_rds(file.path(dir, "headline.rds"))
+}
+```
+
+```{r}
+paper <- paper_code()
+results <- mclapply(c("main", "relaxed"), run_scenario, paper = paper, mc.cores = 2)
+failed <- map_lgl(results, \(r) inherits(r, "try-error"))
+if (any(failed)) stop(results[failed][[1]])
+
+exclusion_sensitivity <- list_rbind(results)
+write_rds(exclusion_sensitivity, here("models/mrot_exclusion_sensitivity.rds"))
+print(as.data.frame(t(exclusion_sensitivity)))
+```
