@@ -21,7 +21,8 @@ mrot_lme_data <- mrot_rt_trial |>
     task       = "mrot"  # constant; slope_preds uses it for the overall effect
   ) |>
   select(site_label, user_id, run_id,  matches("age"), trial_number,
-         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive, task)
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive, task,
+         item_original)  # image id, for the slope-contrast checks (Table S16)
 
 # effects code all factors
 contrasts(mrot_lme_data$site_label) <- contr.sum(levels(mrot_lme_data$site_label))
@@ -166,6 +167,19 @@ common_contrast <- hypotheses(
            variables = "angle_sc", by = "item_group"),
     hypothesis = "b2 - b1 = 0") |>   # b1 = 2d, b2 = 3d
   as_tibble() |> as.list()
+
+# The shared-angle contrast is small and not robust: the Results report it
+# under the paper's model and under two checks (Table S16).
+source(here("helper", "slope_contrast_checks.R"))
+contrast_checks <- slope_contrast_checks(mrot_lme_data, deg = deg)
+contrast_check <- \(nm) contrast_checks |> filter(check == nm)
+# the main row must reproduce common_contrast, and the text says neither check
+# is significant
+if (main_analysis) stopifnot(
+  isTRUE(all.equal(contrast_check("main")$estimate, as.numeric(common_contrast$estimate),
+                   tolerance = 1e-6, check.attributes = FALSE)),
+  contrast_check("image")$p.value > .05, contrast_check("cat")$p.value > .05
+)
 
 # the same contrast over each type's full range, for comparison
 full_contrast <- hypotheses(
@@ -383,4 +397,34 @@ slopes_tbl <- bind_rows(
   select(-p_num) |>
   mutate(across(matches("estimate"), \(x) round(x, 2))) |>
   mutate(std.error = std.error |> round(3))
+```
+
+```{r}
+#| label: young-3d-slopes
+
+# The Discussion says too few 5-7-year-olds at the Colombian sites have a 3D
+# slope to estimate one, and that from age 8 the 3D slope is clearly positive at
+# every site. Both are computed here, with per-assessment slopes as in Table S8.
+source(here("helper", "run_slopes.R"))
+slopes_3d <- run_angle_slopes(mrot_rt_trial, "3d", deg = deg, min_trials = min_trials)
+young_band <- levels(mrot_rt_trial$age_group)[1]
+colombian <- c("uniandes-co-bogota", "uniandes-co-rural")
+young_3d_n <- slopes_3d |>
+  filter(age_group == young_band, site_label %in% colombian) |>
+  count(site_label) |> arrange(n)
+m5_young_3d_n <- glue("{young_3d_n$n[1]} and {young_3d_n$n[2]} children")
+older_3d_lo <- slopes_3d |>
+  filter(age_group != young_band) |>
+  summarise(lo = mean(slope) - 1.96 * sd(slope) / sqrt(n()), .by = c(site_label, age_group))
+if (main_analysis) stopifnot(nrow(young_3d_n) == 2, all(older_3d_lo$lo > 0))
+
+# The abstract says the 2D effect was not seen among 5-7-year-olds at the two
+# Colombian sites (all assessments included) and held in every other site and
+# age group.
+ci_2d <- run_angle_slopes(mrot_rt_trial, "2d", deg = deg, min_trials = min_trials) |>
+  summarise(lo = mean(slope) - 1.96 * sd(slope) / sqrt(n()), .by = c(site_label, age_group)) |>
+  mutate(young_colombian = age_group == young_band & site_label %in% colombian)
+if (main_analysis) stopifnot(sum(ci_2d$young_colombian) == 2,
+                             all(ci_2d$lo[ci_2d$young_colombian] <= 0),
+                             all(ci_2d$lo[!ci_2d$young_colombian] > 0))
 ```

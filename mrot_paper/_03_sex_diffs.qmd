@@ -10,6 +10,7 @@ mrot_lme_data_sex <- inner_join(mrot_lme_data, sex_data_cleaned, by = "user_id")
 contrasts(mrot_lme_data_sex$sex) <- contr.sum(levels(mrot_lme_data_sex$sex))
 
 sex_mod <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
+                  trial_number * stimulus + adaptive * stimulus +  # as in full_mod
                   (1 + angle_sc | user_id),
                 data = mrot_lme_data_sex,
                 REML = FALSE,
@@ -25,8 +26,10 @@ sex_pred_grid <- datagrid(angle_sc = unique,        # each angle
                           site_label = unique,      # each site
                           sex = unique,             # each sex
                           age_sc = age_seq,         # 100 equally spaced values of age
+                          trial_number = mean,      # as in pred_grid
+                          adaptive = unique,
                           newdata = mrot_lme_data_sex) |>
-  select(rowid, angle_sc, stimulus, site_label, age_sc, sex) |>
+  select(rowid, angle_sc, stimulus, site_label, age_sc, sex, adaptive, trial_number) |>
   mutate(age = age_sc * sd(mrot_lme_data$age) + mean(mrot_lme_data$age),
          age = map_dbl(age, \(a) max(a, min(mrot_lme_data$age))),
          age_group = cut(age, breaks = age_breaks, labels = age_band_labels,
@@ -60,6 +63,15 @@ get_sex_comp <- \(pred) {
 }
 
 sex_comps <- map(slope_preds, get_sex_comp) |> list_rbind()
+
+# Holm-adjusted p for the overall sex difference in RT, across all the sex
+# comparisons of response time. The Results say the overall difference is
+# significant uncorrected but not after Holm correction, clearest for 2D items
+# and not significant for 3D items.
+rt_sex_holm <- p.adjust(sex_comps$p.value, "holm")[sex_comps$predictor == "task"]
+rt_sex_p <- \(v) sex_comps$p.value[sex_comps$value == v]
+if (main_analysis) stopifnot(length(rt_sex_holm) == 1, rt_sex_holm > .05,
+                             rt_sex_p("mrot") < .05, rt_sex_p("2d") < .05, rt_sex_p("3d") > .05)
 
 sex_comps_tbl <- sex_comps |>
   select(term, contrast, predictor, value, estimate, std.error, p.value) |>
@@ -258,6 +270,10 @@ ability_sex_preds <- avg_predictions(ability_sex_mod,
 #| label: sex-ability-comps
 
 sd_ability <- sd(mrot_df_sex$ability)
+# Residual SD after age x site: the scale for the per-site sex differences
+# (Table 5) and the overall bound (helper/sex_bounds.R), since the total SD
+# includes site and age differences that a sex difference is not measured against.
+sd_ability_resid <- sd(resid(lm(ability ~ age * site_label, data = mrot_df_sex)))
 ability_comps <- comparisons(
   ability_sex_mod,
   newdata = mrot_df_sex,
@@ -291,7 +307,7 @@ ability_sex_by_site <- comparisons(
   variables = "sex",
   by = "site_label"
 ) |> as_tibble() |>
-  mutate(across(c(estimate, conf.low, conf.high), \(x) x / sd_ability)) |>
+  mutate(across(c(estimate, conf.low, conf.high), \(x) x / sd_ability_resid)) |>
   select(site_label, estimate, conf.low, conf.high, p.value) |>
   # fmt_p prefixes "= " for inline use, which reads oddly under a p-value heading
   mutate(p.value = map_chr(p.value, fmt_p) |> str_remove("^= "))
@@ -306,16 +322,30 @@ ability_sex_site_lrt <- anova(
 ) |> as_tibble() |> slice(2) |>
   transmute(chisq = `Chisq`, df = `Df`, p.value = `Pr(>Chisq)`)
 
-# interval on the overall sex effect, in SDs of ability, so the null can be
-# reported as a bound rather than only as a failure to reach significance
-ability_sex_ci <- comparisons(
-  ability_sex_mod,
-  newdata = mrot_df_sex,
-  re.form = NA,
-  variables = "sex",
-  by = "task"
-) |> as_tibble() |>
-  mutate(across(c(estimate, conf.low, conf.high), \(x) x / sd_ability))
+# Interval on the overall sex effect, so the null can be reported as a bound
+# rather than only as a failure to reach significance. In residual SDs after
+# age x site, and again corrected for reliability (see helper/sex_bounds.R).
+source(here("helper", "sex_bounds.R"))
+sex_rel <- mean(site_rxx$rxx_empirical[site_rxx$itemtype == "2pl"])
+sex_bounds <- sex_ability_bounds(ability_sex_mod, mrot_df_sex, sex_rel)
+stopifnot(isTRUE(all.equal(sex_bounds$sd_resid, sd_ability_resid)))
+ability_sex_ci <- sex_bounds$overall |>
+  transmute(estimate = est_sd, conf.low = lo_sd, conf.high = hi_sd)
+sex_bound_latent <- with(sex_bounds$overall, max(abs(c(lo_latent, hi_latent))))
+
+# The Results say a male advantage of g = 0.20 is ruled out overall and among
+# 11-13-year-olds, that no age band shows a sex difference, and that the
+# 11-13 estimate is more precise than the 5-7 one, quoting both intervals.
+sex_by_age <- sex_bounds$by_age
+sex_age_row <- \(band) sex_by_age[sex_by_age$group == band, ]
+sex_age_ci <- \(band) with(sex_age_row(band),
+  sprintf("%+.2f SD, 95%% CI [%.2f, %.2f]", est_sd, lo_sd, hi_sd) |> str_replace("^\\+-", "-"))
+if (main_analysis) stopifnot(
+  sex_bounds$overall$hi_sd < 0.20, sex_bounds$overall$hi_latent < 0.20,
+  all(sex_by_age$p > .05),
+  sex_age_row("11\u201313")$hi_sd < 0.20, sex_age_row("11\u201313")$hi_latent < 0.20,
+  with(sex_age_row("11\u201313"), hi_sd - lo_sd) < with(sex_age_row("5\u20137"), hi_sd - lo_sd)
+)
 
 # comparisons(
 #   ability_sex_mod,
@@ -350,4 +380,35 @@ ability_sex_comp <- \(p, v) ability_comps |> filter(term == p, contrast == v)
 
 # slope_diff_str <- \(s) glue("Δ = {round(s$estimate, 2)}, SE = {round(s$std.error, 2)}, p = {s$p.value}")
 # slope_diff <- \(h) pred_slope_tests_tbl |> filter(hypothesis == h)
+```
+
+```{r}
+#| label: missing-sex-ability
+
+# Limitations: do children without recorded sex differ in ability from those
+# with it? Adjusted for age (and site, overall); per site only where both occur.
+missing_sex_df <- mrot_df |>
+  left_join(sex_data_cleaned, by = "user_id") |>
+  mutate(missing_sex = is.na(sex), site_label = factor(site_label)) |>
+  rename(ability = metric_value)
+missing_sex_overall <- lmer(ability ~ missing_sex + age * site_label + (1 | user_id),
+                            data = missing_sex_df) |>
+  summary() |> coef() |> (\(m) m["missing_sexTRUE", ])()
+missing_sex_overall_p <- 2 * pnorm(-abs(missing_sex_overall[["t value"]]))
+missing_sex_by_site <- missing_sex_df |>
+  filter(any(missing_sex), any(!missing_sex), .by = site_label) |>
+  nest(d = -site_label) |>
+  mutate(n_missing = map_int(d, \(x) sum(x$missing_sex)),
+         fit = map(d, \(x) coef(summary(lm(ability ~ missing_sex + age, data = x)))["missing_sexTRUE", ]),
+         est = map_dbl(fit, 1), p = map_dbl(fit, 4)) |>
+  select(site_label, n_missing, est, p)
+missing_sex_site <- \(site) missing_sex_by_site |> filter(site_label == site)
+# the text names exactly these two sites, differing in opposite directions,
+# and no difference overall
+if (main_analysis) stopifnot(
+  setequal(missing_sex_by_site$site_label[missing_sex_by_site$p < .05],
+           c("western-ca", "uniandes-co-rural")),
+  sign(missing_sex_site("western-ca")$est) != sign(missing_sex_site("uniandes-co-rural")$est),
+  missing_sex_overall_p > .05
+)
 ```

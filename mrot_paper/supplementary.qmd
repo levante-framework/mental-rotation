@@ -68,7 +68,8 @@ mrot_lme_data <- mrot_rt_trial |>
     task       = "mrot"  # constant; slope_preds uses it for the overall effect
   ) |>
   select(site_label, user_id, run_id,  matches("age"), trial_number,
-         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive, task)
+         item_group, stimulus, angle, angle_sc, rt_s, log_rt, adaptive, task,
+         item_original)  # image id, for the slope-contrast checks (Table S16)
 
 # effects code all factors
 
@@ -228,8 +229,9 @@ between `r configural_dbic$lo` and `r configural_dbic$hi` BIC points. The choice
 is far less stable. Scalar is preferred only under the published prior, and
 metric under every looser prior and with no prior, by `r metric_gap$lo` to
 `r metric_gap$hi` BIC points. We therefore treat the evidence
-for discriminations being shared across sites as strong, and the evidence for the
-additional scalar constraint on difficulties as suggestive only.
+for discriminations being shared across sites as strong. The evidence for the
+additional scalar constraint on difficulties is weak, since it rests on the
+published prior alone.
 
 The sweep also shows why some prior is needed. As the prior weakens, the largest
 estimated discrimination in the configural model rises from 2.79 to 12.38,
@@ -816,12 +818,31 @@ acc_bin_tbl <- guess_run_slopes |>
 # the binomial screen, which retains more assessments than the flat cut-off for
 # the same conclusion. The flat cut-offs remain in @tbl-guess-age.
 guess_site_screen <- "above chance"
+# 3D rows, by the same per-assessment method (helper/run_slopes.R)
+source(here("helper", "run_slopes.R"))
+guess_run_slopes_3d <- run_angle_slopes(mrot_rt_trial, "3d", deg = deg, min_trials = min_trials)
 guess_by_site <- bind_rows(
-  guess_run_slopes |> guess_summarise(site_label, age_group) |> mutate(thresh = "all runs"),
+  guess_run_slopes |> guess_summarise(site_label, age_group) |>
+    mutate(thresh = "all runs", stimulus = "2D"),
   guess_run_slopes |> filter(above_chance) |>
-    guess_summarise(site_label, age_group) |> mutate(thresh = guess_site_screen)
+    guess_summarise(site_label, age_group) |> mutate(thresh = guess_site_screen, stimulus = "2D"),
+  guess_run_slopes_3d |> guess_summarise(site_label, age_group) |>
+    mutate(thresh = "all runs", stimulus = "3D"),
+  guess_run_slopes_3d |> filter(above_chance) |>
+    guess_summarise(site_label, age_group) |> mutate(thresh = guess_site_screen, stimulus = "3D")
 ) |>
   mutate(thresh = factor(thresh, levels = c("all runs", guess_site_screen)))
+
+# The 3D sentence: counts of young Colombian assessments with a 3D slope, and a
+# clearly positive 3D slope at every site from age 8, with or without the screen.
+young_3d <- guess_by_site |>
+  filter(stimulus == "3D", age_group == levels(age_group)[1],
+         site_label %in% c("uniandes-co-bogota", "uniandes-co-rural")) |>
+  arrange(thresh, n)
+young_3d_n <- \(screen) glue_collapse(young_3d$n[young_3d$thresh == screen], " and ")
+stopifnot(all(guess_by_site |>
+                filter(stimulus == "3D", age_group != levels(age_group)[1]) |>
+                mutate(lo = m - 1.96 * se) |> pull(lo) > 0))
 ```
 
 Items have two response options, so chance performance is 50%. A child answering at random still produces correct trials, and the response times on those trials carry no information about angular disparity, which flattens that child's estimated angle slope. Because accuracy rises with age, any such mechanism predicts an age gradient in angular sensitivity even if the underlying process were identical at every age. Mean run accuracy in this sample is `r sprintf("%.2f", guess_acc_by_age$acc[1])` among 5--7 year olds, `r sprintf("%.2f", guess_acc_by_age$acc[2])` among 8--10 year olds and `r sprintf("%.2f", guess_acc_by_age$acc[3])` among 11--13 year olds, so the concern is real.
@@ -855,19 +876,21 @@ if (knitr::is_latex_output()) {
 guess_age_tbl
 ```
 
-@tbl-guess-site repeats the comparison within each site. In the unrestricted data the youngest children at the two Colombian sites show slopes that are statistically indistinguishable from zero, which is visible as the near-flat 2D functions in those panels of Figure 1 of the main text. Once assessments near chance are excluded, every site-by-age cell shows a clearly positive slope. The angular disparity effect is therefore present in all four sites at all three ages among children who were performing the task above chance, and its apparent absence among the youngest Colombian children reflects chance-level responding rather than an absence of mental rotation. Because the site-by-age cells are the smallest reported here, this table applies the binomial screen rather than a flat cut-off, which retains more assessments for the same conclusion. These restricted cells remain small, however, containing as few as `r min(guess_by_site$n[guess_by_site$thresh == guess_site_screen])` assessments, so the restricted estimates are correspondingly imprecise.
+@tbl-guess-site repeats the comparison within each site. In the unrestricted data the youngest children at the two Colombian sites show slopes that are statistically indistinguishable from zero, which is visible as the near-flat 2D functions in those panels of Figure 1 of the main text. Once assessments near chance are excluded, every site-by-age cell shows a clearly positive slope. The angular disparity effect is therefore present in all four sites at all three ages among children who were performing the task above chance, and its apparent absence among the youngest Colombian children reflects chance-level responding rather than an absence of mental rotation. Because the site-by-age cells are the smallest reported here, this table applies the binomial screen rather than a flat cut-off, which retains more assessments for the same conclusion. These restricted cells remain small, however, containing as few as `r min(guess_by_site$n[guess_by_site$thresh == guess_site_screen & guess_by_site$stimulus == "2D"])` assessments, so the restricted estimates are correspondingly imprecise.
+
+The same comparison for 3D items appears in the lower half of @tbl-guess-site. From age 8 the 3D slope is clearly positive at every site, with or without the screen. Among 5–7-year-olds at the two Colombian sites too few assessments contribute a 3D slope (`r young_3d_n("all runs")`) to estimate it, and excluding assessments near chance leaves `r young_3d_n(guess_site_screen)`.
 
 ```{r}
 #| label: tbl-guess-site
-#| tbl-cap: "**Angle slopes by site and age band, before and after excluding assessments near chance accuracy.** As in the previous table, each assessment contributes one slope estimated from its 2D trials, and cells give the mean with a 95% confidence interval and the number of assessments."
+#| tbl-cap: "**Angle slopes by site and age band, before and after excluding assessments near chance accuracy.** As in the previous table, each assessment contributes one slope estimated separately from its 2D and its 3D trials, and cells give the mean with a 95% confidence interval and the number of assessments."
 
 guess_site_tbl <- guess_by_site |>
   mutate(entry = sprintf("%s n=%d", cell, n)) |>
-  select(thresh, site_label, age_group, entry) |>
+  select(stimulus, thresh, site_label, age_group, entry) |>
   pivot_wider(names_from = age_group, values_from = entry) |>
-  arrange(thresh, site_label) |>
-  rename(Screen = thresh, Site = site_label) |>
-  knitr::kable(booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r"))
+  arrange(stimulus, thresh, site_label) |>
+  rename(Stimulus = stimulus, Screen = thresh, Site = site_label) |>
+  knitr::kable(booktabs = TRUE, linesep = "", align = c("l", "l", "l", "r", "r", "r"))
 
 if (knitr::is_latex_output()) {
   guess_site_tbl <- kableExtra::kable_styling(
@@ -980,7 +1003,7 @@ sex_coverage |>
 
 ## Sex differences under the two averaging schemes
 
-The sex analyses reported in the main text use observed-trial averaging, as elsewhere. Because the sex effect on response time for 3D stimuli is the one quantity whose significance depends on the choice of reference grid, @tbl-sex-weight-compare reports each sex comparison under both schemes so that readers can see how far that choice matters. Every conclusion is unchanged. The overall sex effect on response time is numerically identical under the two schemes, the absence of a sex difference in angle slope holds under both, and the absence of a sex difference in ability holds under both. The single quantity that moves is the 3D sex effect on response time, which is significant under observed averaging and not under a balanced grid. As with the angle slopes above, the balanced grid gives equal weight to sparse cells in which the five-way interaction is least well identified, which is why the main text reports the observed-trial estimates.
+The sex analyses reported in the main text use observed-trial averaging, as elsewhere. @tbl-sex-weight-compare reports each sex comparison under both schemes. Every conclusion is the same under both: the overall sex effect on response time, the absence of a sex difference in angle slope, and the absence of a sex difference in ability. As with the angle slopes above, the balanced grid gives equal weight to sparse cells in which the five-way interaction is least well identified, which is why the main text reports the observed-trial estimates.
 
 ```{r}
 #| label: supp-sex-weight-models
@@ -993,6 +1016,7 @@ mrot_lme_data_sex_supp <- mrot_lme_data |>
 contrasts(mrot_lme_data_sex_supp$sex) <- contr.sum(levels(mrot_lme_data_sex_supp$sex))
 
 sex_mod_supp <- lmer(log_rt ~ angle_sc * stimulus * site_label * age_sc * sex +
+                       trial_number * stimulus + adaptive * stimulus +  # as in the main text
                        (1 + angle_sc | user_id),
                      data = mrot_lme_data_sex_supp, REML = FALSE,
                      control = lmerControl(optimizer = "bobyqa"))
@@ -1007,7 +1031,9 @@ sex_grid_supp <- stim_map_sex |>
                      sex = levels(mrot_lme_data_sex_supp$sex)) |>
   mutate(site_label = factor(site_label, levels(mrot_lme_data_sex_supp$site_label)),
          sex = factor(sex, levels(mrot_lme_data_sex_supp$sex)),
-         trial_number = mean(mrot_lme_data_sex_supp$trial_number))
+         trial_number = mean(mrot_lme_data_sex_supp$trial_number)) |>
+  tidyr::expand_grid(adaptive = factor(levels(mrot_lme_data_sex_supp$adaptive),
+                                       levels(mrot_lme_data_sex_supp$adaptive)))
 
 sex_row <- function(nd, scheme) {
   overall <- avg_comparisons(sex_mod_supp, variables = "sex", newdata = nd, re.form = NA)
@@ -1059,11 +1085,15 @@ sex_weight_compare <- bind_rows(
   ability_row(mrot_df_sex_supp, "observed"),
   ability_row(ability_grid_supp, "grid")
 )
+# the text and caption say every conclusion is the same under both schemes
+stopifnot(sex_weight_compare |>
+            summarise(same = n_distinct(p < .05) == 1, .by = c(quantity, level)) |>
+            pull(same) |> all())
 ```
 
 ```{r}
 #| label: tbl-sex-weight-compare
-#| tbl-cap: "Sex comparisons from the same fitted model, averaged over the observed trials and over a balanced grid of cells. Estimates for response time are on the log scale. Every conclusion is the same under both schemes apart from the 3D sex effect on response time, which is significant under observed averaging and not under the balanced grid."
+#| tbl-cap: "Sex comparisons from the same fitted model, averaged over the observed trials and over a balanced grid of cells. Estimates for response time are on the log scale."
 
 sex_weight_compare |>
   mutate(cell = sprintf("%+.3f (p %s)", estimate, map_chr(p, fmt_p))) |>
@@ -1132,4 +1162,174 @@ site_rxx |>
     col.names = c("Model", "Site", "var(theta)", "marginal_rxx", "Fitted", "Empirical"),
     booktabs = TRUE, linesep = "", align = c("l", "l", "r", "r", "r", "r")
   )
+```
+
+\clearpage
+
+# Sensitivity to the run exclusions
+
+The main analyses exclude assessments collected on an early build of the task,
+assessments with fewer than `r min_trials` trials, assessments outside the 5–14
+year age range, and repeat assessments within `r min_gap_months` months of an
+earlier one (see Methods). To check that these choices do not drive the results,
+the whole pipeline (IRT calibration, invariance comparison, reliability, and the
+response time and ability models) was rerun keeping every assessment with a
+recorded age. @tbl-exclusion-sensitivity compares the headline results. None
+changes in direction or significance.
+
+```{r}
+#| label: tbl-exclusion-sensitivity
+#| tbl-cap: "**Headline results with and without the run exclusions.** The main analysis applies the exclusions described in the Methods. The second column reruns every analysis on all assessments with a recorded age. Invariance results are under the published slope prior. Sex differences in ability are in standard deviations of ability, with 95% confidence intervals."
+
+stopifnot(!is.null(excl_sens), setequal(excl_sens$exclusions, c("main", "relaxed")))
+
+excl_rows <- excl_sens |>
+  mutate(
+    sample   = glue("{format(n_children, big.mark = ',')} children, {format(n_runs, big.mark = ',')} assessments"),
+    best     = str_replace(best_model, "^2pl", "2PL") |> str_replace("^rasch", "Rasch"),
+    dbic     = as.character(round(dbic_configural)),
+    sex_sd   = sprintf("%.2f [%.2f, %.2f]", sex_sd, sex_sd_lo, sex_sd_hi),
+    age_sex  = paste0("p ", map_chr(age_sex_p, fmt_p)),
+    sex_site = glue("$\\chi^2$({sex_site_df}) = {sprintf('%.2f', sex_site_chisq)}, p {map_chr(sex_site_p, fmt_p)}"),
+    angle    = glue("{angle_str} ({angle_pct})"),
+    rt_sex   = glue("{rt_sex_str} (boys {rt_sex_pct})")
+  ) |>
+  select(exclusions, sample, best, dbic, age_str, sex_sd, age_sex, sex_site, angle, rt_sex) |>
+  mutate(across(everything(), as.character)) |>
+  pivot_longer(-exclusions, names_to = "result") |>
+  pivot_wider(names_from = exclusions, values_from = value) |>
+  mutate(result = recode_values(result,
+    "sample" ~ "Sample",
+    "best" ~ "Preferred invariance model (BIC)",
+    "dbic" ~ "ΔBIC, configural vs. preferred",
+    "age_str" ~ "Age effect on ability ($\\theta$ per year)",
+    "sex_sd" ~ "Sex difference in ability (SD)",
+    "age_sex" ~ "Age × sex interaction in ability",
+    "sex_site" ~ "Sex × site interaction in ability",
+    "angle" ~ "Angle effect on response time (per 40°)",
+    "rt_sex" ~ "Sex difference in response time")) |>
+  select(result, main, relaxed)
+
+# % starts a comment in LaTeX, and the cells carry inline math, so they are
+# passed through unescaped
+if (knitr::is_latex_output()) {
+  excl_rows <- excl_rows |> mutate(across(everything(), \(x) str_replace_all(x, "%", "\\\\%")))
+}
+
+# The format is set explicitly: left to knitr inside Quarto, the cells are
+# escaped despite escape = FALSE, and the math prints as literal text
+excl_tbl <- knitr::kable(
+  excl_rows,
+  format = if (knitr::is_latex_output()) "latex" else "pipe",
+  col.names = c("Result", "Main analysis", "All assessments with a recorded age"),
+  booktabs = TRUE, linesep = "", escape = FALSE, align = c("l", "l", "l")
+)
+if (knitr::is_latex_output()) {
+  excl_tbl <- excl_tbl |>
+    kableExtra::kable_styling(font_size = 9) |>
+    kableExtra::column_spec(1, width = "4.2cm") |>
+    kableExtra::column_spec(2:3, width = "5.4cm")
+}
+excl_tbl
+```
+
+\clearpage
+
+# Sex difference in ability by age band
+
+```{r}
+#| label: tbl-sex-age-bound
+#| tbl-cap: "**Sex difference in ability by age band.** Differences (male − female) in units of $\\theta$ and in residual standard deviations after age × site, with 95% confidence intervals. The last column also corrects for the reliability of the EAP scores."
+
+source(here("helper", "sex_bounds.R"))
+sex_rel_supp <- mean(site_rxx$rxx_empirical[site_rxx$itemtype == "2pl"])
+sex_bounds_supp <- sex_ability_bounds(ability_mod_supp,
+                                      mrot_df_sex_supp |> mutate(task = "mrot"),
+                                      sex_rel_supp)
+fmt_ci <- \(e, l, h) sprintf("%.2f [%.2f, %.2f]", e, l, h)
+bind_rows(sex_bounds_supp$by_age |> mutate(group = as.character(group)),
+          sex_bounds_supp$overall |> mutate(group = "All ages")) |>
+  transmute(group,
+            theta = fmt_ci(est, lo, hi),
+            resid = fmt_ci(est_sd, lo_sd, hi_sd),
+            latent = fmt_ci(est_latent, lo_latent, hi_latent)) |>
+  knitr::kable(
+    format = if (knitr::is_latex_output()) "latex" else "pipe",
+    col.names = c("Age band", "$\\theta$", "Residual SD", "Residual SD, reliability-corrected"),
+    booktabs = TRUE, linesep = "", escape = FALSE, align = c("l", "r", "r", "r"))
+```
+
+\clearpage
+
+# Dimensionality
+
+```{r}
+#| label: dimensionality-data
+
+# from 06_dimensionality.qmd
+dimensionality <- read_rds(here("models/mrot_dimensionality.rds"))
+dim_cmp <- dimensionality$comparison
+dim_bic <- \(m) dim_cmp$BIC[dim_cmp$model == m]
+dim_bf <- dimensionality$bifactor
+dim_f2 <- \(x) sprintf("%.2f", x)
+dim_n_items <- ncol(read_rds(here("models/mrot/multigroup_dataset/overlap_items/mrot_2pl_f1_scalar.rds"))@data)
+
+# the text's claims
+stopifnot(
+  dim_bic("two_factor") < dim_bic("one_factor"),
+  dim_bic("testlet") > dim_bic("two_factor"),
+  dimensionality$r_two_tier > dimensionality$r_two_factor,
+  dim_bf$ecv > 0.70, dim_bf$omega_h > 0.80,
+  dim_bf$loading_2d_general > dim_bf$loading_3d_general,
+  dim_bf$loading_3d_specific > dim_bf$loading_3d_general
+)
+```
+
+The IRT models in the main text assume a single latent factor, with the 3D items serving as harder items of the same kind as the 2D items. We assessed this assumption by fitting five models to the `r dim_n_items` item instances used in the invariance comparison, with the same priors and fixed guessing parameter as the main models (@tbl-dimensionality): a single factor; correlated 2D and 3D factors; a bifactor model with a general factor and a factor specific to the 3D items; a testlet model with a general factor and a factor for each item class, capturing dependence among repeated presentations of the same item; and a two-tier model combining correlated 2D and 3D factors with the item-class factors.
+
+Two correlated factors fit better than one ($\Delta$BIC = `r round(dim_bic("one_factor") - dim_bic("two_factor"))`), and the correlation between them was modest (*r* = `r dim_f2(dimensionality$r_two_factor)`, and `r dim_f2(dimensionality$r_two_tier)` after accounting for item-class dependence in the two-tier model; estimated separately by site, `r dim_f2(min(dimensionality$site_r$r))` to `r dim_f2(max(dimensionality$site_r$r))`). The testlet model fit considerably worse than the two-factor model ($\Delta$BIC = `r round(dim_bic("testlet") - dim_bic("two_factor"))`), so the separate 3D factor is not explained by repeated presentation of the same items. In the bifactor model the general factor accounted for most of the common variance (explained common variance, ECV = `r dim_f2(dim_bf$ecv)`) and of the reliable variance in the total score ($\omega_h$ = `r dim_f2(dim_bf$omega_h)`; $\omega_h/\omega_{total}$ = `r dim_f2(dim_bf$omega_ratio)`), above conventional thresholds for treating a scale as essentially unidimensional [@rodriguez2016evaluating]. The general factor was, however, defined mainly by the 2D items (mean standardised loading `r dim_f2(dim_bf$loading_2d_general)`). The 3D items loaded more strongly on their specific factor (`r dim_f2(dim_bf$loading_3d_specific)`) than on the general factor (`r dim_f2(dim_bf$loading_3d_general)`), and only `r round(100 * dim_bf$ecv_3d_items)`% of their common variance was shared with it.
+
+The task score can therefore be treated as essentially unidimensional, which supports using a single ability estimate in the main analyses. This should not be read as showing that the 3D items measure the same ability as the 2D items. The 3D item set is small (three item classes), 3D items were presented only after the 2D items in fixed-form administrations, and adaptive administrations provided little 3D data, so these results cannot distinguish a partly distinct 3D ability from properties of this particular item set.
+
+```{r}
+#| label: tbl-dimensionality
+#| tbl-cap: "**Dimensionality of the task.** Models fitted to the overlapping item instances used in the invariance comparison, pooled across sites, with the priors and fixed guessing parameter of the main models. ΔBIC and ΔAIC are measured from the best model on each criterion. Item-class factors capture dependence among repeated presentations of the same item."
+
+dim_cmp |>
+  mutate(model = recode_values(model,
+           "one_factor" ~ "One factor",
+           "two_factor" ~ "Two correlated factors (2D, 3D)",
+           "bifactor" ~ "Bifactor: general + 3D-specific",
+           "testlet" ~ "Testlet: general + item-class factors",
+           "two_tier" ~ "Two-tier: 2D, 3D + item-class factors"),
+         across(c(BIC, AIC), \(x) sprintf("%.0f", x)),
+         across(c(dBIC, dAIC), \(x) sprintf("%.1f", x))) |>
+  select(model, n_pars, BIC, dBIC, AIC, dAIC) |>
+  knitr::kable(col.names = c("Model", "Parameters", "BIC", "ΔBIC", "AIC", "ΔAIC"),
+               booktabs = TRUE, linesep = "", align = c("l", "r", "r", "r", "r", "r"))
+```
+
+\clearpage
+
+# 3D versus 2D angle slopes
+
+```{r}
+#| label: tbl-slope-contrast-checks
+#| tbl-cap: "**3D vs. 2D angle slopes at shared angles.** Slopes in log RT per 40°."
+
+source(here("helper", "slope_contrast_checks.R"))
+slope_contrast_checks(mrot_lme_data, deg = deg) |>
+  mutate(check = recode_values(check,
+           "main" ~ "Main model",
+           "image" ~ "+ image random intercept",
+           "cat" ~ "Adaptive assessments only"),
+         across(c(runs, trials), \(x) format(x, big.mark = ",")),
+         across(c(slope_2d, slope_3d), \(x) sprintf("%.2f", x)),
+         estimate = sprintf("%.3f", estimate),
+         std.error = sprintf("%.3f", std.error),
+         p.value = map_chr(p.value, fmt_p) |> str_remove("^= ")) |>
+  select(check, runs, trials, slope_2d, slope_3d, estimate, std.error, p.value) |>
+  knitr::kable(col.names = c("Model", "Assessments", "Trials", "2D slope", "3D slope",
+                             "Δ (3D − 2D)", "SE", "p"),
+               booktabs = TRUE, linesep = "", align = c("l", rep("r", 7)))
 ```

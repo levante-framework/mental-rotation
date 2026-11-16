@@ -27,8 +27,4 @@ mrot_rasch_scalar <- mod_tbl |>
 delta_bic_rasch <- mrot_rasch_scalar$d_BIC
 delta_bic_configural <- mrot_2pl_configural$d_BIC
 bic_2pl_scalar <- as.character(mrot_2pl_scalar$BIC)
-aic_2pl_scalar <- as.character(mrot_2pl_scalar$AIC)
-# AIC favours the metric model even though BIC favours scalar; reported in text.
-aic_2pl_metric <- mod_tbl |>
-  filter(itemtype == "2pl", invariance == "metric") |> pull(AIC) |> as.character()
 ```

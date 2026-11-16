@@ -81,6 +81,9 @@ sex_data_cleaned <- read_rds(here("data/sex_data_cleaned.rds"))
 # apply filters to runs for use in all subsequent analyses; the same filter
 # selects the runs the IRT models are calibrated on (02, 03)
 source(here("helper", "filter_runs.R"))
+# Checks on claims made in the text apply to the main analysis only; the
+# exclusion sensitivity run (05) executes this code under relaxed exclusions.
+main_analysis <- Sys.getenv("MROT_EXCLUSIONS", "main") == "main"
 run_data_filtered <- run_data |>
   filter_runs() |>
   select(site, dataset, user_id, run_id, age, adaptive)
@@ -129,6 +132,13 @@ n_excluded <- run_data |>
 n_final <- mrot_df |>
   summarise(n_users = n_distinct(user_id),
             n_runs = n_distinct(run_id))
+
+# Headline results rerun without the exclusions (05_exclusion_sensitivity.qmd),
+# reported in the Methods and Table S13. Absent while 05 itself runs the paper's
+# code, which is why its absence is allowed here.
+excl_sens_file <- here("models/mrot_exclusion_sensitivity.rds")
+excl_sens <- if (file.exists(excl_sens_file)) read_rds(excl_sens_file) else NULL
+excl_relaxed <- if (is.null(excl_sens)) NULL else filter(excl_sens, exclusions == "relaxed")
 
 n_repeat_users <- runs_filtered |>
   group_by(user_id) |>
