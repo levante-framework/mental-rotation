@@ -418,9 +418,9 @@ older_3d_lo <- slopes_3d |>
   summarise(lo = mean(slope) - 1.96 * sd(slope) / sqrt(n()), .by = c(site_label, age_group))
 if (main_analysis) stopifnot(nrow(young_3d_n) == 2, all(older_3d_lo$lo > 0))
 
-# The abstract says the 2D effect was not seen among 5-7-year-olds at the two
-# Colombian sites (all assessments included) and held in every other site and
-# age group.
+# The Discussion says the 2D effect does not appear among 5-7-year-olds at the
+# two Colombian sites when all their assessments are included; check that, and
+# that it holds in every other site and age group.
 ci_2d <- run_angle_slopes(mrot_rt_trial, "2d", deg = deg, min_trials = min_trials) |>
   summarise(lo = mean(slope) - 1.96 * sd(slope) / sqrt(n()), .by = c(site_label, age_group)) |>
   mutate(young_colombian = age_group == young_band & site_label %in% colombian)
